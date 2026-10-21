@@ -130,6 +130,11 @@ Packages/packages-lock.json linguist-generated
 *.pict                  lfs
 *.png                   lfs
 *.psd                   lfs
+*.psb                   lfs
+*.ase                   lfs
+*.aseprite              lfs
+*.kra                   lfs
+*.clip                  lfs
 *.tga                   lfs
 *.tif                   lfs
 *.tiff                  lfs
