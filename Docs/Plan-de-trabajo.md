@@ -2,7 +2,7 @@
 
 > **Para retomar en otra sesión:** pídele a Claude *"lee `Docs/Plan-de-trabajo.md` y continúa con el Paso C"*.
 >
-> **Estado actual (21-oct-2026):** Paso A ✅ (carpetas + reglas LFS + `Assets/Welcome` eliminada, ya en la rama). Paso B ⏳ (el usuario copia sus referencias; puede hacerlo desde una sesión local de Claude Code en su carpeta de Unity en Windows). Paso C pendiente. Nota: desde la nube `lfs.github.com` está bloqueado; en sesión local no aplica.
+> **Estado actual (21-oct-2026):** Paso A ✅ (carpetas + reglas LFS + `Assets/Welcome` eliminada, ya en `main`). Ramas `main`, `dev` y `qa` creadas; la rama temporal `claude/pensive-pascal-l6lzhc` se eliminó. El trabajo ahora es **local** (Windows, `D:\Proyectos Unity\La Odisea Del Pan de Platano`). Paso B ⏳ (el usuario copia sus referencias en una rama `docs/referencias` creada desde `dev`). Paso C pendiente.
 
 ## Contexto
 Proyecto escolar, equipo de 5, juego de **plataformas 2D ilustrado** en Unity. El repo ya tiene un proyecto **Unity 6 (6000.6.6f1), plantilla 2D URP** con Input System, 2D Animation, PSD/Aseprite importer, Tilemap, Timeline y `.gitattributes` con Git LFS. Solo hay un commit ("Initial check-in"). El contenido creativo (historia, personajes, storyboards) está en PDFs.
@@ -47,7 +47,13 @@ hotfix/<descripcion>          ──PR──▶  main y dev
 - Protección de ramas en GitHub (lo configura el dueño del repo): PR obligatorio + 1 aprobación en `dev`/`qa`/`main`.
 - Commits **Conventional Commits en español**: `feat(player): agregar salto doble`, `fix(ui): …`, `art(sprites): …`, `docs(gdd): …`.
 - Regla anti-conflictos: **una persona por escena a la vez**; todo lo reutilizable va en **prefabs**; cada quien prueba en su propia escena `Assets/_Project/Scenes/Sandbox/<Nombre>.unity`.
-- Unity: Version Control = Visible Meta Files, Asset Serialization = Force Text (verificar en ProjectSettings), UnityYAMLMerge configurado.
+- Unity: Version Control = Visible Meta Files, Asset Serialization = Force Text (✅ verificado, `m_SerializationMode: 2`), UnityYAMLMerge configurado.
+- **UnityYAMLMerge es por computadora** (vive en `.git/config`, no se sube). Cada integrante lo configura una vez, con la ruta de su instalación de Unity:
+  ```bash
+  git config merge.unityyamlmerge.name "Unity SmartMerge (UnityYamlMerge)"
+  git config merge.unityyamlmerge.driver "\"<RutaUnity>/Editor/Data/Tools/UnityYAMLMerge.exe\" merge -h -p --force --fallback none %O %B %A %A"
+  git config merge.unityyamlmerge.recursive binary
+  ```
 
 ## 4. Estructura de carpetas de Unity
 ```
@@ -62,21 +68,21 @@ Assets/_Project/
 Se elimina la carpeta `Assets/Welcome` de la plantilla.
 
 ## 5. Cómo te ayudo con cada cosa
-- **Scripts (C#)**: los escribo yo completos (movimiento con Input System, cámara, salud, enemigos, checkpoints, diálogos, menús, guardado), con datos en ScriptableObjects para que diseño ajuste valores sin tocar código. Ustedes los prueban en el Editor (aquí no puedo ejecutar Unity) y me reportan errores de consola.
+- **Scripts (C#)**: los escribo yo completos (movimiento con Input System, cámara, salud, enemigos, checkpoints, diálogos, menús, guardado), con datos en ScriptableObjects para que diseño ajuste valores sin tocar código. En sesión local puedo usar el Editor abierto (vía Unity CLI) para crear objetos y leer la consola; ustedes prueban el juego y me reportan lo que no se sienta bien.
 - **Sprites**: no puedo dibujar el arte ilustrado final; sí puedo: definir specs en `Pipeline-Arte.md`, generar sprites placeholder para prototipar, scripts de editor para importación/slicing automático, y configurar Sprite Atlas.
 - **Animaciones**: Animator Controllers y máquinas de estado, el script que las maneja, guía de rigging con PSD Importer + 2D Animation (ideal para estilo ilustrado), y Timeline para cinemáticas de los storyboards.
 - **Gestión**: crear issues por tarea del roadmap, revisar PRs, mantener bitácora y changelog, ayudar con la presentación final.
 
 ## 6. Orden de trabajo (al aprobar el plan)
-**Paso A — yo (rápido):** en la rama `claude/pensive-pascal-l6lzhc` creo solo las carpetas vacías (`Docs/Referencias/...` y `Assets/_Project/...` con `.gitkeep`) + reglas LFS, y hago push. Así ya sabes exactamente dónde soltar cada archivo.
+**Paso A — ✅ hecho:** carpetas vacías (`Docs/Referencias/...` y `Assets/_Project/...`), reglas LFS, `Assets/Welcome` eliminada, ramas `dev` y `qa` creadas desde `main`.
 
-**Paso B — tú (Windows, proyecto creado con Unity Hub + GitHub):** la carpeta del proyecto en tu compu YA es el repo (ruta visible en Unity Hub → Projects → ⋯ → Show in Explorer). Cierra Unity → GitHub Desktop *Add local repository* con esa carpeta → Fetch → cambiar a rama `claude/pensive-pascal-l6lzhc` → copiar archivos → commit → push. Luego subes PDFs, paleta, diseños de personajes y sprites a esas carpetas (en esa misma rama, con un commit tipo `docs(referencias): agregar PDFs y arte de personajes`) y me avisas. Yo **no avanzo** hasta que me digas que ya están.
+**Paso B — tú:** en tu computadora, desde la rama `dev`, crea la rama `docs/referencias`. Copia PDFs, paleta, diseños de personajes y sprites a las carpetas de la sección 1. Haz commit `docs(referencias): agregar PDFs y arte de personajes`, push y PR → `dev` (o pídeme que lo haga yo). Yo **no avanzo** con el Paso C hasta que me digas que ya están.
 
-**Paso C — yo:**
+**Paso C — yo** (en una rama `docs/base-proyecto` desde `dev`):
 1. Leer todo y generar `Docs/GDD/*.md` y `Docs/Pipeline-Arte.md` (con la paleta y specs reales de sus sprites).
 2. Crear `AGENTS.md`, `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `Docs/Roadmap.md`, `Docs/Bitacora.md`, plantillas de `.github/`.
-3. Reorganizar sprites si hace falta, quitar `Assets/Welcome`.
-4. Commit + push. Después, con tu permiso: crear `dev` y `qa` desde `main`, abrir PR de mi rama → `dev`, y crear issues del roadmap.
+3. Reorganizar sprites si hace falta.
+4. Commit + push + PR → `dev`. Después, con tu permiso, crear issues del roadmap.
 
 ## Verificación
 - Abrir el proyecto en Unity 6000.6.6f1 sin errores en consola tras el cambio de carpetas.
