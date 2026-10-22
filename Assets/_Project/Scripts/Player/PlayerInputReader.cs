@@ -12,15 +12,19 @@ namespace Odisea.Player
         [SerializeField] private InputActionAsset actions;
         [SerializeField] private string actionMap = "Player";
 
+        private InputActionMap map;
         private InputAction move;
         private InputAction jump;
         private InputAction attack;
         private InputAction crouch;
 
+        // Las pulsaciones se guardan desde el callback "performed" hasta que alguien las consume.
+        // Así no se pierden toques muy rápidos ni dependen de en qué ciclo de Unity llegó el evento.
+        private bool jumpQueued;
+        private bool attackQueued;
+
         public Vector2 Move => move != null ? move.ReadValue<Vector2>() : Vector2.zero;
-        public bool JumpPressed => jump != null && jump.WasPressedThisFrame();
         public bool JumpHeld => jump != null && jump.IsPressed();
-        public bool AttackPressed => attack != null && attack.WasPressedThisFrame();
         public bool CrouchHeld => crouch != null && crouch.IsPressed();
 
         private void Awake()
@@ -31,15 +35,51 @@ namespace Odisea.Player
                 return;
             }
 
-            var map = actions.FindActionMap(actionMap, throwIfNotFound: true);
+            map = actions.FindActionMap(actionMap, throwIfNotFound: true);
             move = map.FindAction("Move", throwIfNotFound: true);
             jump = map.FindAction("Jump", throwIfNotFound: true);
             attack = map.FindAction("Attack", throwIfNotFound: true);
             crouch = map.FindAction("Crouch");
         }
 
-        private void OnEnable() => actions?.FindActionMap(actionMap)?.Enable();
+        private void OnEnable()
+        {
+            if (map == null)
+                return;
+            jump.performed += OnJumpPerformed;
+            attack.performed += OnAttackPerformed;
+            map.Enable();
+        }
 
-        private void OnDisable() => actions?.FindActionMap(actionMap)?.Disable();
+        private void OnDisable()
+        {
+            if (map == null)
+                return;
+            jump.performed -= OnJumpPerformed;
+            attack.performed -= OnAttackPerformed;
+            map.Disable();
+            jumpQueued = false;
+            attackQueued = false;
+        }
+
+        /// <summary>true una sola vez por cada pulsación de salto.</summary>
+        public bool ConsumeJumpPressed()
+        {
+            bool pressed = jumpQueued;
+            jumpQueued = false;
+            return pressed;
+        }
+
+        /// <summary>true una sola vez por cada pulsación de golpe.</summary>
+        public bool ConsumeAttackPressed()
+        {
+            bool pressed = attackQueued;
+            attackQueued = false;
+            return pressed;
+        }
+
+        private void OnJumpPerformed(InputAction.CallbackContext _) => jumpQueued = true;
+
+        private void OnAttackPerformed(InputAction.CallbackContext _) => attackQueued = true;
     }
 }

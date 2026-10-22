@@ -28,7 +28,10 @@ namespace Odisea.Player
         {
             cooldownTimer -= Time.deltaTime;
 
-            if (input.AttackPressed && cooldownTimer <= 0f && controller.HasControl)
+            if (controller.Config == null || input == null)
+                return;
+
+            if (input.ConsumeAttackPressed() && cooldownTimer <= 0f && controller.HasControl)
                 Attack();
         }
 

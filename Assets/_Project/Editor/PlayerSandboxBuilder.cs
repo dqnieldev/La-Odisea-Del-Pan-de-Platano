@@ -38,12 +38,12 @@ namespace Odisea.EditorTools
             int playerLayer = EnsureLayer("Player", 7);
             int enemyLayer = EnsureLayer("Enemy", 8);
 
-            Sprite square = EnsurePlaceholderSprite();
-            PhysicsMaterial2D noFriction = EnsureNoFrictionMaterial();
-            PlayerConfig config = EnsurePlayerConfig(groundLayer, enemyLayer);
-            var inputActions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputPath);
-            if (inputActions == null)
-                throw new InvalidOperationException($"No se encontró {InputPath}.");
+            EnsurePlaceholderSprite();
+            EnsureNoFrictionMaterial();
+            EnsurePlayerConfig(groundLayer, enemyLayer);
+            // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
+            // y las referencias a ellos quedarían vacías.
+            AssetDatabase.SaveAssets();
 
             EnsureFolder(Path.GetDirectoryName(ScenePath));
             if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath) &&
@@ -52,6 +52,11 @@ namespace Odisea.EditorTools
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             ClearSceneExcept(scene, "Main Camera", "Global Light 2D");
+
+            Sprite square = LoadRequired<Sprite>(SpritePath);
+            var noFriction = LoadRequired<PhysicsMaterial2D>(MaterialPath);
+            var config = LoadRequired<PlayerConfig>(ConfigPath);
+            var inputActions = LoadRequired<InputActionAsset>(InputPath);
 
             var level = new GameObject("Nivel").transform;
             CreateBlock("Suelo", level, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
@@ -187,12 +192,34 @@ namespace Odisea.EditorTools
             }
         }
 
+        private static T LoadRequired<T>(string path) where T : UnityEngine.Object
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null)
+                throw new InvalidOperationException($"No se encontró {path}.");
+            return asset;
+        }
+
         private static void SetSerialized(UnityEngine.Object target, string field, object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(field)
                 ?? throw new InvalidOperationException($"{target.GetType().Name} no tiene el campo '{field}'.");
 
+            if (value is UnityEngine.Object reference)
+            {
+                property.objectReferenceValue = reference;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                if (new SerializedObject(target).FindProperty(field).objectReferenceValue == null)
+                    throw new InvalidOperationException($"No se pudo asignar '{field}' en {target.GetType().Name}.");
+                return;
+            }
+
+            SetSerializedValue(serialized, property, field, value);
+        }
+
+        private static void SetSerializedValue(SerializedObject serialized, SerializedProperty property, string field, object value)
+        {
             switch (value)
             {
                 case int i: // También cubre LayerMask.
@@ -203,9 +230,6 @@ namespace Odisea.EditorTools
                     break;
                 case bool b:
                     property.boolValue = b;
-                    break;
-                case UnityEngine.Object o:
-                    property.objectReferenceValue = o;
                     break;
                 default:
                     throw new ArgumentException($"Tipo no soportado para '{field}'.");
@@ -242,7 +266,7 @@ namespace Odisea.EditorTools
             throw new InvalidOperationException("No hay capas libres en Tags and Layers.");
         }
 
-        private static Sprite EnsurePlaceholderSprite()
+        private static void EnsurePlaceholderSprite()
         {
             if (!File.Exists(SpritePath))
             {
@@ -263,23 +287,20 @@ namespace Odisea.EditorTools
                 importer.filterMode = FilterMode.Point;
                 importer.SaveAndReimport();
             }
-            return AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
         }
 
-        private static PhysicsMaterial2D EnsureNoFrictionMaterial()
+        private static void EnsureNoFrictionMaterial()
         {
-            var material = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(MaterialPath);
-            if (material != null)
-                return material;
+            if (AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(MaterialPath) != null)
+                return;
 
             EnsureFolder(Path.GetDirectoryName(MaterialPath));
             // Sin fricción para que Ulises no se quede pegado a las paredes al saltar contra ellas.
-            material = new PhysicsMaterial2D("SinFriccion") { friction = 0f, bounciness = 0f };
+            var material = new PhysicsMaterial2D("SinFriccion") { friction = 0f, bounciness = 0f };
             AssetDatabase.CreateAsset(material, MaterialPath);
-            return material;
         }
 
-        private static PlayerConfig EnsurePlayerConfig(int groundLayer, int enemyLayer)
+        private static void EnsurePlayerConfig(int groundLayer, int enemyLayer)
         {
             var config = AssetDatabase.LoadAssetAtPath<PlayerConfig>(ConfigPath);
             if (config == null)
@@ -294,7 +315,6 @@ namespace Odisea.EditorTools
             if (config.attackLayers.value == 0)
                 config.attackLayers = 1 << enemyLayer;
             EditorUtility.SetDirty(config);
-            return config;
         }
 
         private static void EnsureFolder(string path)

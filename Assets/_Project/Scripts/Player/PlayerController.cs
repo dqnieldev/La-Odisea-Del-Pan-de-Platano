@@ -41,6 +41,13 @@ namespace Odisea.Player
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
+            if (config == null || input == null || groundCheck == null)
+            {
+                Debug.LogError($"{name}: PlayerController necesita Config, Input y Ground Check asignados en el Inspector.", this);
+                enabled = false;
+                return;
+            }
+
             body.gravityScale = config.gravityScale;
             body.freezeRotation = true;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -71,10 +78,12 @@ namespace Odisea.Player
             jumpBufferTimer -= dt;
             controlLockTimer -= dt;
 
+            // Se consume siempre para que un salto pulsado durante el aturdimiento no se dispare después.
+            bool jumpPressed = input.ConsumeJumpPressed();
             if (!HasControl)
                 return;
 
-            if (input.JumpPressed)
+            if (jumpPressed)
                 jumpBufferTimer = config.jumpBufferTime;
 
             TryJump();
