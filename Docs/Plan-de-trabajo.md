@@ -12,9 +12,20 @@ Objetivo de este primer paso: dejar la **estructura, las reglas y la documentaci
 ## Decisiones tomadas
 | Fecha | Decisión |
 |---|---|
-| 22-oct-2026 | **MVP = 2 niveles**, como en el *Documento Oscar*: Nivel 1 "El Mercado Vertical" (plataformas verticales) y "Carrera por La Tovara" (runner lateral). El tower defense de la panadería (Acto II) es **extra** solo si sobra tiempo. |
+| 22-oct-2026 | **MVP = 2 niveles jugables + 3 escenarios**: (0) **Tutorial**, escenario donde se enseñan movimiento y mecánicas; (1) "El Mercado Vertical" (plataformas verticales); (2) "Carrera por La Tovara" (side-scroller). El tower defense de la panadería (Acto II) es **extra** solo si sobra tiempo. |
+| 22-oct-2026 | **Entrega final: antes del 12-nov-2026.** Build congelada el 10-nov. |
+| 22-oct-2026 | **Ulises sí golpea** (ataque cuerpo a cuerpo con el rodillo). |
+| 22-oct-2026 | **En La Tovara el jugador controla la velocidad** (no es runner automático). Los dos niveles comparten el mismo controlador de plataformas; La Tovara agrega cronómetro, lodo, deslizarse y power-ups. |
+| 22-oct-2026 | **Equipo:** Daniel y Eduardo (desarrollo), Emmanuel y Jorge (diseño), Axel (pendiente de rol). |
 
-**Pendientes de decidir:** fecha real de entrega y entregables; si Ulises tiene combate (rodillo / pelea con Polifemo); runner automático o control libre; reparto de tareas del equipo.
+## Roadmap del MVP (22-oct → 11-nov)
+| Semana | Desarrollo | Diseño |
+|---|---|---|
+| **1 · 22–28 oct**: Base jugable | Controlador de Ulises (correr, saltar, doble salto, golpe, recibir daño, vidas), cámara, flujo de escenas (`GameManager`), menú principal, escena Tutorial en graybox | Ulises con fondo transparente y frames alineados (idle, correr, saltar, caer, golpe, daño, agacharse/deslizar); íconos de ingredientes |
+| **2 · 29 oct–4 nov**: Nivel 1 | Mercado: plataformas, proyectiles de Circe, ingredientes, Polifemo; HUD (vidas, puntos, tiempo); Game Over y Victoria; Tutorial con arte | Sprites jugables de Circe, piezas del mercado en PNG transparente, UI (botones, paneles, corazones) |
+| **3 · 5–11 nov**: La Tovara + entrega | Manglares: cocodrilos, lodo, ramas bajas (deslizarse), aves, hoja de plátano (escudo), café de olla (velocidad), cronómetro; audio; pulido; build `.exe`, tag `v1.0` | Arte de manglares (fondo con capas, plataformas, enemigos), pantallas de victoria |
+
+Propuesta de reparto (a confirmar): **Daniel**: Ulises, física y Nivel 1. **Eduardo**: menús, HUD, flujo de escenas, Tutorial y La Tovara. **Emmanuel**: personajes y animaciones. **Jorge**: escenarios y UI. **Axel**: QA, documentación, bitácora y video.
 
 ## 1. Cómo me pasas el contexto (dónde va cada cosa)
 Regla: **lo que es referencia/diseño va en `Docs/`** (Unity no lo importa); **lo que entra al juego va en `Assets/_Project/Art/`**.
