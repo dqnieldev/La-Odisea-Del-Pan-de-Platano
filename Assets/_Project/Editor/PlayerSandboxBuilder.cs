@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using Odisea.Core;
 using Odisea.Player;
+using Odisea.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Odisea.EditorTools
 {
@@ -19,6 +21,23 @@ namespace Odisea.EditorTools
         private const string BaseScenePath = "Assets/Scenes/SampleScene.unity";
         private const string ScenePath = "Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity";
         private const string SpritePath = "Assets/_Project/Art/Placeholders/Cuadro.png";
+        private const string HeartFullPath = "Assets/_Project/Art/Placeholders/CorazonLleno.png";
+        private const string HeartEmptyPath = "Assets/_Project/Art/Placeholders/CorazonVacio.png";
+
+        // Corazón en pixel art. X = contorno, o = relleno, w = brillo. La primera fila es la de arriba.
+        private static readonly string[] HeartPattern =
+        {
+            "..XXX.XXX..",
+            ".XoooXoooX.",
+            "XoowooooooX",
+            "XowoooooooX",
+            "XoooooooooX",
+            ".XoooooooX.",
+            "..XoooooX..",
+            "...XoooX...",
+            "....XoX....",
+            ".....X.....",
+        };
         private const string MaterialPath = "Assets/_Project/Settings/SinFriccion.physicsMaterial2D";
         private const string ConfigPath = "Assets/_Project/ScriptableObjects/Player/UlisesConfig.asset";
         private const string InputPath = "Assets/Settings/InputSystem_Actions.inputactions";
@@ -30,6 +49,8 @@ namespace Odisea.EditorTools
         private static readonly Color Manglar = new(0.180f, 0.353f, 0.267f);
         private static readonly Color Chile = new(0.784f, 0.263f, 0.169f);
         private static readonly Color Mar = new(0.184f, 0.561f, 0.627f);
+        private static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
+        private static readonly Color Madera = new(0.545f, 0.353f, 0.169f);
 
         [MenuItem("Odisea/Sandbox/Crear escena de prueba del jugador")]
         public static void Build()
@@ -39,6 +60,8 @@ namespace Odisea.EditorTools
             int enemyLayer = EnsureLayer("Enemy", 8);
 
             EnsurePlaceholderSprite();
+            EnsureHeartSprite(HeartFullPath, Chile, Crema);
+            EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
             EnsureNoFrictionMaterial();
             EnsurePlayerConfig(groundLayer, enemyLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
@@ -57,6 +80,8 @@ namespace Odisea.EditorTools
             var noFriction = LoadRequired<PhysicsMaterial2D>(MaterialPath);
             var config = LoadRequired<PlayerConfig>(ConfigPath);
             var inputActions = LoadRequired<InputActionAsset>(InputPath);
+            var fullHeart = LoadRequired<Sprite>(HeartFullPath);
+            var emptyHeart = LoadRequired<Sprite>(HeartEmptyPath);
 
             var level = new GameObject("Nivel").transform;
             CreateBlock("Suelo", level, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
@@ -71,14 +96,10 @@ namespace Odisea.EditorTools
             var hazardComponent = hazard.AddComponent<Hazard>();
             SetSerialized(hazardComponent, "targetLayers", 1 << playerLayer);
 
-            var dummy = CreateBlock("Muñeco de práctica", level, square, new Vector2(-4f, 0.75f), new Vector2(1f, 1.5f), Mar, enemyLayer);
-            dummy.GetComponent<BoxCollider2D>().isTrigger = true;
-            var dummyHealth = dummy.AddComponent<Health>();
-            SetSerialized(dummyHealth, "maxHealth", 3);
-            SetSerialized(dummyHealth, "invulnerabilityTime", 0.2f);
-            SetSerialized(dummyHealth, "destroyOnDeath", true);
+            CreateDummy(level, square, enemyLayer);
 
             GameObject player = CreatePlayer(square, noFriction, config, inputActions, playerLayer);
+            CreateHud(player.GetComponent<Health>(), fullHeart, emptyHeart);
 
             var camera = GameObject.Find("Main Camera");
             camera.transform.position = new Vector3(0f, 2f, -10f);
@@ -165,7 +186,99 @@ namespace Odisea.EditorTools
             SetSerialized(animator, "health", health);
             SetSerialized(animator, "spriteRenderer", renderer);
 
+            var feedback = player.AddComponent<DamageFeedback>();
+            SetSerialized(feedback, "health", health);
+            SetSerialized(feedback, "visual", visual.transform);
+            SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer, noseRenderer });
+            SetSerialized(feedback, "flashColor", Chile);
+
+            CreateAttackVisual(player, combat, square, config, playerLayer);
             return player;
+        }
+
+        private static void CreateAttackVisual(GameObject player, PlayerCombat combat, Sprite square, PlayerConfig config, int layer)
+        {
+            // Rodillo: el pivote es la mano; la barra sale hacia adelante y gira hacia abajo.
+            var pivot = new GameObject("Rodillo") { layer = layer };
+            pivot.transform.SetParent(player.transform, false);
+            pivot.transform.localPosition = new Vector3(0.25f, 0.15f, 0f);
+
+            var bar = new GameObject("Barra") { layer = layer };
+            bar.transform.SetParent(pivot.transform, false);
+            bar.transform.localPosition = new Vector3(0.6f, 0f, 0f);
+            bar.transform.localScale = new Vector3(1f, 0.22f, 1f);
+            var barRenderer = bar.AddComponent<SpriteRenderer>();
+            barRenderer.sprite = square;
+            barRenderer.color = Madera;
+            barRenderer.sortingOrder = 12;
+
+            // Estela: ocupa exactamente el área que daña el golpe (PlayerConfig.attackOffset / attackSize).
+            var trail = new GameObject("Estela") { layer = layer };
+            trail.transform.SetParent(player.transform, false);
+            trail.transform.localPosition = config.attackOffset;
+            trail.transform.localScale = new Vector3(config.attackSize.x, config.attackSize.y, 1f);
+            var trailRenderer = trail.AddComponent<SpriteRenderer>();
+            trailRenderer.sprite = square;
+            trailRenderer.color = new Color(Platano.r, Platano.g, Platano.b, 0.45f);
+            trailRenderer.sortingOrder = 9;
+
+            var attackVisual = player.AddComponent<PlayerAttackVisual>();
+            SetSerialized(attackVisual, "combat", combat);
+            SetSerialized(attackVisual, "swingPivot", pivot.transform);
+            SetSerialized(attackVisual, "trail", trailRenderer);
+        }
+
+        private static void CreateDummy(Transform parent, Sprite square, int enemyLayer)
+        {
+            var dummy = new GameObject("Muñeco de práctica") { layer = enemyLayer };
+            dummy.transform.SetParent(parent, false);
+            dummy.transform.position = new Vector3(-4f, 0.75f, 0f);
+            var collider = dummy.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(1f, 1.5f);
+            collider.isTrigger = true;
+
+            var visual = new GameObject("Visual") { layer = enemyLayer };
+            visual.transform.SetParent(dummy.transform, false);
+            visual.transform.localScale = new Vector3(1f, 1.5f, 1f);
+            var renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sprite = square;
+            renderer.color = Mar;
+            renderer.sortingOrder = 5;
+
+            var health = dummy.AddComponent<Health>();
+            SetSerialized(health, "maxHealth", 3);
+            SetSerialized(health, "invulnerabilityTime", 0.2f);
+            SetSerialized(health, "destroyOnDeath", false); // Lo destruye DamageFeedback tras la animación.
+
+            var feedback = dummy.AddComponent<DamageFeedback>();
+            SetSerialized(feedback, "health", health);
+            SetSerialized(feedback, "visual", visual.transform);
+            SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer });
+            SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+        }
+
+        private static void CreateHud(Health playerHealth, Sprite fullHeart, Sprite emptyHeart)
+        {
+            var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
+            var canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasObject.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            // Design system: HUD anclado a 48 px de los bordes, vidas arriba a la izquierda.
+            var lives = new GameObject("Vidas", typeof(RectTransform));
+            var rect = (RectTransform)lives.transform;
+            rect.SetParent(canvasObject.transform, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(48f, -48f);
+            rect.sizeDelta = new Vector2(300f, 80f);
+
+            var hearts = lives.AddComponent<HeartsDisplay>();
+            SetSerialized(hearts, "health", playerHealth);
+            SetSerialized(hearts, "fullHeart", fullHeart);
+            SetSerialized(hearts, "emptyHeart", emptyHeart);
         }
 
         private static GameObject CreateBlock(string name, Transform parent, Sprite sprite, Vector2 position,
@@ -206,6 +319,15 @@ namespace Odisea.EditorTools
             SerializedProperty property = serialized.FindProperty(field)
                 ?? throw new InvalidOperationException($"{target.GetType().Name} no tiene el campo '{field}'.");
 
+            if (value is UnityEngine.Object[] references)
+            {
+                property.arraySize = references.Length;
+                for (int i = 0; i < references.Length; i++)
+                    property.GetArrayElementAtIndex(i).objectReferenceValue = references[i];
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                return;
+            }
+
             if (value is UnityEngine.Object reference)
             {
                 property.objectReferenceValue = reference;
@@ -230,6 +352,9 @@ namespace Odisea.EditorTools
                     break;
                 case bool b:
                     property.boolValue = b;
+                    break;
+                case Color color:
+                    property.colorValue = color;
                     break;
                 default:
                     throw new ArgumentException($"Tipo no soportado para '{field}'.");
@@ -287,6 +412,42 @@ namespace Odisea.EditorTools
                 importer.filterMode = FilterMode.Point;
                 importer.SaveAndReimport();
             }
+        }
+
+        private static void EnsureHeartSprite(string path, Color fill, Color shine)
+        {
+            if (File.Exists(path))
+                return;
+
+            EnsureFolder(Path.GetDirectoryName(path));
+            int height = HeartPattern.Length;
+            int width = HeartPattern[0].Length;
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            for (int row = 0; row < height; row++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Color pixel = HeartPattern[row][x] switch
+                    {
+                        'X' => Cafe,
+                        'o' => fill,
+                        'w' => shine,
+                        _ => Color.clear,
+                    };
+                    // Las texturas empiezan abajo; el patrón está escrito de arriba hacia abajo.
+                    texture.SetPixel(x, height - 1 - row, pixel);
+                }
+            }
+            File.WriteAllBytes(path, texture.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(path);
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
         }
 
         private static void EnsureNoFrictionMaterial()

@@ -3,7 +3,8 @@
     "rootNamespace": "Odisea.EditorTools",
     "references": [
         "Odisea",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"
