@@ -20,10 +20,16 @@ namespace Odisea.Player
         [SerializeField] private Health health;
 
         private Rigidbody2D body;
+        private Collider2D bodyCollider;
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float controlLockTimer;
         private int extraJumpsLeft;
+
+        // Plataforma que se está atravesando al bajar (abajo + saltar).
+        private Collider2D groundCollider;
+        private Collider2D droppingPlatform;
+        private float dropTimer;
 
         public PlayerConfig Config => config;
         public bool IsGrounded { get; private set; }
@@ -34,13 +40,18 @@ namespace Odisea.Player
         public float SpeedMultiplier { get; set; } = 1f;
         public bool HasControl => controlLockTimer <= 0f && (health == null || !health.IsDead);
 
+        /// <summary>true si Ulises está parado en una plataforma que se puede atravesar hacia abajo.</summary>
+        public bool IsOnDropThroughPlatform => IsGrounded && CanDropThrough(groundCollider);
+
         public event Action Jumped;
         public event Action DoubleJumped;
         public event Action Landed;
+        public event Action DroppedThrough;
 
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
+            bodyCollider = GetComponent<Collider2D>();
             if (config == null || input == null || groundCheck == null)
             {
                 Debug.LogError($"{name}: PlayerController necesita Config, Input y Ground Check asignados en el Inspector.", this);
@@ -77,13 +88,17 @@ namespace Odisea.Player
             coyoteTimer -= dt;
             jumpBufferTimer -= dt;
             controlLockTimer -= dt;
+            UpdateDropThrough(dt);
 
             // Se consume siempre para que un salto pulsado durante el aturdimiento no se dispare después.
             bool jumpPressed = input.ConsumeJumpPressed();
             if (!HasControl)
                 return;
 
-            if (jumpPressed)
+            bool holdingDown = input.Move.y <= -config.dropInputThreshold;
+            if (jumpPressed && holdingDown && IsOnDropThroughPlatform)
+                DropThroughPlatform();
+            else if (jumpPressed)
                 jumpBufferTimer = config.jumpBufferTime;
 
             TryJump();
@@ -107,12 +122,55 @@ namespace Odisea.Player
             controlLockTimer = lockTime;
         }
 
+        /// <summary>
+        /// Baja de la plataforma actual atravesándola. Solo funciona en plataformas de un sentido
+        /// (con PlatformEffector2D); el suelo normal no se puede atravesar.
+        /// </summary>
+        public bool DropThroughPlatform()
+        {
+            if (!IsOnDropThroughPlatform || bodyCollider == null)
+                return false;
+
+            droppingPlatform = groundCollider;
+            dropTimer = config.dropThroughTime;
+            Physics2D.IgnoreCollision(bodyCollider, droppingPlatform, true);
+
+            IsGrounded = false;
+            coyoteTimer = 0f;
+            jumpBufferTimer = 0f;
+            // Pequeño empujón hacia abajo para que no se quede "flotando" sobre la orilla.
+            body.linearVelocity = new Vector2(body.linearVelocity.x, -2f);
+            DroppedThrough?.Invoke();
+            return true;
+        }
+
+        private void UpdateDropThrough(float dt)
+        {
+            if (droppingPlatform == null)
+                return;
+
+            dropTimer -= dt;
+            if (dropTimer > 0f)
+                return;
+
+            // La plataforma es de un sentido: aunque Ulises siga dentro, no lo empuja hacia arriba.
+            Physics2D.IgnoreCollision(bodyCollider, droppingPlatform, false);
+            droppingPlatform = null;
+        }
+
+        private static bool CanDropThrough(Collider2D platform) =>
+            platform != null && platform.usedByEffector && platform.GetComponent<PlatformEffector2D>() != null;
+
         private void UpdateGrounded()
         {
             bool wasGrounded = IsGrounded;
-            bool touching = Physics2D.OverlapBox(groundCheck.position, config.groundCheckSize, 0f, config.groundLayers);
+            groundCollider = Physics2D.OverlapBox(groundCheck.position, config.groundCheckSize, 0f, config.groundLayers);
+            // Mientras atraviesa una plataforma, esa plataforma no cuenta como suelo.
+            if (groundCollider != null && groundCollider == droppingPlatform)
+                groundCollider = null;
+
             // Al despegar el sensor sigue tocando el suelo un instante; solo cuenta si no va subiendo.
-            IsGrounded = touching && body.linearVelocity.y <= 0.01f;
+            IsGrounded = groundCollider != null && body.linearVelocity.y <= 0.01f;
 
             if (IsGrounded)
             {

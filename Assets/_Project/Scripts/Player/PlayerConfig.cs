@@ -38,6 +38,12 @@ namespace Odisea.Player
         [Min(1f)] public float jumpCutGravityMultiplier = 2.5f;
         [Min(0f)] public float maxFallSpeed = 20f;
 
+        [Header("Bajar de plataformas (abajo + saltar)")]
+        [Tooltip("Qué tanto hay que inclinar hacia abajo (0-1) para que el salto se convierta en bajar.")]
+        [Range(0.1f, 1f)] public float dropInputThreshold = 0.5f;
+        [Tooltip("Segundos que Ulises atraviesa la plataforma antes de volver a chocar con ella.")]
+        [Min(0.05f)] public float dropThroughTime = 0.25f;
+
         [Header("Detección de suelo")]
         public LayerMask groundLayers;
         public Vector2 groundCheckSize = new(0.7f, 0.1f);

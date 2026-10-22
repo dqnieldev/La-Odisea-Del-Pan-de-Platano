@@ -25,6 +25,8 @@ MonoBehaviour:
   fallGravityMultiplier: 1.7
   jumpCutGravityMultiplier: 2.5
   maxFallSpeed: 20
+  dropInputThreshold: 0.5
+  dropThroughTime: 0.25
   groundLayers:
     serializedVersion: 2
     m_Bits: 64

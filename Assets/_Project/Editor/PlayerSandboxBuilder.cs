@@ -87,9 +87,13 @@ namespace Odisea.EditorTools
             CreateBlock("Suelo", level, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
             CreateBlock("Pared izquierda", level, square, new Vector2(-20.5f, 4f), new Vector2(1f, 12f), Manglar, groundLayer);
             CreateBlock("Pared derecha", level, square, new Vector2(40.5f, 4f), new Vector2(1f, 12f), Manglar, groundLayer);
-            CreateBlock("Plataforma baja", level, square, new Vector2(4f, 2f), new Vector2(4f, 0.5f), Cafe, groundLayer);
-            CreateBlock("Plataforma media", level, square, new Vector2(10f, 4.5f), new Vector2(3f, 0.5f), Cafe, groundLayer);
-            CreateBlock("Plataforma doble salto", level, square, new Vector2(16f, 8f), new Vector2(3f, 0.5f), Cafe, groundLayer);
+            // Madera = plataformas de un sentido: se suben saltando desde abajo y se bajan con abajo + saltar.
+            // Café = bloques sólidos que no se pueden atravesar.
+            MakeOneWay(CreateBlock("Plataforma baja", level, square, new Vector2(4f, 2f), new Vector2(4f, 0.4f), Madera, groundLayer));
+            MakeOneWay(CreateBlock("Plataforma media", level, square, new Vector2(10f, 4.5f), new Vector2(3f, 0.4f), Madera, groundLayer));
+            MakeOneWay(CreateBlock("Plataforma doble salto", level, square, new Vector2(16f, 8f), new Vector2(3f, 0.4f), Madera, groundLayer));
+            MakeOneWay(CreateBlock("Repisa 1", level, square, new Vector2(-14f, 2.5f), new Vector2(4f, 0.4f), Madera, groundLayer));
+            MakeOneWay(CreateBlock("Repisa 2", level, square, new Vector2(-14f, 5f), new Vector2(4f, 0.4f), Madera, groundLayer));
             CreateBlock("Escalón", level, square, new Vector2(-8f, 0.75f), new Vector2(3f, 1.5f), Cafe, groundLayer);
 
             var hazard = CreateBlock("Peligro (resta 1 vida)", level, square, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f), Chile, groundLayer);
@@ -100,6 +104,9 @@ namespace Odisea.EditorTools
 
             GameObject player = CreatePlayer(square, noFriction, config, inputActions, playerLayer);
             CreateHud(player.GetComponent<Health>(), fullHeart, emptyHeart);
+
+            var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
+            SetSerialized(shortcuts, "playerHealth", player.GetComponent<Health>());
 
             var camera = GameObject.Find("Main Camera");
             camera.transform.position = new Vector3(0f, 2f, -10f);
@@ -279,6 +286,55 @@ namespace Odisea.EditorTools
             SetSerialized(hearts, "health", playerHealth);
             SetSerialized(hearts, "fullHeart", fullHeart);
             SetSerialized(hearts, "emptyHeart", emptyHeart);
+
+            CreateControlsPanel(canvasObject.transform);
+        }
+
+        private static void CreateControlsPanel(Transform canvas)
+        {
+            // Bandeja café (design system), arriba a la derecha. Más opaca que el 78% para leerse sobre fondo crema.
+            var panel = new GameObject("Controles", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)panel.transform;
+            rect.SetParent(canvas, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-48f, -48f);
+            rect.sizeDelta = new Vector2(660f, 300f);
+            var background = panel.GetComponent<Image>();
+            background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.92f);
+            background.raycastTarget = false;
+
+            var textObject = new GameObject("Texto", typeof(RectTransform), typeof(Text));
+            var textRect = (RectTransform)textObject.transform;
+            textRect.SetParent(panel.transform, false);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(24f, 20f);
+            textRect.offsetMax = new Vector2(-24f, -20f);
+
+            var text = textObject.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 25;
+            text.lineSpacing = 1.15f;
+            text.color = Crema;
+            text.raycastTarget = false;
+            text.supportRichText = true;
+            text.text =
+                "<b><color=#F5B731>CONTROLES</color></b>\n" +
+                "Moverse:  A / D  ·  flechas  ·  stick / cruceta\n" +
+                "Saltar:  Espacio  ·  A / Cruz   (2 veces = doble salto)\n" +
+                "Bajar de la madera:  abajo + saltar\n" +
+                "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
+                "Reiniciar:  R  ·  Start\n" +
+                "Salir:  Esc  ·  Select\n" +
+                "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
+        }
+
+        private static void MakeOneWay(GameObject platform)
+        {
+            var effector = platform.AddComponent<PlatformEffector2D>();
+            effector.useOneWay = true;
+            effector.surfaceArc = 160f;
+            platform.GetComponent<BoxCollider2D>().usedByEffector = true;
         }
 
         private static GameObject CreateBlock(string name, Transform parent, Sprite sprite, Vector2 position,
