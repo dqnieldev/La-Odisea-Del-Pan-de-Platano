@@ -1,0 +1,20 @@
+<!-- @dsCard group="Companion (móvil)" viewport="600x900" name="Companion Wiki — móvil" subtitle="Inicio · Historia · Personajes · Receta" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Companion Wiki</title><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;min-height:100vh;background:var(--beige-200);display:flex;justify-content:center;align-items:center;padding:28px;box-sizing:border-box}</style></head><body><div id="root"></div>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="Screens.jsx"></script>
+<script type="text/babel">
+function Phone({children}){return <div style={{width:390,height:844,borderRadius:48,background:'var(--cafe-950)',padding:10,boxShadow:'var(--shadow-float)',boxSizing:'content-box'}}><div style={{width:'100%',height:'100%',borderRadius:38,overflow:'hidden',background:'var(--crema-50)',display:'flex',flexDirection:'column',position:'relative'}}><div style={{height:44,flex:'none',background:'var(--bg-topbar)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 26px',font:'600 15px var(--font-body)',color:'var(--cafe-900)'}}><span>9:41</span><span style={{width:110,height:30,borderRadius:20,background:'var(--cafe-950)'}}></span><span>100%</span></div>{children}<div style={{position:'absolute',bottom:8,left:'50%',marginLeft:-67,width:134,height:5,borderRadius:3,background:'var(--cafe-900)'}}></div></div></div>}
+function App(){
+  const [stack,setStack]=React.useState([{s:'home'}]);
+  const cur=stack[stack.length-1];
+  const go=(s,p)=>setStack([...stack,{s,p}]);const back=()=>setStack(stack.slice(0,-1));
+  const S={home:HomeScreen,historia:HistoriaScreen,personajes:PersonajesScreen,personaje:PersonajeScreen,receta:RecetaScreen}[cur.s];
+  return <Phone><S go={go} back={back} p={cur.p}/></Phone>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

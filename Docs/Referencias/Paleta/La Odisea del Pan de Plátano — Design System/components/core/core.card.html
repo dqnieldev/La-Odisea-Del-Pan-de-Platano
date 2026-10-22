@@ -1,0 +1,17 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Core — Botones, íconos, etiquetas" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:20px;background:var(--bg-app);font-family:var(--font-body)}.r{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.l{font:600 11px/1 var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);width:80px}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.LaOdiseaDelPanDePlTanoDesignSystem_cce664;
+const { Button, IconButton, BackButton, Tag, Badge, Icon } = NS;
+ReactDOM.createRoot(document.getElementById('root')).render(<div>
+<div className="r"><span className="l">Botón</span><Button icon="play_arrow" size="lg">Jugar</Button><Button variant="secondary" icon="settings">Opciones</Button><Button variant="dark">Salir</Button><Button disabled>Bloqueado</Button></div>
+<div className="r"><span className="l">Tamaños</span><Button size="sm">Chico</Button><Button>Medio</Button><Button variant="mangrove" iconRight="arrow_forward">Continuar</Button><Button variant="ghost">Omitir</Button></div>
+<div className="r"><span className="l">Iconos</span><BackButton /><IconButton icon="info" label="Info" /><IconButton icon="volume_up" label="Audio" /><IconButton icon="pause" label="Pausa" variant="dark" /><IconButton icon="star" label="Favorito" variant="accent" /><IconButton icon="lock" label="Bloqueado" disabled /></div>
+<div className="r"><span className="l">Tags</span><Tag tone="accent">Wiki</Tag><Tag tone="ally" icon="handshake">Aliado</Tag><Tag tone="rival" icon="skull">Rival</Tag><Tag tone="ingredient" icon="egg">Ingrediente</Tag><Tag>Nivel 1</Tag><Tag tone="dark">Rango S</Tag><Badge>3</Badge><Badge tone="danger">!</Badge></div>
+</div>);
+</script></body></html>

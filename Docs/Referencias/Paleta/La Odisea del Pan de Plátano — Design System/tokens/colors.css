@@ -1,0 +1,23 @@
+:root{
+/* === Paleta base (Interfaz gráfica §1) === */
+--platano-50:#FEF7E6;--platano-100:#FDEDC6;--platano-300:#F9D27A;--platano-500:#F5B731;--platano-600:#DE9E1A;--platano-700:#B37D10;
+--cafe-950:#1C130E;--cafe-900:#2B1E16;--cafe-800:#3D2C21;--cafe-700:#57412F;--cafe-500:#86705C;--cafe-300:#B7A58F;
+--crema-50:#FBF8F2;--beige-100:#EFE7D8;--beige-200:#E8E0D2;--beige-300:#D8CCB8;--blanco:#FFFFFF;
+--manglar-100:#DCE8E0;--manglar-300:#8DB29C;--manglar-500:#3F7659;--manglar-600:#2E5A44;--manglar-800:#1E3C2D;
+/* Logo v4b (odisea-4b-marca.svg) */
+--terracota-300:#E9A57C;--terracota-500:#D2703A;--terracota-700:#A4501F;
+/* Adiciones para juego (derivadas de las ilustraciones) */
+--chile-500:#C8432B;--chile-100:#F6DDD5;--mar-500:#2F8FA0;--mar-100:#D5ECEF;
+
+/* === Semánticos === */
+--bg-app:var(--crema-50);--bg-topbar:var(--beige-100);--bg-night:var(--cafe-900);--bg-deep:var(--cafe-950);
+--surface-card:var(--blanco);--surface-muted:var(--beige-200);--surface-sunken:var(--beige-100);--surface-inverse:var(--cafe-900);
+--text-strong:var(--cafe-900);--text-body:var(--cafe-800);--text-muted:var(--cafe-700);--text-disabled:var(--cafe-500);--text-on-dark:var(--crema-50);--text-accent-on-dark:var(--platano-500);--text-on-accent:var(--cafe-900);--text-link:var(--manglar-600);
+--accent:var(--platano-500);--accent-hover:var(--platano-300);--accent-pressed:var(--platano-600);--accent-soft:var(--platano-100);
+--secondary:var(--manglar-600);--secondary-soft:var(--manglar-100);
+--brand-mark:var(--terracota-500);
+--border-strong:var(--cafe-900);--border-subtle:var(--beige-200);--border-divider:var(--beige-300);
+--success:var(--manglar-600);--success-soft:var(--manglar-100);--danger:var(--chile-500);--danger-soft:var(--chile-100);--warning:var(--platano-600);--info:var(--mar-500);--info-soft:var(--mar-100);
+--disabled-bg:var(--beige-200);--disabled-fg:var(--cafe-500);
+--hud-heart:var(--chile-500);--hud-cook:var(--terracota-500);
+}

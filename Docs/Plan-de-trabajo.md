@@ -5,9 +5,16 @@
 > **Estado actual (21-oct-2026):** Paso A ✅ (carpetas + reglas LFS + `Assets/Welcome` eliminada, ya en `main`). Ramas `main`, `dev` y `qa` creadas; la rama temporal `claude/pensive-pascal-l6lzhc` se eliminó. El trabajo ahora es **local** (Windows, `D:\Proyectos Unity\La Odisea Del Pan de Platano`). Paso B ⏳ (el usuario copia sus referencias en una rama `docs/referencias` creada desde `dev`). Paso C pendiente.
 
 ## Contexto
-Proyecto escolar, equipo de 5, juego de **plataformas 2D ilustrado** en Unity. El repo ya tiene un proyecto **Unity 6 (6000.6.6f1), plantilla 2D URP** con Input System, 2D Animation, PSD/Aseprite importer, Tilemap, Timeline y `.gitattributes` con Git LFS. Solo hay un commit ("Initial check-in"). El contenido creativo (historia, personajes, storyboards) está en PDFs.
+Proyecto escolar, equipo de 5, juego **arcade multi-género 2D** (estilo cartoon *rubber hose*) en Unity. El repo ya tiene un proyecto **Unity 6 (6000.6.6f1), plantilla 2D URP** con Input System, 2D Animation, PSD/Aseprite importer, Tilemap, Timeline y `.gitattributes` con Git LFS. Solo hay un commit ("Initial check-in"). El contenido creativo (historia, personajes, storyboards) está en PDFs.
 Entregables: build jugable, GDD/documentación, evidencia de Git, presentación/video.
 Objetivo de este primer paso: dejar la **estructura, las reglas y la documentación** para que el equipo y yo trabajemos de forma uniforme desde el día 1.
+
+## Decisiones tomadas
+| Fecha | Decisión |
+|---|---|
+| 22-oct-2026 | **MVP = 2 niveles**, como en el *Documento Oscar*: Nivel 1 "El Mercado Vertical" (plataformas verticales) y "Carrera por La Tovara" (runner lateral). El tower defense de la panadería (Acto II) es **extra** solo si sobra tiempo. |
+
+**Pendientes de decidir:** fecha real de entrega y entregables; si Ulises tiene combate (rodillo / pelea con Polifemo); runner automático o control libre; reparto de tareas del equipo.
 
 ## 1. Cómo me pasas el contexto (dónde va cada cosa)
 Regla: **lo que es referencia/diseño va en `Docs/`** (Unity no lo importa); **lo que entra al juego va en `Assets/_Project/Art/`**.

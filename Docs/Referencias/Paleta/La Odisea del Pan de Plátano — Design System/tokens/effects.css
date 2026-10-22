@@ -1,0 +1,13 @@
+:root{
+/* Sombras "cartoon": desfase sólido café, sin blur */
+--shadow-pop-sm:0 2px 0 var(--cafe-900);
+--shadow-pop:0 4px 0 var(--cafe-900);
+--shadow-pop-lg:0 6px 0 var(--cafe-900);
+--shadow-soft:0 8px 24px rgba(43,30,22,.14);
+--shadow-float:0 16px 40px rgba(28,19,14,.28);
+--scrim:rgba(28,19,14,.72);
+--ease-out:cubic-bezier(.2,.8,.2,1);/* @kind other */
+--ease-bounce:cubic-bezier(.34,1.56,.64,1);/* @kind other */
+--dur-fast:90ms;/* @kind other */--dur-base:160ms;/* @kind other */--dur-slow:320ms;/* @kind other */
+--press-scale:.96;/* @kind other */
+}
