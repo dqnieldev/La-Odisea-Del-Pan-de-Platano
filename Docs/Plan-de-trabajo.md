@@ -5,9 +5,27 @@
 > **Estado actual (21-oct-2026):** Paso A ✅ (carpetas + reglas LFS + `Assets/Welcome` eliminada, ya en `main`). Ramas `main`, `dev` y `qa` creadas; la rama temporal `claude/pensive-pascal-l6lzhc` se eliminó. El trabajo ahora es **local** (Windows, `D:\Proyectos Unity\La Odisea Del Pan de Platano`). Paso B ⏳ (el usuario copia sus referencias en una rama `docs/referencias` creada desde `dev`). Paso C pendiente.
 
 ## Contexto
-Proyecto escolar, equipo de 5, juego de **plataformas 2D ilustrado** en Unity. El repo ya tiene un proyecto **Unity 6 (6000.6.6f1), plantilla 2D URP** con Input System, 2D Animation, PSD/Aseprite importer, Tilemap, Timeline y `.gitattributes` con Git LFS. Solo hay un commit ("Initial check-in"). El contenido creativo (historia, personajes, storyboards) está en PDFs.
+Proyecto escolar, equipo de 5, juego **arcade multi-género 2D** (estilo cartoon *rubber hose*) en Unity. El repo ya tiene un proyecto **Unity 6 (6000.6.6f1), plantilla 2D URP** con Input System, 2D Animation, PSD/Aseprite importer, Tilemap, Timeline y `.gitattributes` con Git LFS. Solo hay un commit ("Initial check-in"). El contenido creativo (historia, personajes, storyboards) está en PDFs.
 Entregables: build jugable, GDD/documentación, evidencia de Git, presentación/video.
 Objetivo de este primer paso: dejar la **estructura, las reglas y la documentación** para que el equipo y yo trabajemos de forma uniforme desde el día 1.
+
+## Decisiones tomadas
+| Fecha | Decisión |
+|---|---|
+| 22-oct-2026 | **MVP = 2 niveles jugables + 3 escenarios**: (0) **Tutorial**, escenario donde se enseñan movimiento y mecánicas; (1) "El Mercado Vertical" (plataformas verticales); (2) "Carrera por La Tovara" (side-scroller). El tower defense de la panadería (Acto II) es **extra** solo si sobra tiempo. |
+| 22-oct-2026 | **Entrega final: antes del 12-nov-2026.** Build congelada el 10-nov. |
+| 22-oct-2026 | **Ulises sí golpea** (ataque cuerpo a cuerpo con el rodillo). |
+| 22-oct-2026 | **En La Tovara el jugador controla la velocidad** (no es runner automático). Los dos niveles comparten el mismo controlador de plataformas; La Tovara agrega cronómetro, lodo, deslizarse y power-ups. |
+| 22-oct-2026 | **Equipo:** Daniel y Eduardo (desarrollo), Emmanuel y Jorge (diseño), Axel (pendiente de rol). |
+
+## Roadmap del MVP (22-oct → 11-nov)
+| Semana | Desarrollo | Diseño |
+|---|---|---|
+| **1 · 22–28 oct**: Base jugable | Controlador de Ulises (correr, saltar, doble salto, golpe, recibir daño, vidas), cámara, flujo de escenas (`GameManager`), menú principal, escena Tutorial en graybox | Ulises con fondo transparente y frames alineados (idle, correr, saltar, caer, golpe, daño, agacharse/deslizar); íconos de ingredientes |
+| **2 · 29 oct–4 nov**: Nivel 1 | Mercado: plataformas, proyectiles de Circe, ingredientes, Polifemo; HUD (vidas, puntos, tiempo); Game Over y Victoria; Tutorial con arte | Sprites jugables de Circe, piezas del mercado en PNG transparente, UI (botones, paneles, corazones) |
+| **3 · 5–11 nov**: La Tovara + entrega | Manglares: cocodrilos, lodo, ramas bajas (deslizarse), aves, hoja de plátano (escudo), café de olla (velocidad), cronómetro; audio; pulido; build `.exe`, tag `v1.0` | Arte de manglares (fondo con capas, plataformas, enemigos), pantallas de victoria |
+
+Propuesta de reparto (a confirmar): **Daniel**: Ulises, física y Nivel 1. **Eduardo**: menús, HUD, flujo de escenas, Tutorial y La Tovara. **Emmanuel**: personajes y animaciones. **Jorge**: escenarios y UI. **Axel**: QA, documentación, bitácora y video.
 
 ## 1. Cómo me pasas el contexto (dónde va cada cosa)
 Regla: **lo que es referencia/diseño va en `Docs/`** (Unity no lo importa); **lo que entra al juego va en `Assets/_Project/Art/`**.
