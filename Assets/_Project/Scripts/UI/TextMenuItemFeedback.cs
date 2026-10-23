@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace Odisea.UI
 {
     /// <summary>
-    /// Opción de menú solo de texto, estilo Cuphead: apagada en gris oliva; al seleccionarla
+    /// Opción de menú solo de texto, estilo Cuphead: apagada en gris cálido; al seleccionarla
     /// se ilumina, crece con un rebote y aparece un leve desfase rojo/cian como de película vieja.
     /// Funciona con mouse, teclado y mando (al pasar el mouse, la opción se selecciona).
     /// </summary>
@@ -19,7 +19,8 @@ namespace Odisea.UI
         [SerializeField] private TMP_Text label;
         [Tooltip("Copias del texto desplazadas (roja y cian) que solo se ven en la opción seleccionada.")]
         [SerializeField] private TMP_Text[] ghosts;
-        [SerializeField] private Color normalColor = new(0.55f, 0.54f, 0.46f);
+        [Tooltip("Color de las opciones no seleccionadas: gris cálido que combina con el fondo madera (#9C8A74).")]
+        [SerializeField] private Color normalColor = new(0.612f, 0.541f, 0.455f);
         [SerializeField] private Color selectedColor = new(0.98f, 0.97f, 0.93f);
         [SerializeField] private float selectedScale = 1.1f;
         [Tooltip("Cuánto tiemblan las copias de color, en píxeles, para que se sienta vivo.")]

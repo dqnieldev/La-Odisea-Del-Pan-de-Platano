@@ -37,6 +37,8 @@ namespace Odisea.EditorTools
         private static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
         private static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
         private static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
+        // Tinte del fondo del menú: vuelve madera el rodillo dibujado en tonos fríos (#E2B07E).
+        private static readonly Color TinteMadera = new(0.886f, 0.690f, 0.494f);
 
         [MenuItem("Odisea/Menús/Crear pantalla de inicio y menú principal")]
         public static void Build()
@@ -120,7 +122,7 @@ namespace Odisea.EditorTools
             Transform canvas = CreateCanvas("UI");
 
             // Fondo: cubre la pantalla sin deformarse (recorta lo que sobre).
-            var backgroundImage = CreateImage("Fondo", canvas, null, background != null ? Color.white : Crema,
+            var backgroundImage = CreateImage("Fondo", canvas, null, background != null ? TinteMadera : Crema,
                 Vector2.zero, Vector2.zero, stretch: true);
             if (background != null)
             {
