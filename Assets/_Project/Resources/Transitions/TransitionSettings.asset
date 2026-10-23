@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3329b9ec88a85d34b90be17804a7bd82, type: 3}
   m_Name: TransitionSettings
   m_EditorClassIdentifier: Odisea::Odisea.Core.TransitionSettings
-  closeDuration: 0.7
-  holdDuration: 0.18
-  openDuration: 0.7
-  color: {r: 0.169, g: 0.118, b: 0.086, a: 1}
-  edgeSoftness: 0.004
+  closeDuration: 0.9
+  holdDuration: 0.3
+  openDuration: 0.9
+  color: {r: 0, g: 0, b: 0, a: 1}
+  edgeSoftness: 0.0518
   closeCurve:
     serializedVersion: 2
     m_Curve:
@@ -47,8 +47,8 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 3
-      outSlope: 3
+      inSlope: 0
+      outSlope: 0
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -56,8 +56,8 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 0
-      outSlope: 0
+      inSlope: 2
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
