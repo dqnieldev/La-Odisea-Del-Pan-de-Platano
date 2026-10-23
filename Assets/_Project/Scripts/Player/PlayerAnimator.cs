@@ -7,14 +7,17 @@ namespace Odisea.Player
     /// <summary>
     /// Pasa el estado de Ulises al Animator y hace parpadear el sprite mientras es invulnerable.
     /// Parámetros que puede tener el Animator Controller (los que falten se ignoran):
-    /// Speed (float), VerticalSpeed (float), IsGrounded (bool), Attack, DoubleJump, Hurt, Die (triggers).
+    /// Speed (float), VerticalSpeed (float), IsGrounded (bool), IsClimbing (bool),
+    /// Attack, Throw, DoubleJump, Hurt, Die (triggers).
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int VerticalSpeedId = Animator.StringToHash("VerticalSpeed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
+        private static readonly int IsClimbingId = Animator.StringToHash("IsClimbing");
         private static readonly int AttackId = Animator.StringToHash("Attack");
+        private static readonly int ThrowId = Animator.StringToHash("Throw");
         private static readonly int DoubleJumpId = Animator.StringToHash("DoubleJump");
         private static readonly int HurtId = Animator.StringToHash("Hurt");
         private static readonly int DieId = Animator.StringToHash("Die");
@@ -40,7 +43,11 @@ namespace Odisea.Player
         private void OnEnable()
         {
             if (controller != null) controller.DoubleJumped += OnDoubleJumped;
-            if (combat != null) combat.Attacked += OnAttacked;
+            if (combat != null)
+            {
+                combat.Attacked += OnAttacked;
+                combat.Thrown += OnThrown;
+            }
             if (health != null)
             {
                 health.Damaged += OnDamaged;
@@ -51,7 +58,11 @@ namespace Odisea.Player
         private void OnDisable()
         {
             if (controller != null) controller.DoubleJumped -= OnDoubleJumped;
-            if (combat != null) combat.Attacked -= OnAttacked;
+            if (combat != null)
+            {
+                combat.Attacked -= OnAttacked;
+                combat.Thrown -= OnThrown;
+            }
             if (health != null)
             {
                 health.Damaged -= OnDamaged;
@@ -66,6 +77,7 @@ namespace Odisea.Player
                 SetFloat(SpeedId, Mathf.Abs(controller.Velocity.x));
                 SetFloat(VerticalSpeedId, controller.Velocity.y);
                 SetBool(IsGroundedId, controller.IsGrounded);
+                SetBool(IsClimbingId, controller.IsClimbing);
             }
 
             if (spriteRenderer != null && health != null)
@@ -77,6 +89,7 @@ namespace Odisea.Player
 
         private void OnDoubleJumped() => SetTrigger(DoubleJumpId);
         private void OnAttacked() => SetTrigger(AttackId);
+        private void OnThrown() => SetTrigger(ThrowId);
         private void OnDamaged(DamageInfo _) => SetTrigger(HurtId);
         private void OnDied() => SetTrigger(DieId);
 

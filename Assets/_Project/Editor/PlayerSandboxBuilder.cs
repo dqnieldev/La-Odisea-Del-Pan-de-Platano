@@ -58,12 +58,13 @@ namespace Odisea.EditorTools
             int groundLayer = EnsureLayer("Ground", 6);
             int playerLayer = EnsureLayer("Player", 7);
             int enemyLayer = EnsureLayer("Enemy", 8);
+            int ladderLayer = EnsureLayer("Ladder", 9);
 
             EnsurePlaceholderSprite();
             EnsureHeartSprite(HeartFullPath, Chile, Crema);
             EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
             EnsureNoFrictionMaterial();
-            EnsurePlayerConfig(groundLayer, enemyLayer);
+            EnsurePlayerConfig(groundLayer, enemyLayer, ladderLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
             // y las referencias a ellos quedarían vacías.
             AssetDatabase.SaveAssets();
@@ -82,19 +83,26 @@ namespace Odisea.EditorTools
             var inputActions = LoadRequired<InputActionAsset>(InputPath);
             var fullHeart = LoadRequired<Sprite>(HeartFullPath);
             var emptyHeart = LoadRequired<Sprite>(HeartEmptyPath);
+            Projectile doughBall = EnsureProjectilePrefab(square, playerLayer);
 
             var level = new GameObject("Nivel").transform;
             CreateBlock("Suelo", level, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
-            CreateBlock("Pared izquierda", level, square, new Vector2(-20.5f, 4f), new Vector2(1f, 12f), Manglar, groundLayer);
-            CreateBlock("Pared derecha", level, square, new Vector2(40.5f, 4f), new Vector2(1f, 12f), Manglar, groundLayer);
-            // Madera = plataformas de un sentido: se suben saltando desde abajo y se bajan con abajo + saltar.
-            // Café = bloques sólidos que no se pueden atravesar.
+            CreateBlock("Pared izquierda", level, square, new Vector2(-20.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
+            CreateBlock("Pared derecha", level, square, new Vector2(40.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
+            // Madera = plataformas de un sentido: se suben saltando desde abajo o por escalera, y no se puede bajar de ellas
+            // más que por escalera o cayendo por la orilla. Café = bloques sólidos.
             MakeOneWay(CreateBlock("Plataforma baja", level, square, new Vector2(4f, 2f), new Vector2(4f, 0.4f), Madera, groundLayer));
             MakeOneWay(CreateBlock("Plataforma media", level, square, new Vector2(10f, 4.5f), new Vector2(3f, 0.4f), Madera, groundLayer));
             MakeOneWay(CreateBlock("Plataforma doble salto", level, square, new Vector2(16f, 8f), new Vector2(3f, 0.4f), Madera, groundLayer));
             MakeOneWay(CreateBlock("Repisa 1", level, square, new Vector2(-14f, 2.5f), new Vector2(4f, 0.4f), Madera, groundLayer));
             MakeOneWay(CreateBlock("Repisa 2", level, square, new Vector2(-14f, 5f), new Vector2(4f, 0.4f), Madera, groundLayer));
+            MakeOneWay(CreateBlock("Repisa 3", level, square, new Vector2(-16f, 7.5f), new Vector2(4f, 0.4f), Madera, groundLayer));
             CreateBlock("Escalón", level, square, new Vector2(-8f, 0.75f), new Vector2(3f, 1.5f), Cafe, groundLayer);
+
+            // Escaleras: abajo = suelo donde empiezan, arriba = superficie de la plataforma donde terminan.
+            CreateLadder("Escalera a plataforma baja", level, square, 5.5f, 0f, 2.2f, ladderLayer);
+            CreateLadder("Escalera de la torre", level, square, -13f, 0f, 5.2f, ladderLayer);
+            CreateLadder("Escalera a repisa 3", level, square, -15.5f, 5.2f, 7.7f, ladderLayer);
 
             var hazard = CreateBlock("Peligro (resta 1 vida)", level, square, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f), Chile, groundLayer);
             var hazardComponent = hazard.AddComponent<Hazard>();
@@ -103,6 +111,7 @@ namespace Odisea.EditorTools
             CreateDummy(level, square, enemyLayer);
 
             GameObject player = CreatePlayer(square, noFriction, config, inputActions, playerLayer);
+            SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", doughBall);
             CreateHud(player.GetComponent<Health>(), fullHeart, emptyHeart);
 
             var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
@@ -298,7 +307,7 @@ namespace Odisea.EditorTools
             rect.SetParent(canvas, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
             rect.anchoredPosition = new Vector2(-48f, -48f);
-            rect.sizeDelta = new Vector2(660f, 300f);
+            rect.sizeDelta = new Vector2(660f, 330f);
             var background = panel.GetComponent<Image>();
             background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.92f);
             background.raycastTarget = false;
@@ -322,11 +331,70 @@ namespace Odisea.EditorTools
                 "<b><color=#F5B731>CONTROLES</color></b>\n" +
                 "Moverse:  A / D  ·  flechas  ·  stick / cruceta\n" +
                 "Saltar:  Espacio  ·  A / Cruz   (2 veces = doble salto)\n" +
-                "Bajar de la madera:  abajo + saltar\n" +
+                "Escaleras:  arriba / abajo  (saltar para soltarte)\n" +
                 "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
+                "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
                 "Reiniciar:  R  ·  Start\n" +
                 "Salir:  Esc  ·  Select\n" +
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
+        }
+
+        private static void CreateLadder(string name, Transform parent, Sprite square, float x, float bottom, float top, int layer)
+        {
+            float height = top - bottom;
+            var ladder = new GameObject(name) { layer = layer };
+            ladder.transform.SetParent(parent, false);
+            ladder.transform.position = new Vector3(x, bottom + height / 2f, 0f);
+            var area = ladder.AddComponent<BoxCollider2D>();
+            area.isTrigger = true;
+            area.size = new Vector2(0.9f, height);
+            ladder.AddComponent<Odisea.Level.Ladder>();
+
+            var wood = new Color(0.71f, 0.50f, 0.28f);
+            foreach (float side in new[] { -0.38f, 0.38f })
+                CreateLadderPiece("Larguero", ladder.transform, square, new Vector2(side, 0f), new Vector2(0.12f, height), wood);
+            for (float y = -height / 2f + 0.3f; y < height / 2f; y += 0.45f)
+                CreateLadderPiece("Peldaño", ladder.transform, square, new Vector2(0f, y), new Vector2(0.76f, 0.08f), wood);
+        }
+
+        private static void CreateLadderPiece(string name, Transform parent, Sprite square, Vector2 position, Vector2 size, Color color)
+        {
+            var piece = new GameObject(name) { layer = parent.gameObject.layer };
+            piece.transform.SetParent(parent, false);
+            piece.transform.localPosition = position;
+            piece.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var renderer = piece.AddComponent<SpriteRenderer>();
+            renderer.sprite = square;
+            renderer.color = color;
+            renderer.sortingOrder = 1; // Detrás de Ulises y de las plataformas.
+        }
+
+        private static Projectile EnsureProjectilePrefab(Sprite square, int layer)
+        {
+            const string path = "Assets/_Project/Prefabs/Player/BolitaDeMasa.prefab";
+            EnsureFolder(Path.GetDirectoryName(path));
+
+            var root = new GameObject("BolitaDeMasa") { layer = layer };
+            var body = root.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            var collider = root.AddComponent<CircleCollider2D>();
+            collider.radius = 0.2f;
+            collider.isTrigger = true;
+
+            var visual = new GameObject("Visual") { layer = layer };
+            visual.transform.SetParent(root.transform, false);
+            visual.transform.localScale = new Vector3(0.38f, 0.38f, 1f);
+            var renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sprite = square;
+            renderer.color = new Color(0.86f, 0.66f, 0.38f); // Masa tostada.
+            renderer.sortingOrder = 11;
+
+            var projectile = root.AddComponent<Projectile>();
+            SetSerialized(projectile, "visual", visual.transform);
+
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            UnityEngine.Object.DestroyImmediate(root);
+            return LoadRequired<GameObject>(path).GetComponent<Projectile>();
         }
 
         private static void MakeOneWay(GameObject platform)
@@ -517,7 +585,7 @@ namespace Odisea.EditorTools
             AssetDatabase.CreateAsset(material, MaterialPath);
         }
 
-        private static void EnsurePlayerConfig(int groundLayer, int enemyLayer)
+        private static void EnsurePlayerConfig(int groundLayer, int enemyLayer, int ladderLayer)
         {
             var config = AssetDatabase.LoadAssetAtPath<PlayerConfig>(ConfigPath);
             if (config == null)
@@ -531,6 +599,8 @@ namespace Odisea.EditorTools
                 config.groundLayers = 1 << groundLayer;
             if (config.attackLayers.value == 0)
                 config.attackLayers = 1 << enemyLayer;
+            if (config.ladderLayers.value == 0)
+                config.ladderLayers = 1 << ladderLayer;
             EditorUtility.SetDirty(config);
         }
 

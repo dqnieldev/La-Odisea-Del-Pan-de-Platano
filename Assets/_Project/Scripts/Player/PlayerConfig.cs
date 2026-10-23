@@ -38,11 +38,14 @@ namespace Odisea.Player
         [Min(1f)] public float jumpCutGravityMultiplier = 2.5f;
         [Min(0f)] public float maxFallSpeed = 20f;
 
-        [Header("Bajar de plataformas (abajo + saltar)")]
-        [Tooltip("Qué tanto hay que inclinar hacia abajo (0-1) para que el salto se convierta en bajar.")]
-        [Range(0.1f, 1f)] public float dropInputThreshold = 0.5f;
-        [Tooltip("Segundos que Ulises atraviesa la plataforma antes de volver a chocar con ella.")]
-        [Min(0.05f)] public float dropThroughTime = 0.25f;
+        [Header("Escaleras")]
+        [Tooltip("Velocidad al trepar, en unidades por segundo.")]
+        [Min(0f)] public float climbSpeed = 4.5f;
+        [Tooltip("Qué tanto hay que inclinar arriba/abajo (0-1) para agarrar la escalera.")]
+        [Range(0.1f, 1f)] public float climbInputThreshold = 0.5f;
+        [Tooltip("Qué tan rápido se centra Ulises en la escalera al agarrarla.")]
+        [Min(0f)] public float ladderSnapSpeed = 12f;
+        public LayerMask ladderLayers;
 
         [Header("Detección de suelo")]
         public LayerMask groundLayers;
@@ -55,6 +58,16 @@ namespace Odisea.Player
         public Vector2 attackOffset = new(0.8f, 0.1f);
         public Vector2 attackSize = new(1.1f, 1f);
         public LayerMask attackLayers;
+
+        [Header("Lanzar bolita de masa (proyectil)")]
+        [Min(1)] public int projectileDamage = 1;
+        [Tooltip("Velocidad del proyectil. Bajo a propósito: es un ataque lento.")]
+        [Min(0.1f)] public float projectileSpeed = 6f;
+        [Min(0f)] public float projectileCooldown = 0.7f;
+        [Tooltip("Segundos antes de que el proyectil desaparezca si no choca con nada.")]
+        [Min(0.1f)] public float projectileLifetime = 2.5f;
+        [Tooltip("Dónde aparece, relativo a Ulises mirando a la derecha.")]
+        public Vector2 projectileSpawnOffset = new(0.6f, 0.3f);
 
         [Header("Al recibir daño")]
         [Tooltip("Empuje al recibir daño: x = hacia atrás, y = hacia arriba.")]

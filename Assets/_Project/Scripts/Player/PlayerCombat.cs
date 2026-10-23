@@ -5,18 +5,25 @@ using UnityEngine;
 
 namespace Odisea.Player
 {
-    /// <summary>Golpe con el rodillo: daña lo que esté en un área frente a Ulises.</summary>
+    /// <summary>
+    /// Ataques de Ulises: golpe con el rodillo (cuerpo a cuerpo) y bolita de masa (proyectil lento).
+    /// No se puede atacar mientras trepa una escalera.
+    /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public class PlayerCombat : MonoBehaviour
     {
         [SerializeField] private PlayerInputReader input;
+        [Tooltip("Prefab de la bolita de masa.")]
+        [SerializeField] private Projectile projectilePrefab;
 
         private PlayerController controller;
         private IDamageable self;
-        private float cooldownTimer;
+        private float attackCooldownTimer;
+        private float throwCooldownTimer;
         private readonly HashSet<IDamageable> alreadyHit = new();
 
         public event Action Attacked;
+        public event Action Thrown;
 
         private void Awake()
         {
@@ -26,19 +33,29 @@ namespace Odisea.Player
 
         private void Update()
         {
-            cooldownTimer -= Time.deltaTime;
+            float dt = Time.deltaTime;
+            attackCooldownTimer -= dt;
+            throwCooldownTimer -= dt;
 
             if (controller.Config == null || input == null)
                 return;
 
-            if (input.ConsumeAttackPressed() && cooldownTimer <= 0f && controller.HasControl)
+            // Se consumen siempre para que una pulsación hecha en la escalera no se dispare al bajar.
+            bool attackPressed = input.ConsumeAttackPressed();
+            bool throwPressed = input.ConsumeThrowPressed();
+            if (!controller.HasControl || controller.IsClimbing)
+                return;
+
+            if (attackPressed && attackCooldownTimer <= 0f)
                 Attack();
+            else if (throwPressed && throwCooldownTimer <= 0f)
+                Throw();
         }
 
         private void Attack()
         {
             PlayerConfig config = controller.Config;
-            cooldownTimer = config.attackCooldown;
+            attackCooldownTimer = config.attackCooldown;
             Attacked?.Invoke();
 
             alreadyHit.Clear();
@@ -52,6 +69,27 @@ namespace Odisea.Player
 
                 target.TakeDamage(new DamageInfo(config.attackDamage, transform.position, gameObject));
             }
+        }
+
+        private void Throw()
+        {
+            if (projectilePrefab == null)
+            {
+                Debug.LogWarning($"{name}: falta asignar el prefab del proyectil en PlayerCombat.", this);
+                return;
+            }
+
+            PlayerConfig config = controller.Config;
+            throwCooldownTimer = config.projectileCooldown;
+
+            float direction = controller.FacingDirection;
+            Vector2 offset = config.projectileSpawnOffset;
+            offset.x *= direction;
+
+            Projectile projectile = Instantiate(projectilePrefab, (Vector2)transform.position + offset, Quaternion.identity);
+            projectile.Launch(new Vector2(direction * config.projectileSpeed, 0f), config.projectileDamage,
+                config.projectileLifetime, config.attackLayers, config.groundLayers, gameObject);
+            Thrown?.Invoke();
         }
 
         private Vector2 AttackCenter(PlayerConfig config)
