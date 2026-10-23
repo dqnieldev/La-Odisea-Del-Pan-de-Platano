@@ -17,6 +17,7 @@ Objetivo de este primer paso: dejar la **estructura, las reglas y la documentaci
 | 22-oct-2026 | **Ulises sí golpea** (ataque cuerpo a cuerpo con el rodillo). |
 | 22-oct-2026 | **En La Tovara el jugador controla la velocidad** (no es runner automático). Los dos niveles comparten el mismo controlador de plataformas; La Tovara agrega cronómetro, lodo, deslizarse y power-ups. |
 | 22-oct-2026 | **Equipo:** Daniel y Eduardo (desarrollo), Emmanuel y Jorge (diseño), Axel (pendiente de rol). |
+| 23-oct-2026 | Tras probar la demo, el equipo define las mecánicas de Ulises: correr, salto y doble salto, **golpe con rodillo**, **bolita de masa** (proyectil lento), **escaleras** (forma de subir en El Mercado). Se **descarta** bajar de plataformas con abajo + saltar. |
 
 ## Roadmap del MVP (22-oct → 11-nov)
 | Semana | Desarrollo | Diseño |
