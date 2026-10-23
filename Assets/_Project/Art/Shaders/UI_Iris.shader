@@ -66,7 +66,9 @@ Shader "Odisea/UI/Iris"
                 float2 delta = (i.uv - _Center.xy) * float2(aspect, 1.0);
                 float distanceToCenter = length(delta);
                 // 0 dentro del círculo (se ve el juego), 1 fuera (color de la cortina).
-                float covered = smoothstep(_Radius - _Softness, _Radius + _Softness, distanceToCenter);
+                // El suavizado va hacia adentro del borde: con radio 0 la pantalla queda cubierta por completo,
+                // sin el puntito a medio cubrir que dejaría un suavizado centrado en el borde.
+                float covered = _Radius <= 0.0 ? 1.0 : smoothstep(_Radius - _Softness, _Radius, distanceToCenter);
                 return fixed4(_Color.rgb, _Color.a * covered);
             }
             ENDCG
