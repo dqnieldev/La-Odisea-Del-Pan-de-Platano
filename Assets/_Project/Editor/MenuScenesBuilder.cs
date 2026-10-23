@@ -134,23 +134,24 @@ namespace Odisea.EditorTools
                 Debug.LogWarning($"[Odisea] No hay imagen en {SourceFolder}; el menú queda con fondo crema.");
             }
 
-            // Botones en columna a la izquierda: la imagen de fondo deja ese lado oscuro y libre.
+            // Menú minimalista estilo Cuphead: solo texto, en la zona oscura arriba a la izquierda del rodillo.
             var buttons = new GameObject("Botones", typeof(RectTransform), typeof(VerticalLayoutGroup));
             var buttonsRect = (RectTransform)buttons.transform;
             buttonsRect.SetParent(canvas, false);
-            buttonsRect.anchorMin = buttonsRect.anchorMax = new Vector2(0.2f, 0.42f);
+            buttonsRect.anchorMin = buttonsRect.anchorMax = new Vector2(0.4f, 0.72f);
             buttonsRect.pivot = new Vector2(0.5f, 0.5f);
-            buttonsRect.sizeDelta = new Vector2(480f, 520f);
+            buttonsRect.sizeDelta = new Vector2(600f, 330f);
             var layout = buttons.GetComponent<VerticalLayoutGroup>();
-            layout.spacing = 26f;
+            layout.spacing = 0f;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = false;
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
 
-            Button play = CreateMenuButton("Jugar", buttonsRect, rounded, titleFont, new Vector2(440f, 100f), 46);
-            Button tutorial = CreateMenuButton("Tutorial", buttonsRect, rounded, titleFont, new Vector2(440f, 100f), 46);
-            Button options = CreateMenuButton("Opciones", buttonsRect, rounded, titleFont, new Vector2(440f, 100f), 46);
-            Button quit = CreateMenuButton("Salir", buttonsRect, rounded, titleFont, new Vector2(440f, 100f), 46);
+            TMP_FontAsset menuFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            Button play = CreateTextMenuItem("JUGAR", buttonsRect, menuFont);
+            Button tutorial = CreateTextMenuItem("TUTORIAL", buttonsRect, menuFont);
+            Button options = CreateTextMenuItem("OPCIONES", buttonsRect, menuFont);
+            Button quit = CreateTextMenuItem("SALIR", buttonsRect, menuFont);
 
             OptionsPanel optionsPanel = CreateOptionsPanel(canvas, rounded, titleFont, bodyFont);
 
@@ -246,6 +247,52 @@ namespace Odisea.EditorTools
             SetField(feedback, "fill", fill);
             root.AddComponent<SelectableSounds>();
             return button;
+        }
+
+        /// <summary>
+        /// Opción de menú solo de texto (estilo Cuphead): dos copias del texto en rojo y cian detrás,
+        /// desplazadas, que se encienden al seleccionar.
+        /// </summary>
+        private static Button CreateTextMenuItem(string label, RectTransform parent, TMP_FontAsset font)
+        {
+            var root = new GameObject($"Botón {label}", typeof(RectTransform), typeof(Button));
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(parent, false);
+            rect.sizeDelta = new Vector2(560f, 80f);
+
+            TMP_Text red = CreateMenuLabel("Aberración roja", rect, label, font, new Vector2(3f, 0f), new Color(1f, 0.22f, 0.22f, 0.55f));
+            TMP_Text cyan = CreateMenuLabel("Aberración cian", rect, label, font, new Vector2(-3f, 0f), new Color(0.2f, 0.85f, 1f, 0.55f));
+            TMP_Text main = CreateMenuLabel("Texto", rect, label, font, Vector2.zero, Color.white);
+
+            // Zona clicable invisible del tamaño de la opción (el texto no recibe clics).
+            var hitArea = root.AddComponent<Image>();
+            hitArea.color = Color.clear;
+
+            var button = root.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = hitArea;
+            button.navigation = new Navigation { mode = Navigation.Mode.Vertical };
+
+            var feedback = root.AddComponent<TextMenuItemFeedback>();
+            SetField(feedback, "label", main);
+            var serialized = new SerializedObject(feedback);
+            SerializedProperty ghosts = serialized.FindProperty("ghosts");
+            ghosts.arraySize = 2;
+            ghosts.GetArrayElementAtIndex(0).objectReferenceValue = red;
+            ghosts.GetArrayElementAtIndex(1).objectReferenceValue = cyan;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            root.AddComponent<SelectableSounds>();
+            return button;
+        }
+
+        private static TMP_Text CreateMenuLabel(string name, RectTransform parent, string label, TMP_FontAsset font, Vector2 offset, Color color)
+        {
+            TMP_Text text = CreateText(name, parent, label, font, 62, color, stretch: true);
+            text.rectTransform.anchoredPosition = offset;
+            text.characterSpacing = 4f;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            return text;
         }
 
         /// <summary>Tarjeta con sombra desplazada y borde café.</summary>
