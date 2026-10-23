@@ -141,6 +141,23 @@ namespace Odisea.EditorTools
             return material;
         }
 
+        private const string TransitionSettingsPath = "Assets/_Project/Resources/Transitions/TransitionSettings.asset";
+
+        /// <summary>Asset con duraciones, color y curvas del iris, editable en el Inspector.</summary>
+        [MenuItem("Odisea/UI/Crear configuración de transición")]
+        public static Odisea.Core.TransitionSettings EnsureTransitionSettings()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<Odisea.Core.TransitionSettings>(TransitionSettingsPath);
+            if (settings != null)
+                return settings;
+
+            EnsureIrisMaterial(); // Crea también la carpeta Resources/Transitions.
+            settings = ScriptableObject.CreateInstance<Odisea.Core.TransitionSettings>();
+            AssetDatabase.CreateAsset(settings, TransitionSettingsPath);
+            AssetDatabase.SaveAssets();
+            return settings;
+        }
+
         private const string RoundedSpritePath = "Assets/_Project/Art/UI/Redondeado.png";
         private const int RoundedSize = 64;
         private const int RoundedRadius = 24;

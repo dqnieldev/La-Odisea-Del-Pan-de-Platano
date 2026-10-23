@@ -9,23 +9,22 @@ namespace Odisea.Core
     /// Transición entre escenas tipo iris de caricatura: un círculo se cierra hacia el centro,
     /// la pantalla se queda un instante en café oscuro, se carga la escena y el círculo se abre.
     /// Se crea solo la primera vez que se usa y sobrevive a los cambios de escena. Lo usa <see cref="SceneFlow"/>.
+    /// Duraciones, color y curvas se ajustan en el asset Resources/Transitions/TransitionSettings.
     /// Si no encuentra el material del iris, hace un fundido simple.
     /// </summary>
     public class ScreenFader : MonoBehaviour
     {
         private const string IrisMaterialPath = "Transitions/Iris";
-        private const float CloseDuration = 0.7f;
-        private const float HoldDuration = 0.18f;
-        private const float OpenDuration = 0.7f;
-        // Café Panadería del design system.
-        private static readonly Color CurtainColor = new(0.169f, 0.118f, 0.086f);
 
         private static readonly int RadiusId = Shader.PropertyToID("_Radius");
         private static readonly int CenterId = Shader.PropertyToID("_Center");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int SoftnessId = Shader.PropertyToID("_Softness");
 
         private static ScreenFader instance;
         private Image overlay;
         private Material irisMaterial;
+        private TransitionSettings settings;
 
         public bool IsBusy { get; private set; }
 
@@ -68,6 +67,12 @@ namespace Odisea.Core
             rect.offsetMin = rect.offsetMax = Vector2.zero;
 
             var fader = root.AddComponent<ScreenFader>();
+            fader.settings = Resources.Load<TransitionSettings>(TransitionSettings.ResourcePath);
+            if (fader.settings == null)
+            {
+                Debug.LogWarning($"[Odisea] No se encontró Resources/{TransitionSettings.ResourcePath}; se usan valores por defecto.");
+                fader.settings = ScriptableObject.CreateInstance<TransitionSettings>();
+            }
             fader.overlay = overlayObject.GetComponent<Image>();
             fader.overlay.raycastTarget = false;
 
@@ -94,12 +99,16 @@ namespace Odisea.Core
             overlay.enabled = true;
             // Bloquea clics mientras la transición cubre la pantalla.
             overlay.raycastTarget = true;
+            // Se aplican en cada transición para que los cambios del Inspector se vean sin reiniciar.
             if (irisMaterial != null)
+            {
                 irisMaterial.SetVector(CenterId, center);
+                irisMaterial.SetColor(ColorId, settings.color);
+                irisMaterial.SetFloat(SoftnessId, settings.edgeSoftness);
+            }
 
-            // Cerrar: empieza lento y acelera, como un iris que se cierra de golpe al final.
-            yield return Animate(CloseDuration, p => SetOpen(1f - p * p * p));
-            yield return new WaitForSecondsRealtime(HoldDuration);
+            yield return Animate(settings.closeDuration, p => SetOpen(1f - settings.closeCurve.Evaluate(p)));
+            yield return new WaitForSecondsRealtime(settings.holdDuration);
 
             // Un menú de pausa pudo dejar el tiempo detenido.
             Time.timeScale = 1f;
@@ -107,10 +116,10 @@ namespace Odisea.Core
             while (!loading.isDone)
                 yield return null;
 
-            // Abrir siempre desde el centro: arranca rápido y frena al final.
+            // Abrir siempre desde el centro.
             if (irisMaterial != null)
                 irisMaterial.SetVector(CenterId, new Vector2(0.5f, 0.5f));
-            yield return Animate(OpenDuration, p => SetOpen(1f - (1f - p) * (1f - p) * (1f - p)));
+            yield return Animate(settings.openDuration, p => SetOpen(settings.openCurve.Evaluate(p)));
 
             overlay.raycastTarget = false;
             overlay.enabled = false;
@@ -137,8 +146,8 @@ namespace Odisea.Core
             }
             else
             {
-                Color c = CurtainColor;
-                c.a = 1f - openness;
+                Color c = settings.color;
+                c.a *= 1f - openness;
                 overlay.color = c;
             }
         }
