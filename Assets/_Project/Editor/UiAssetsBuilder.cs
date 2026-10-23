@@ -114,6 +114,33 @@ namespace Odisea.EditorTools
             return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
         }
 
+        private const string IrisShaderName = "Odisea/UI/Iris";
+        // Va en Resources para que ScreenFader lo cargue en tiempo de ejecución y se incluya en el build.
+        private const string IrisMaterialPath = "Assets/_Project/Resources/Transitions/Iris.mat";
+
+        [MenuItem("Odisea/UI/Crear material de transición (iris)")]
+        public static Material EnsureIrisMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(IrisMaterialPath);
+            if (material != null)
+                return material;
+
+            Shader shader = Shader.Find(IrisShaderName)
+                ?? throw new InvalidOperationException($"No se encontró el shader {IrisShaderName}.");
+            string folder = System.IO.Path.GetDirectoryName(IrisMaterialPath).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/_Project/Resources"))
+                    AssetDatabase.CreateFolder("Assets/_Project", "Resources");
+                AssetDatabase.CreateFolder("Assets/_Project/Resources", "Transitions");
+            }
+
+            material = new Material(shader) { name = "Iris" };
+            AssetDatabase.CreateAsset(material, IrisMaterialPath);
+            AssetDatabase.SaveAssets();
+            return material;
+        }
+
         private const string RoundedSpritePath = "Assets/_Project/Art/UI/Redondeado.png";
         private const int RoundedSize = 64;
         private const int RoundedRadius = 24;
