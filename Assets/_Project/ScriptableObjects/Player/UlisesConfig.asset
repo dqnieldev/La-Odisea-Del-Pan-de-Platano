@@ -43,7 +43,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   projectileDamage: 1
-  projectileSpeed: 6
+  projectileSpeed: 12
   projectileCooldown: 0.7
   projectileLifetime: 2.5
   projectileSpawnOffset: {x: 0.6, y: 0.3}
