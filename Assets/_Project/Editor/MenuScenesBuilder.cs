@@ -48,6 +48,8 @@ namespace Odisea.EditorTools
             UiAssetsBuilder.EnsureRoundedSprite();
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
+            foreach (string sound in new[] { "ui_hover", "ui_click", "ui_back" })
+                UiAssetsBuilder.LoadUiSound(sound);
             AssetDatabase.SaveAssets();
 
             BuildTitleScene(videoPath);
@@ -96,6 +98,7 @@ namespace Odisea.EditorTools
             CreateImage("Fondo", promptRect, rounded, new Color(Cafe.r, Cafe.g, Cafe.b, 0.78f), Vector2.zero, Vector2.zero, stretch: true);
             CreateText("Texto", promptRect, "Presiona cualquier botón para comenzar", font, 46, Crema, stretch: true);
 
+            CreateUiAudio();
             var title = new GameObject("Pantalla de inicio").AddComponent<TitleScreen>();
             SetField(title, "video", player);
 
@@ -113,6 +116,7 @@ namespace Odisea.EditorTools
             TMP_FontAsset bodyFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
             CreateCamera(Cafe);
             CreateEventSystem();
+            CreateUiAudio();
             Transform canvas = CreateCanvas("UI");
 
             // Fondo: cubre la pantalla sin deformarse (recorta lo que sobre).
@@ -199,6 +203,7 @@ namespace Odisea.EditorTools
                 rectSize: new Vector2(800f, 190f), alignment: TextAlignmentOptions.TopLeft);
 
             Button back = CreateMenuButton("Volver", panel, rounded, titleFont, new Vector2(300f, 84f), 38);
+            SetEnum(back.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
             var backRect = (RectTransform)back.transform;
             backRect.anchorMin = backRect.anchorMax = backRect.pivot = new Vector2(0.5f, 0f);
             backRect.anchoredPosition = new Vector2(0f, 50f);
@@ -239,6 +244,7 @@ namespace Odisea.EditorTools
             var feedback = root.AddComponent<MenuButtonFeedback>();
             SetField(feedback, "face", faceRect);
             SetField(feedback, "fill", fill);
+            root.AddComponent<SelectableSounds>();
             return button;
         }
 
@@ -292,6 +298,7 @@ namespace Odisea.EditorTools
             slider.targetGraphic = handle;
             slider.direction = Slider.Direction.LeftToRight;
             slider.colors = SelectionColors();
+            root.AddComponent<SelectableSounds>();
             // El Slider estira la perilla a toda la altura (anclas y de 0 a 1); con alto extra 0 mide 44 × 44 y queda circular.
             handle.rectTransform.sizeDelta = new Vector2(44f, 0f);
             return slider;
@@ -316,6 +323,7 @@ namespace Odisea.EditorTools
             toggle.targetGraphic = box;
             toggle.graphic = check;
             toggle.colors = SelectionColors(normal: BeigeMasa);
+            root.AddComponent<SelectableSounds>();
             return toggle;
         }
 
@@ -433,6 +441,22 @@ namespace Odisea.EditorTools
             // Teclado, mouse y mando navegan la UI con el nuevo Input System.
             var go = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             go.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        private static void CreateUiAudio()
+        {
+            var go = new GameObject("Sonidos de UI", typeof(AudioSource));
+            var audio = go.AddComponent<UiAudio>();
+            SetField(audio, "hover", UiAssetsBuilder.LoadUiSound("ui_hover"));
+            SetField(audio, "click", UiAssetsBuilder.LoadUiSound("ui_click"));
+            SetField(audio, "back", UiAssetsBuilder.LoadUiSound("ui_back"));
+        }
+
+        private static void SetEnum(UnityEngine.Object target, string field, int value)
+        {
+            var serialized = new SerializedObject(target);
+            serialized.FindProperty(field).enumValueIndex = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetBuildScenes()

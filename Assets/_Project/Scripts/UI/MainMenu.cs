@@ -36,7 +36,10 @@ namespace Odisea.UI
             if (events == null)
                 return;
             if (events.currentSelectedGameObject == null && lastSelected != null && lastSelected.activeInHierarchy)
+            {
+                UiAudio.MuteHoverBriefly();
                 events.SetSelectedGameObject(lastSelected);
+            }
             else if (events.currentSelectedGameObject != null)
                 lastSelected = events.currentSelectedGameObject;
         }
@@ -54,6 +57,8 @@ namespace Odisea.UI
         private void Select(GameObject target)
         {
             lastSelected = target;
+            // Seleccionar por código (al abrir el menú o al volver de Opciones) no debe sonar a hover.
+            UiAudio.MuteHoverBriefly();
             if (EventSystem.current != null)
             {
                 // Se limpia primero para que OnSelect se dispare aunque ya estuviera seleccionado.

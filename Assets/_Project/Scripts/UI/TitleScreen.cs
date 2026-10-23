@@ -61,6 +61,7 @@ namespace Odisea.UI
                 return;
 
             leaving = true;
+            UiAudio.Play(UiSound.Click);
             SceneFlow.Load(SceneFlow.MainMenu);
         }
     }

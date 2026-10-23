@@ -84,6 +84,36 @@ namespace Odisea.EditorTools
 
         private static string AssetPath(string font) => $"{FontsFolder}/{font} SDF.asset";
 
+        private const string UiSoundsFolder = "Assets/_Project/Audio/SFX/UI";
+
+        /// <summary>
+        /// Sonido de UI por nombre ("ui_hover", "ui_click", "ui_back"), con cualquier extensión de audio.
+        /// Se configura para sonidos cortos: mono, descomprimido en memoria y precargado (sin retraso al sonar).
+        /// </summary>
+        public static AudioClip LoadUiSound(string name)
+        {
+            string path = System.IO.Directory.Exists(UiSoundsFolder)
+                ? System.Linq.Enumerable.FirstOrDefault(System.IO.Directory.GetFiles(UiSoundsFolder, name + ".*"),
+                    f => !f.EndsWith(".meta"))
+                : null;
+            if (path == null)
+                return null;
+            path = path.Replace('\\', '/');
+
+            var importer = (AudioImporter)AssetImporter.GetAtPath(path);
+            AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+            if (!importer.forceToMono || settings.loadType != AudioClipLoadType.DecompressOnLoad)
+            {
+                importer.forceToMono = true;
+                settings.loadType = AudioClipLoadType.DecompressOnLoad;
+                settings.compressionFormat = AudioCompressionFormat.ADPCM;
+                settings.preloadAudioData = true;
+                importer.defaultSampleSettings = settings;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+        }
+
         private const string RoundedSpritePath = "Assets/_Project/Art/UI/Redondeado.png";
         private const int RoundedSize = 64;
         private const int RoundedRadius = 24;

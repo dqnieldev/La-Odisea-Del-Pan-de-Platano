@@ -43,6 +43,7 @@ namespace Odisea.UI
 
             if (EventSystem.current != null)
             {
+                UiAudio.MuteHoverBriefly();
                 EventSystem.current.SetSelectedGameObject(null);
                 EventSystem.current.SetSelectedGameObject(volumeSlider.gameObject);
             }
@@ -53,7 +54,10 @@ namespace Odisea.UI
             bool cancel = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||
                           (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
             if (cancel)
+            {
+                UiAudio.Play(UiSound.Back);
                 Close();
+            }
         }
 
         private void Close()
@@ -67,6 +71,8 @@ namespace Odisea.UI
         {
             GameSettings.MasterVolume = value / 100f;
             UpdateVolumeLabel(value);
+            // Suena ya con el volumen nuevo, para que se escuche el nivel elegido.
+            UiAudio.Play(UiSound.Hover);
         }
 
         private void UpdateVolumeLabel(float value) => volumeValue.text = $"{value:0}%";
