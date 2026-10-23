@@ -335,7 +335,7 @@ namespace Odisea.EditorTools
                 "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
                 "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
                 "Reiniciar:  R  ·  Start\n" +
-                "Salir:  Esc  ·  Select\n" +
+                "Menú principal:  Esc  ·  Select\n" +
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
         }
 

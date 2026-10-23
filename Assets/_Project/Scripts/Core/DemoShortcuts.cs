@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 namespace Odisea.Core
 {
     /// <summary>
-    /// Atajos para escenas de prueba y demos: reiniciar (R / Start), salir (Esc / Select)
+    /// Atajos para escenas de prueba y demos: reiniciar (R / Start), volver al menú (Esc / Select)
     /// y reinicio automático cuando el jugador pierde todas sus vidas.
     /// No va en los niveles finales; ahí lo hará la pantalla de Game Over.
     /// </summary>
@@ -36,13 +36,13 @@ namespace Odisea.Core
 
             bool restart = (keyboard != null && keyboard.rKey.wasPressedThisFrame) ||
                            (gamepad != null && gamepad.startButton.wasPressedThisFrame);
-            bool quit = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) ||
-                        (gamepad != null && gamepad.selectButton.wasPressedThisFrame);
+            bool backToMenu = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) ||
+                             (gamepad != null && gamepad.selectButton.wasPressedThisFrame);
 
             if (restart)
                 Restart();
-            else if (quit)
-                Quit();
+            else if (backToMenu)
+                BackToMenu();
         }
 
         private void OnPlayerDied() => Invoke(nameof(Restart), restartDelayOnDeath);
@@ -63,13 +63,13 @@ namespace Odisea.Core
 #endif
         }
 
-        private static void Quit()
+        /// <summary>Regresa al menú principal; si todavía no está en el build, cierra el juego.</summary>
+        private static void BackToMenu()
         {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+            if (Application.CanStreamedLevelBeLoaded(SceneFlow.MainMenu))
+                SceneFlow.Load(SceneFlow.MainMenu);
+            else
+                SceneFlow.Quit();
         }
     }
 }
