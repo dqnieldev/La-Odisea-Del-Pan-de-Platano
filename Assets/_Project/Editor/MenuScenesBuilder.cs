@@ -134,11 +134,11 @@ namespace Odisea.EditorTools
                 Debug.LogWarning($"[Odisea] No hay imagen en {SourceFolder}; el menú queda con fondo crema.");
             }
 
-            // Menú minimalista estilo Cuphead: solo texto, en la zona oscura arriba a la izquierda del rodillo.
+            // Menú minimalista estilo Cuphead: solo texto, del lado izquierdo y centrado verticalmente (zona negra del fondo).
             var buttons = new GameObject("Botones", typeof(RectTransform), typeof(VerticalLayoutGroup));
             var buttonsRect = (RectTransform)buttons.transform;
             buttonsRect.SetParent(canvas, false);
-            buttonsRect.anchorMin = buttonsRect.anchorMax = new Vector2(0.4f, 0.72f);
+            buttonsRect.anchorMin = buttonsRect.anchorMax = new Vector2(0.14f, 0.5f);
             buttonsRect.pivot = new Vector2(0.5f, 0.5f);
             buttonsRect.sizeDelta = new Vector2(600f, 330f);
             var layout = buttons.GetComponent<VerticalLayoutGroup>();
