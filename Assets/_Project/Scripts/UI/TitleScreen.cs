@@ -48,6 +48,13 @@ namespace Odisea.UI
 
         private void OnVideoPrepared(VideoPlayer player) => player.Play();
 
+        // Unity pausa el video cuando la ventana pierde el foco (Alt+Tab) y no lo reanuda por sí solo.
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus && video != null && video.isPrepared && !video.isPlaying)
+                video.Play();
+        }
+
         private void OnAnyButtonPressed(InputControl control)
         {
             if (leaving || Time.unscaledTime - shownAt < inputDelay)

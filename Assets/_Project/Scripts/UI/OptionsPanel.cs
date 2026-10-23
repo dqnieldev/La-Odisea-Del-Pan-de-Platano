@@ -25,7 +25,8 @@ namespace Odisea.UI
         {
             volumeSlider.minValue = 0f;
             volumeSlider.maxValue = 100f;
-            volumeSlider.wholeNumbers = true;
+            // Sin números enteros el teclado y el mando mueven el volumen de 10 en 10 (con enteros sería de 1 en 1).
+            volumeSlider.wholeNumbers = false;
             volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
             fullscreenToggle.onValueChanged.AddListener(value => GameSettings.Fullscreen = value);
             backButton.onClick.AddListener(Close);

@@ -170,7 +170,7 @@ namespace Odisea.EditorTools
             Stretch(rootRect);
             CreateImage("Scrim", rootRect, null, new Color(0.110f, 0.075f, 0.055f, 0.72f), Vector2.zero, Vector2.zero, stretch: true);
 
-            RectTransform panel = CreateCard("Panel", rootRect, rounded, new Vector2(1000f, 800f), Crema);
+            RectTransform panel = CreateCard("Panel", rootRect, rounded, new Vector2(1000f, 760f), Crema);
 
             CreateText("Título", panel, "Opciones", titleFont, 64, Cafe, anchor: new Vector2(0.5f, 1f),
                 position: new Vector2(0f, -80f), rectSize: new Vector2(800f, 90f));
@@ -195,7 +195,7 @@ namespace Odisea.EditorTools
                 "<b>Saltar</b> (2 veces = doble salto)   Espacio  ·  A / Cruz\n" +
                 "<b>Golpear con el rodillo</b>   J o clic  ·  X / Cuadrado\n" +
                 "<b>Lanzar masa</b>   K o clic derecho  ·  Y / Triángulo",
-                bodyFont, 28, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -490f),
+                bodyFont, 28, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -495f),
                 rectSize: new Vector2(800f, 190f), alignment: TextAlignmentOptions.TopLeft);
 
             Button back = CreateMenuButton("Volver", panel, rounded, titleFont, new Vector2(300f, 84f), 38);
@@ -292,6 +292,8 @@ namespace Odisea.EditorTools
             slider.targetGraphic = handle;
             slider.direction = Slider.Direction.LeftToRight;
             slider.colors = SelectionColors();
+            // El Slider estira la perilla a toda la altura (anclas y de 0 a 1); con alto extra 0 mide 44 × 44 y queda circular.
+            handle.rectTransform.sizeDelta = new Vector2(44f, 0f);
             return slider;
         }
 
