@@ -324,14 +324,15 @@ namespace Odisea.EditorTools
             volume.navigation = new Navigation { mode = Navigation.Mode.None };
             TMP_Text volumeValue = CreateText("Valor volumen", audio, "100%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
                 position: new Vector2(225f, -300f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
-            CreateHint(audio, bodyFont, "Izquierda / derecha para ajustar   ·   Esc: volver al índice");
+            CreateHint(audio, bodyFont, "Izquierda / derecha para ajustar");
 
             RectTransform screen = CreateSection("Pantalla", right, titleFont);
-            CreateText("Etiqueta pantalla completa", screen, "Pantalla completa", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(-50f, -210f), rectSize: new Vector2(400f, 60f), alignment: TextAlignmentOptions.Left);
+            TMP_Text fullscreenLabel = CreateText("Etiqueta pantalla completa", screen, "Pantalla completa", bodyFont, 40, Cafe,
+                anchor: new Vector2(0.5f, 1f), position: new Vector2(-50f, -210f), rectSize: new Vector2(400f, 60f),
+                alignment: TextAlignmentOptions.Left);
             Toggle fullscreen = CreateToggle(screen, rounded, new Vector2(200f, -210f));
+            SetField(fullscreen.gameObject.AddComponent<PointerTarget>(), "target", fullscreenLabel.rectTransform);
             fullscreen.navigation = new Navigation { mode = Navigation.Mode.None };
-            CreateHint(screen, bodyFont, "Enter o A para cambiar   ·   Esc: volver al índice");
 
             RectTransform controls = CreateSection("Controles", right, titleFont);
             CreateText("Tabla controles", controls,
@@ -342,6 +343,11 @@ namespace Odisea.EditorTools
                 "<b>Pausa</b>\n<size=80%><color=#73594A>Esc  ·  Start</color></size>",
                 bodyFont, 30, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -420f),
                 rectSize: new Vector2(540f, 540f), alignment: TextAlignmentOptions.Top);
+
+            // ----- Listón (sección abierta), manícula (opción seleccionada) y ayuda de botones -----
+            SectionRibbon ribbon = CreateRibbon(bookRect);
+            CreatePointer(root, bookRect);
+            CreatePromptBar(bookRect, bodyFont);
 
             // ----- Hoja que da vuelta (encima de todo lo demás del libro) -----
             var sheet = new GameObject("Hoja que da vuelta", typeof(RectTransform), typeof(RawImage));
@@ -362,6 +368,7 @@ namespace Odisea.EditorTools
             SetField(options, "panelGroup", root.GetComponent<CanvasGroup>());
             SetField(options, "pageFlipper", flipper);
             SetField(options, "rightPage", rightGroup);
+            SetField(options, "ribbon", ribbon);
             SetField(options, "audioTab", audioTab);
             SetField(options, "screenTab", screenTab);
             SetField(options, "controlsTab", controlsTab);
@@ -381,6 +388,179 @@ namespace Odisea.EditorTools
             SetField(options, "volumeValue", volumeValue);
             SetField(options, "fullscreenToggle", fullscreen);
             return options;
+        }
+
+        private const string UiFolder = "Assets/_Project/Art/UI";
+
+        /// <summary>
+        /// Listón que cuelga del borde de arriba del libro, junto al margen izquierdo, y baja hasta la sección abierta.
+        /// 9-slice: los bordes de arriba (dobladillo) y de abajo (corte en V) no se estiran.
+        /// </summary>
+        private static SectionRibbon CreateRibbon(RectTransform book)
+        {
+            const float width = 48f;
+            Sprite sprite = ImportRibbonSprite();
+            var go = new GameObject("Listón", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(book, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(-760f, 470f);
+            rect.sizeDelta = new Vector2(width, 70f);
+            var image = go.GetComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+            if (sprite != null)
+            {
+                image.type = Image.Type.Sliced;
+                image.pixelsPerUnitMultiplier = sprite.rect.width / width;
+            }
+            else
+            {
+                image.color = new Color(0.45f, 0.12f, 0.14f);
+                Debug.LogWarning($"[Odisea] No está liston en {SourceFolder}; se usa un listón liso.");
+            }
+
+            var ribbon = go.AddComponent<SectionRibbon>();
+            SetField(ribbon, "ribbon", rect);
+            return ribbon;
+        }
+
+        private static void CreatePointer(GameObject root, RectTransform book)
+        {
+            var go = new GameObject("Manícula", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(book, false);
+            rect.sizeDelta = new Vector2(88f, 55f);
+            var image = go.GetComponent<Image>();
+            image.sprite = LoadUiSprite($"{UiFolder}/manicula.png");
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            go.GetComponent<CanvasGroup>().alpha = 0f;
+
+            var pointer = root.AddComponent<SelectionPointer>();
+            SetField(pointer, "pointer", rect);
+            SetField(pointer, "area", book);
+        }
+
+        /// <summary>Ayuda de botones en la esquina inferior derecha del libro (íconos de Kenney, CC0, teñidos de café).</summary>
+        private static void CreatePromptBar(RectTransform book, TMP_FontAsset font)
+        {
+            var go = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(book, false);
+            rect.anchoredPosition = new Vector2(RightPageCenter.x, -335f);
+            rect.sizeDelta = new Vector2(640f, 60f);
+            var layout = go.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 8f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+
+            Image confirm = CreatePromptIcon(rect);
+            CreatePromptLabel(rect, font, "Seleccionar");
+            CreatePromptSpacer(rect);
+            Image back = CreatePromptIcon(rect);
+            CreatePromptLabel(rect, font, "Atrás");
+            CreatePromptSpacer(rect);
+            Image left = CreatePromptIcon(rect);
+            Image right = CreatePromptIcon(rect);
+            CreatePromptLabel(rect, font, "Página");
+
+            var bar = go.AddComponent<ButtonPromptBar>();
+            SetField(bar, "confirmIcon", confirm);
+            SetField(bar, "backIcon", back);
+            SetField(bar, "pageLeftIcon", left);
+            SetField(bar, "pageRightIcon", right);
+            SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_q", "kb_e");
+            SetPromptSet(bar, "xbox", "xbox_a", "xbox_b", "xbox_lb", "xbox_rb");
+            SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_l1", "ps_r1");
+        }
+
+        private static Image CreatePromptIcon(RectTransform bar)
+        {
+            var go = new GameObject("Ícono", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(bar, false);
+            var element = go.GetComponent<LayoutElement>();
+            element.preferredWidth = element.preferredHeight = 50f;
+            var image = go.GetComponent<Image>();
+            image.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static void CreatePromptLabel(RectTransform bar, TMP_FontAsset font, string text)
+        {
+            var go = new GameObject(text, typeof(RectTransform), typeof(TextMeshProUGUI));
+            go.transform.SetParent(bar, false);
+            var label = go.GetComponent<TextMeshProUGUI>();
+            label.text = text;
+            label.font = font;
+            label.fontSize = 28;
+            label.color = Cafe;
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+        }
+
+        private static void CreatePromptSpacer(RectTransform bar)
+        {
+            var go = new GameObject("Separación", typeof(RectTransform), typeof(LayoutElement));
+            go.transform.SetParent(bar, false);
+            go.GetComponent<LayoutElement>().preferredWidth = 18f;
+        }
+
+        private static void SetPromptSet(ButtonPromptBar bar, string field, string confirm, string back, string left, string right)
+        {
+            var serialized = new SerializedObject(bar);
+            SerializedProperty set = serialized.FindProperty(field);
+            set.FindPropertyRelative("confirm").objectReferenceValue = LoadUiSprite($"{UiFolder}/Botones/{confirm}.png");
+            set.FindPropertyRelative("back").objectReferenceValue = LoadUiSprite($"{UiFolder}/Botones/{back}.png");
+            set.FindPropertyRelative("pageLeft").objectReferenceValue = LoadUiSprite($"{UiFolder}/Botones/{left}.png");
+            set.FindPropertyRelative("pageRight").objectReferenceValue = LoadUiSprite($"{UiFolder}/Botones/{right}.png");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Carga un PNG del proyecto como sprite de UI, configurando su importación la primera vez.</summary>
+        private static Sprite LoadUiSprite(string path, Vector4? border = null)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning($"[Odisea] No se encontró {path}.");
+                return null;
+            }
+
+            bool changed = importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled ||
+                           (border.HasValue && importer.spriteBorder != border.Value);
+            if (changed)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                if (border.HasValue)
+                {
+                    importer.spriteBorder = border.Value;
+                    var settings = new TextureImporterSettings();
+                    importer.ReadTextureSettings(settings);
+                    settings.spriteMeshType = SpriteMeshType.FullRect;
+                    importer.SetTextureSettings(settings);
+                }
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        /// <summary>Listón: se copia de Docs/Referencias/Menu y se marcan como bordes el dobladillo y la punta en V.</summary>
+        private static Sprite ImportRibbonSprite()
+        {
+            var texture = ImportUserFile<Texture2D>("liston", ImageExtensions, UiArtFolder, "Liston");
+            if (texture == null)
+                return null;
+            // Imagen de 200×1000: arriba 140 px (vacío + dobladillo) y abajo 200 px (corte en V) no se estiran.
+            return LoadUiSprite(AssetDatabase.GetAssetPath(texture), new Vector4(0f, 200f, 0f, 140f));
         }
 
         private static RectTransform CreatePage(string name, RectTransform book, Vector2 center)
@@ -416,7 +596,7 @@ namespace Odisea.EditorTools
         private static void CreateHint(RectTransform section, TMP_FontAsset font, string text)
         {
             CreateText("Ayuda", section, text, font, 26, TintaClara, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -640f), rectSize: new Vector2(560f, 50f));
+                position: new Vector2(0f, -590f), rectSize: new Vector2(560f, 50f));
         }
 
         /// <summary>Opción del índice: mismo estilo que el menú principal, pero en tinta café sobre el papel.</summary>
@@ -429,6 +609,7 @@ namespace Odisea.EditorTools
             var feedback = item.GetComponent<TextMenuItemFeedback>();
             SetColor(feedback, "normalColor", TintaClara);
             SetColor(feedback, "selectedColor", Cafe);
+            SetField(item.gameObject.AddComponent<PointerTarget>(), "target", item.transform.Find("Texto"));
             return item;
         }
 

@@ -15,6 +15,7 @@ namespace Odisea.UI
     /// de pausa dentro del juego (con Continuar, Reiniciar nivel, Ir al título y Salir al menú).
     /// Los botones de acción son opcionales: los que no estén asignados simplemente no existen en ese libro.
     /// Esc o B / Círculo: desde la página derecha regresa al índice; desde el índice cierra el libro.
+    /// LB / RB (o Q / E): saltan entre el índice (izquierda) y los ajustes de la sección (derecha).
     /// </summary>
     public class OptionsPanel : MonoBehaviour
     {
@@ -32,6 +33,8 @@ namespace Odisea.UI
         [SerializeField] private PageFlipper pageFlipper;
         [Tooltip("Contenido de la página derecha; se desvanece mientras la hoja da vuelta.")]
         [SerializeField] private CanvasGroup rightPage;
+        [Tooltip("Opcional: listón que marca en el índice la sección abierta.")]
+        [SerializeField] private SectionRibbon ribbon;
 
         [Header("Índice (página izquierda)")]
         [SerializeField] private Button audioTab;
@@ -101,7 +104,7 @@ namespace Odisea.UI
             UpdateVolumeLabel(volumeSlider.value);
             fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
 
-            SetSectionActive(homeSection != null ? Section.Home : Section.Audio);
+            SetSectionActive(homeSection != null ? Section.Home : Section.Audio, instantRibbon: true);
             rightPage.alpha = 1f;
             rightPage.interactable = true;
             Select(homeSection != null ? backButton.gameObject : audioTab.gameObject);
@@ -113,6 +116,17 @@ namespace Odisea.UI
             // Mientras abre (interactable en falso) se ignora: la misma tecla que abrió la pausa no debe cerrarla.
             if (closing || pageFlipper.IsFlipping || !panelGroup.interactable)
                 return;
+
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            bool toIndex = (gamepad != null && gamepad.leftShoulder.wasPressedThisFrame) ||
+                           (keyboard != null && keyboard.qKey.wasPressedThisFrame);
+            bool toSettings = (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame) ||
+                              (keyboard != null && keyboard.eKey.wasPressedThisFrame);
+            if (toIndex)
+                GoToIndex();
+            else if (toSettings)
+                GoToSettings();
 
             bool cancel = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||
                           (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
@@ -154,15 +168,44 @@ namespace Odisea.UI
                 });
         }
 
+        /// <summary>LB / Q: regresa a la página izquierda, a la sección abierta.</summary>
+        private void GoToIndex()
+        {
+            if (IsOnRightPage())
+            {
+                UiAudio.Play(UiSound.Hover);
+                Select(TabFor(current).gameObject);
+            }
+        }
+
+        /// <summary>RB / E: pasa a los ajustes de la sección abierta (Controles y la portada no tienen).</summary>
+        private void GoToSettings()
+        {
+            Selectable first = FirstSetting(current);
+            if (first != null && !IsOnRightPage())
+            {
+                UiAudio.Play(UiSound.Hover);
+                Select(first.gameObject);
+            }
+        }
+
+        private bool IsOnRightPage()
+        {
+            GameObject selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            return selected != null && selected.transform.IsChildOf(rightPage.transform);
+        }
+
+        private Selectable FirstSetting(Section section) => section switch
+        {
+            Section.Audio => volumeSlider,
+            Section.Screen => fullscreenToggle,
+            _ => null,
+        };
+
         /// <summary>Lleva la selección al primer ajuste de la sección; Controles no tiene, se queda en el índice.</summary>
         private void FocusSection()
         {
-            Selectable first = current switch
-            {
-                Section.Audio => volumeSlider,
-                Section.Screen => fullscreenToggle,
-                _ => null,
-            };
+            Selectable first = FirstSetting(current);
             if (current == Section.Home)
             {
                 Select(backButton.gameObject);
@@ -171,9 +214,16 @@ namespace Odisea.UI
             Select(first != null ? first.gameObject : TabFor(current).gameObject);
         }
 
-        private void SetSectionActive(Section section)
+        private void SetSectionActive(Section section, bool instantRibbon = false)
         {
             current = section;
+            if (ribbon != null)
+            {
+                if (section == Section.Home)
+                    ribbon.Retract(instantRibbon);
+                else
+                    ribbon.PointTo((RectTransform)TabFor(section).transform, instantRibbon);
+            }
             if (homeSection != null)
                 homeSection.SetActive(section == Section.Home);
             audioSection.SetActive(section == Section.Audio);
