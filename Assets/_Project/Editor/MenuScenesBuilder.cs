@@ -62,6 +62,7 @@ namespace Odisea.EditorTools
 
             BuildTitleScene(videoPath);
             BuildMainMenuScene(backgroundPath, bookPath, pagePath);
+            BuildPausePrefab();
             SetBuildScenes();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Pantalla de inicio y menú principal creados.");
@@ -163,7 +164,8 @@ namespace Odisea.EditorTools
             Button options = CreateTextMenuItem("OPCIONES", buttonsRect, menuFont);
             Button quit = CreateTextMenuItem("SALIR", buttonsRect, menuFont);
 
-            OptionsPanel optionsPanel = CreateRecipeBook(canvas, bookSprite, pageClip, rounded, titleFont, bodyFont, menuFont);
+            OptionsPanel optionsPanel = CreateRecipeBook(canvas, bookSprite, pageClip, rounded, titleFont, bodyFont, menuFont,
+                BookMode.Options, out _);
 
             var menu = new GameObject("Menú principal").AddComponent<MainMenu>();
             SetField(menu, "playButton", play);
@@ -176,7 +178,9 @@ namespace Odisea.EditorTools
             EditorSceneManager.SaveScene(scene);
         }
 
-        // ---------- Opciones: recetario ----------
+        // ---------- Recetario: Opciones (menú principal) y Pausa (dentro del juego) ----------
+
+        private const string PausePrefabPath = "Assets/_Project/Prefabs/UI/MenuPausa.prefab";
 
         // Medidas del libro (PNG y video de 1920×1080): centro y tamaño del área útil de cada página.
         private static readonly Vector2 LeftPageCenter = new(-405f, 10f);
@@ -185,52 +189,133 @@ namespace Odisea.EditorTools
         private static readonly Color TintaClara = new(0.45f, 0.36f, 0.27f);
         // Sonido de hoja que da vuelta; suena solo al cambiar de sección en el recetario.
         private const string PageSoundName = "ui_clickOptions";
+        // El libro de pausa es más chico para que se vea el juego alrededor.
+        private const float PauseBookScale = 0.72f;
+
+        private enum BookMode
+        {
+            Options,
+            Pause,
+        }
 
         /// <summary>
-        /// Opciones como recetario: el libro (PNG), el índice a la izquierda, la sección a la derecha
-        /// y encima la hoja que da vuelta (video con el negro quitado por el shader LumaKey).
+        /// Crea el menú de pausa como prefab (Assets/_Project/Prefabs/UI/MenuPausa.prefab) para ponerlo en cada nivel.
+        /// Trae su propio canvas, EventSystem y sonidos de UI.
+        /// </summary>
+        [MenuItem("Odisea/Menús/Crear menú de pausa (prefab)")]
+        public static void BuildPausePrefab()
+        {
+            string bookPath = AssetPathOf(ImportSprite("recetario-libro-opciones", "LibroRecetas"));
+            string pagePath = AssetPathOf(ImportUserFile<VideoClip>("animacion-menu", VideoExtensions, VideoFolder, "PasarPagina"));
+            var bookSprite = bookPath != null ? AssetDatabase.LoadAssetAtPath<Sprite>(bookPath) : null;
+            var pageClip = pagePath != null ? AssetDatabase.LoadAssetAtPath<VideoClip>(pagePath) : null;
+
+            var root = new GameObject("Menú de pausa", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 500; // Encima del HUD del nivel; debajo del iris de transición.
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            CreateEventSystem().transform.SetParent(root.transform, false);
+            CreateUiAudio().transform.SetParent(root.transform, false);
+
+            OptionsPanel book = CreateRecipeBook(root.transform, bookSprite, pageClip, UiAssetsBuilder.EnsureRoundedSprite(),
+                UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium),
+                UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold), BookMode.Pause, out TMP_Text levelTitle);
+
+            var pause = root.AddComponent<PauseMenu>();
+            SetField(pause, "book", book);
+            SetField(pause, "levelTitle", levelTitle);
+
+            EnsureFolder(Path.GetDirectoryName(PausePrefabPath));
+            PrefabUtility.SaveAsPrefabAsset(root, PausePrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            Debug.Log($"[Odisea] Menú de pausa creado en {PausePrefabPath}");
+        }
+
+        /// <summary>
+        /// Recetario: el libro (PNG), el índice a la izquierda, la sección a la derecha y encima la hoja que da
+        /// vuelta (video con el negro quitado por el shader LumaKey). En modo Pausa es más chico, deja ver el juego
+        /// y su índice tiene Continuar, Reiniciar nivel, Ir al título y Salir al menú.
         /// </summary>
         private static OptionsPanel CreateRecipeBook(Transform canvas, Sprite bookSprite, VideoClip pageClip, Sprite rounded,
-            TMP_FontAsset titleFont, TMP_FontAsset bodyFont, TMP_FontAsset menuFont)
+            TMP_FontAsset titleFont, TMP_FontAsset bodyFont, TMP_FontAsset menuFont, BookMode mode, out TMP_Text levelTitle)
         {
-            var root = new GameObject("Opciones (recetario)", typeof(RectTransform), typeof(CanvasGroup));
+            bool pause = mode == BookMode.Pause;
+            var root = new GameObject(pause ? "Pausa (recetario)" : "Opciones (recetario)", typeof(RectTransform), typeof(CanvasGroup));
             var rootRect = (RectTransform)root.transform;
             rootRect.SetParent(canvas, false);
             Stretch(rootRect);
-            CreateImage("Scrim", rootRect, null, new Color(0.110f, 0.075f, 0.055f, 0.8f), Vector2.zero, Vector2.zero, stretch: true);
+            CreateImage("Scrim", rootRect, null, new Color(0.110f, 0.075f, 0.055f, pause ? 0.45f : 0.8f),
+                Vector2.zero, Vector2.zero, stretch: true);
 
             // El libro mide exactamente lo mismo que el video para que las páginas coincidan.
             var book = new GameObject("Libro", typeof(RectTransform));
             var bookRect = (RectTransform)book.transform;
             bookRect.SetParent(rootRect, false);
             bookRect.sizeDelta = new Vector2(1920f, 1080f);
+            if (pause)
+                bookRect.localScale = Vector3.one * PauseBookScale;
             Image bookImage = CreateImage("Imagen del libro", bookRect, bookSprite, bookSprite != null ? Color.white : Crema,
                 Vector2.zero, Vector2.zero, stretch: true);
             if (bookSprite == null)
-                Debug.LogWarning($"[Odisea] No está recetario-libro-opciones en {SourceFolder}; Opciones queda sin libro.");
+                Debug.LogWarning($"[Odisea] No está recetario-libro-opciones en {SourceFolder}; el recetario queda sin libro.");
             bookImage.preserveAspect = true;
 
             // ----- Página izquierda: índice -----
             RectTransform left = CreatePage("Página izquierda (índice)", bookRect, LeftPageCenter);
-            CreateText("Título", left, "Opciones", titleFont, 76, Cafe, anchor: new Vector2(0.5f, 1f),
+            CreateText("Título", left, pause ? "Pausa" : "Opciones", titleFont, 76, Cafe, anchor: new Vector2(0.5f, 1f),
                 position: new Vector2(0f, -70f), rectSize: new Vector2(560f, 100f));
             CreateText("Subtítulo", left, "Recetario de Don Lupe", bodyFont, 30, TintaClara, anchor: new Vector2(0.5f, 1f),
                 position: new Vector2(0f, -135f), rectSize: new Vector2(560f, 50f));
             CreateDivider(left, -180f);
 
-            Button audioTab = CreateIndexItem("AUDIO", left, menuFont, -280f);
-            Button screenTab = CreateIndexItem("PANTALLA", left, menuFont, -360f);
-            Button controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -440f);
+            Button audioTab, screenTab, controlsTab, titleTab, closeTab;
+            Button restartTab = null, exitTab = null;
+            if (pause)
+            {
+                const float size = 46f;
+                closeTab = CreateIndexItem("CONTINUAR", left, menuFont, -240f, size);
+                restartTab = CreateIndexItem("REINICIAR NIVEL", left, menuFont, -300f, size);
+                audioTab = CreateIndexItem("AUDIO", left, menuFont, -385f, size);
+                screenTab = CreateIndexItem("PANTALLA", left, menuFont, -445f, size);
+                controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -505f, size);
+                titleTab = CreateIndexItem("IR AL TÍTULO", left, menuFont, -590f, size);
+                exitTab = CreateIndexItem("SALIR AL MENÚ", left, menuFont, -650f, size);
+                LinkVertically(closeTab, restartTab, audioTab, screenTab, controlsTab, titleTab, exitTab);
+            }
+            else
+            {
+                audioTab = CreateIndexItem("AUDIO", left, menuFont, -280f);
+                screenTab = CreateIndexItem("PANTALLA", left, menuFont, -360f);
+                controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -440f);
+                titleTab = CreateIndexItem("IR AL TÍTULO", left, menuFont, -565f);
+                closeTab = CreateIndexItem("VOLVER", left, menuFont, -640f);
+                SetEnum(closeTab.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
+                LinkVertically(audioTab, screenTab, controlsTab, titleTab, closeTab);
+            }
             // Las secciones suenan a página (lo decide OptionsPanel), no a click.
             foreach (Button tab in new[] { audioTab, screenTab, controlsTab })
                 SetBool(tab.GetComponent<SelectableSounds>(), "playPressSound", false);
-            Button backTab = CreateIndexItem("VOLVER", left, menuFont, -610f);
-            SetEnum(backTab.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
-            LinkVertically(audioTab, screenTab, controlsTab, backTab);
 
             // ----- Página derecha: secciones -----
             RectTransform right = CreatePage("Página derecha (sección)", bookRect, RightPageCenter);
             var rightGroup = right.gameObject.AddComponent<CanvasGroup>();
+
+            levelTitle = null;
+            RectTransform home = null;
+            if (pause)
+            {
+                // Portada de la pausa: nombre del nivel (lo pone PauseMenu) y una frase de la panadería.
+                home = CreateSection("Nivel", right, titleFont);
+                levelTitle = home.Find("Título").GetComponent<TMP_Text>();
+                CreateText("Frase", home, "La masa puede esperar un momento.\nEl horno no se va a enfriar.", bodyFont, 34, Cafe,
+                    anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -260f), rectSize: new Vector2(540f, 140f));
+                CreateHint(home, bodyFont, "Esc o Start para continuar");
+            }
 
             RectTransform audio = CreateSection("Audio", right, titleFont);
             CreateText("Etiqueta volumen", audio, "Volumen general", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
@@ -253,9 +338,10 @@ namespace Odisea.EditorTools
                 "<b>Moverse y escaleras</b>\n<size=80%><color=#73594A>A D W S o flechas  ·  stick o cruceta</color></size>\n\n" +
                 "<b>Saltar</b> (2 veces = doble salto)\n<size=80%><color=#73594A>Espacio  ·  A / Cruz</color></size>\n\n" +
                 "<b>Golpear con el rodillo</b>\n<size=80%><color=#73594A>J o clic  ·  X / Cuadrado</color></size>\n\n" +
-                "<b>Lanzar masa</b>\n<size=80%><color=#73594A>K o clic derecho  ·  Y / Triángulo</color></size>",
-                bodyFont, 32, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -400f),
-                rectSize: new Vector2(540f, 480f), alignment: TextAlignmentOptions.Top);
+                "<b>Lanzar masa</b>\n<size=80%><color=#73594A>K o clic derecho  ·  Y / Triángulo</color></size>\n\n" +
+                "<b>Pausa</b>\n<size=80%><color=#73594A>Esc  ·  Start</color></size>",
+                bodyFont, 30, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -420f),
+                rectSize: new Vector2(540f, 540f), alignment: TextAlignmentOptions.Top);
 
             // ----- Hoja que da vuelta (encima de todo lo demás del libro) -----
             var sheet = new GameObject("Hoja que da vuelta", typeof(RectTransform), typeof(RawImage));
@@ -279,7 +365,15 @@ namespace Odisea.EditorTools
             SetField(options, "audioTab", audioTab);
             SetField(options, "screenTab", screenTab);
             SetField(options, "controlsTab", controlsTab);
-            SetField(options, "backButton", backTab);
+            SetField(options, "backButton", closeTab);
+            SetField(options, "titleButton", titleTab);
+            if (pause)
+            {
+                SetField(options, "restartButton", restartTab);
+                SetField(options, "exitToMenuButton", exitTab);
+                SetField(options, "homeSection", home.gameObject);
+                SetBool(options, "closeWithStart", true);
+            }
             SetField(options, "audioSection", audio.gameObject);
             SetField(options, "screenSection", screen.gameObject);
             SetField(options, "controlsSection", controls.gameObject);
@@ -326,9 +420,9 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Opción del índice: mismo estilo que el menú principal, pero en tinta café sobre el papel.</summary>
-        private static Button CreateIndexItem(string label, RectTransform page, TMP_FontAsset font, float y)
+        private static Button CreateIndexItem(string label, RectTransform page, TMP_FontAsset font, float y, float fontSize = 52f)
         {
-            Button item = CreateTextMenuItem(label, page, font, fontSize: 52, size: new Vector2(480f, 72f), ghostAlpha: 0.3f);
+            Button item = CreateTextMenuItem(label, page, font, fontSize: fontSize, size: new Vector2(520f, fontSize + 20f), ghostAlpha: 0.3f);
             var rect = (RectTransform)item.transform;
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, y);
@@ -620,14 +714,15 @@ namespace Odisea.EditorTools
             return go.transform;
         }
 
-        private static void CreateEventSystem()
+        private static GameObject CreateEventSystem()
         {
             // Teclado, mouse y mando navegan la UI con el nuevo Input System.
             var go = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             go.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            return go;
         }
 
-        private static void CreateUiAudio()
+        private static GameObject CreateUiAudio()
         {
             var go = new GameObject("Sonidos de UI", typeof(AudioSource));
             var audio = go.AddComponent<UiAudio>();
@@ -635,6 +730,7 @@ namespace Odisea.EditorTools
             SetField(audio, "click", UiAssetsBuilder.LoadUiSound("ui_click"));
             SetField(audio, "back", UiAssetsBuilder.LoadUiSound("ui_back"));
             SetField(audio, "page", UiAssetsBuilder.LoadUiSound(PageSoundName)); // Opcional.
+            return go;
         }
 
         private static void SetBool(UnityEngine.Object target, string field, bool value)

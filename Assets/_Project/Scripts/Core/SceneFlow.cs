@@ -29,6 +29,10 @@ namespace Odisea.Core
             ScreenFader.Instance.FadeAndLoad(sceneName, viewportCenter);
         }
 
+        /// <summary>Vuelve a cargar la escena actual (reiniciar nivel).</summary>
+        public static void ReloadCurrent() =>
+            Load(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+
         public static void Quit()
         {
 #if UNITY_EDITOR

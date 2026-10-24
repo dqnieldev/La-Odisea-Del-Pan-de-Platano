@@ -1,13 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 namespace Odisea.Core
 {
     /// <summary>
-    /// Atajos para escenas de prueba y demos: reiniciar (R / Start), volver al menú (Esc / Select)
-    /// y reinicio automático cuando el jugador pierde todas sus vidas.
-    /// No va en los niveles finales; ahí lo hará la pantalla de Game Over.
+    /// Atajos para escenas de prueba: reiniciar con R y reinicio automático cuando el jugador pierde
+    /// todas sus vidas. Esc y Start son del menú de pausa. En los niveles finales esto lo hará el Game Over.
     /// </summary>
     public class DemoShortcuts : MonoBehaviour
     {
@@ -31,18 +29,10 @@ namespace Odisea.Core
 
         private void Update()
         {
-            Keyboard keyboard = Keyboard.current;
-            Gamepad gamepad = Gamepad.current;
-
-            bool restart = (keyboard != null && keyboard.rKey.wasPressedThisFrame) ||
-                           (gamepad != null && gamepad.startButton.wasPressedThisFrame);
-            bool backToMenu = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) ||
-                             (gamepad != null && gamepad.selectButton.wasPressedThisFrame);
-
-            if (restart)
+            // En pausa (tiempo detenido) la R no reinicia.
+            bool paused = Time.timeScale == 0f;
+            if (!paused && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
                 Restart();
-            else if (backToMenu)
-                BackToMenu();
         }
 
         private void OnPlayerDied() => Invoke(nameof(Restart), restartDelayOnDeath);
@@ -52,24 +42,7 @@ namespace Odisea.Core
             if (restarting)
                 return;
             restarting = true;
-
-            Scene scene = SceneManager.GetActiveScene();
-#if UNITY_EDITOR
-            // En el Editor la escena puede no estar en Build Settings; se carga por ruta.
-            UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
-                scene.path, new LoadSceneParameters(LoadSceneMode.Single));
-#else
-            SceneManager.LoadScene(scene.buildIndex);
-#endif
-        }
-
-        /// <summary>Regresa al menú principal; si todavía no está en el build, cierra el juego.</summary>
-        private static void BackToMenu()
-        {
-            if (Application.CanStreamedLevelBeLoaded(SceneFlow.MainMenu))
-                SceneFlow.Load(SceneFlow.MainMenu);
-            else
-                SceneFlow.Quit();
+            SceneFlow.ReloadCurrent();
         }
     }
 }

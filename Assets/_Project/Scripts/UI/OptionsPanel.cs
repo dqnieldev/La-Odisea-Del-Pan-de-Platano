@@ -10,14 +10,17 @@ using UnityEngine.UI;
 namespace Odisea.UI
 {
     /// <summary>
-    /// Opciones como un recetario viejo: índice en la página izquierda (Audio, Pantalla, Controles, Volver)
-    /// y la sección elegida en la derecha. Al elegir otra sección la hoja da vuelta (<see cref="PageFlipper"/>).
+    /// Recetario viejo con índice a la izquierda y la sección elegida a la derecha; al elegir otra sección
+    /// la hoja da vuelta (<see cref="PageFlipper"/>). Se usa para Opciones en el menú principal y como menú
+    /// de pausa dentro del juego (con Continuar, Reiniciar nivel, Ir al título y Salir al menú).
+    /// Los botones de acción son opcionales: los que no estén asignados simplemente no existen en ese libro.
     /// Esc o B / Círculo: desde la página derecha regresa al índice; desde el índice cierra el libro.
     /// </summary>
     public class OptionsPanel : MonoBehaviour
     {
         private enum Section
         {
+            Home,
             Audio,
             Screen,
             Controls,
@@ -34,9 +37,20 @@ namespace Odisea.UI
         [SerializeField] private Button audioTab;
         [SerializeField] private Button screenTab;
         [SerializeField] private Button controlsTab;
+        [Tooltip("Cierra el libro. En el menú principal dice Volver; en la pausa, Continuar.")]
         [SerializeField] private Button backButton;
+        [Tooltip("Opcional (pausa): reinicia la escena actual.")]
+        [SerializeField] private Button restartButton;
+        [Tooltip("Opcional: lleva a la pantalla de inicio (video).")]
+        [SerializeField] private Button titleButton;
+        [Tooltip("Opcional (pausa): sale al menú principal.")]
+        [SerializeField] private Button exitToMenuButton;
+        [Tooltip("Pausa: Start del mando también cierra el libro.")]
+        [SerializeField] private bool closeWithStart;
 
         [Header("Secciones (página derecha)")]
+        [Tooltip("Opcional: página que se ve al abrir el libro (pausa). Sin ella, el libro abre en Audio.")]
+        [SerializeField] private GameObject homeSection;
         [SerializeField] private GameObject audioSection;
         [SerializeField] private GameObject screenSection;
         [SerializeField] private GameObject controlsSection;
@@ -53,9 +67,11 @@ namespace Odisea.UI
         private Action closed;
         private Section current;
         private bool closing;
+        private Vector3 bookScale = Vector3.one;
 
         private void Awake()
         {
+            bookScale = book.localScale;
             volumeSlider.minValue = 0f;
             volumeSlider.maxValue = 100f;
             // Sin números enteros el teclado y el mando mueven el volumen de 10 en 10 (con enteros sería de 1 en 1).
@@ -67,6 +83,12 @@ namespace Odisea.UI
             screenTab.onClick.AddListener(() => ShowSection(Section.Screen));
             controlsTab.onClick.AddListener(() => ShowSection(Section.Controls));
             backButton.onClick.AddListener(Close);
+            if (restartButton != null)
+                restartButton.onClick.AddListener(() => Leave(SceneFlow.ReloadCurrent));
+            if (titleButton != null)
+                titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Title)));
+            if (exitToMenuButton != null)
+                exitToMenuButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.MainMenu)));
         }
 
         public void Open(Action onClosed)
@@ -79,20 +101,22 @@ namespace Odisea.UI
             UpdateVolumeLabel(volumeSlider.value);
             fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
 
-            SetSectionActive(Section.Audio);
+            SetSectionActive(homeSection != null ? Section.Home : Section.Audio);
             rightPage.alpha = 1f;
             rightPage.interactable = true;
-            Select(audioTab.gameObject);
+            Select(homeSection != null ? backButton.gameObject : audioTab.gameObject);
             StartCoroutine(AnimateOpen());
         }
 
         private void Update()
         {
-            if (closing || pageFlipper.IsFlipping)
+            // Mientras abre (interactable en falso) se ignora: la misma tecla que abrió la pausa no debe cerrarla.
+            if (closing || pageFlipper.IsFlipping || !panelGroup.interactable)
                 return;
 
             bool cancel = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||
-                          (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
+                          (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                          (closeWithStart && Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame);
             if (!cancel)
                 return;
 
@@ -139,12 +163,19 @@ namespace Odisea.UI
                 Section.Screen => fullscreenToggle,
                 _ => null,
             };
+            if (current == Section.Home)
+            {
+                Select(backButton.gameObject);
+                return;
+            }
             Select(first != null ? first.gameObject : TabFor(current).gameObject);
         }
 
         private void SetSectionActive(Section section)
         {
             current = section;
+            if (homeSection != null)
+                homeSection.SetActive(section == Section.Home);
             audioSection.SetActive(section == Section.Audio);
             screenSection.SetActive(section == Section.Screen);
             controlsSection.SetActive(section == Section.Controls);
@@ -154,8 +185,20 @@ namespace Odisea.UI
         {
             Section.Audio => audioTab,
             Section.Screen => screenTab,
-            _ => controlsTab,
+            Section.Controls => controlsTab,
+            _ => backButton,
         };
+
+        /// <summary>Sale del libro cambiando de escena: el iris cubre la pantalla, no hace falta animar el cierre.</summary>
+        private void Leave(Action loadScene)
+        {
+            if (closing || pageFlipper.IsFlipping)
+                return;
+            closing = true;
+            panelGroup.interactable = false;
+            GameSettings.Save();
+            loadScene();
+        }
 
         private void Close()
         {
@@ -175,11 +218,11 @@ namespace Odisea.UI
                 panelGroup.alpha = Mathf.Clamp01(p * 2f);
                 // Back ease-out: el libro llega un poco más grande y se asienta.
                 float eased = 1f + 2.7f * Mathf.Pow(p - 1f, 3f) + 1.7f * Mathf.Pow(p - 1f, 2f);
-                book.localScale = Vector3.one * Mathf.LerpUnclamped(0.9f, 1f, eased);
+                book.localScale = bookScale * Mathf.LerpUnclamped(0.9f, 1f, eased);
                 yield return null;
             }
             panelGroup.alpha = 1f;
-            book.localScale = Vector3.one;
+            book.localScale = bookScale;
             panelGroup.interactable = true;
         }
 
@@ -190,7 +233,7 @@ namespace Odisea.UI
             {
                 float p = t / CloseDuration;
                 panelGroup.alpha = 1f - p;
-                book.localScale = Vector3.one * Mathf.Lerp(1f, 0.94f, p);
+                book.localScale = bookScale * Mathf.Lerp(1f, 0.94f, p);
                 yield return null;
             }
             gameObject.SetActive(false);

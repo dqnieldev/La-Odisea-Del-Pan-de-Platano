@@ -117,6 +117,20 @@ namespace Odisea.EditorTools
             var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
             SetSerialized(shortcuts, "playerHealth", player.GetComponent<Health>());
 
+            // Menú de pausa (Esc / Start). Lo genera Odisea > Menús > Crear menú de pausa.
+            var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
+            if (pausePrefab != null)
+            {
+                var pause = (GameObject)PrefabUtility.InstantiatePrefab(pausePrefab);
+                var serialized = new SerializedObject(pause.GetComponent<PauseMenu>());
+                serialized.FindProperty("levelName").stringValue = "Escena de prueba";
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else
+            {
+                Debug.LogWarning("[Odisea] Falta el prefab del menú de pausa; genéralo con Odisea > Menús > Crear menú de pausa.");
+            }
+
             var camera = GameObject.Find("Main Camera");
             camera.transform.position = new Vector3(0f, 2f, -10f);
             var cam = camera.GetComponent<Camera>();
@@ -334,8 +348,8 @@ namespace Odisea.EditorTools
                 "Escaleras:  arriba / abajo  (saltar para soltarte)\n" +
                 "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
                 "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
-                "Reiniciar:  R  ·  Start\n" +
-                "Menú principal:  Esc  ·  Select\n" +
+                "Pausa:  Esc  ·  Start\n" +
+                "Reiniciar:  R\n" +
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
         }
 
