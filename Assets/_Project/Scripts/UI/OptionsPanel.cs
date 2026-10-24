@@ -44,7 +44,7 @@ namespace Odisea.UI
         [SerializeField] private Button backButton;
         [Tooltip("Opcional (pausa): reinicia la escena actual.")]
         [SerializeField] private Button restartButton;
-        [Tooltip("Opcional: lleva a la pantalla de inicio (video).")]
+        [Tooltip("Opcional: regresa al inicio del juego (logo y luego el video del título).")]
         [SerializeField] private Button titleButton;
         [Tooltip("Opcional (pausa): sale al menú principal.")]
         [SerializeField] private Button exitToMenuButton;
@@ -89,7 +89,7 @@ namespace Odisea.UI
             if (restartButton != null)
                 restartButton.onClick.AddListener(() => Leave(SceneFlow.ReloadCurrent));
             if (titleButton != null)
-                titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Title)));
+                titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Splash)));
             if (exitToMenuButton != null)
                 exitToMenuButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.MainMenu)));
         }

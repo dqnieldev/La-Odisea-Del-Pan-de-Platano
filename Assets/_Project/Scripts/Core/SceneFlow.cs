@@ -9,6 +9,8 @@ namespace Odisea.Core
     /// </summary>
     public static class SceneFlow
     {
+        /// <summary>Logo del juego antes del título. Es la primera escena y a donde lleva "Ir al título".</summary>
+        public const string Splash = "Splash";
         public const string Title = "Title";
         public const string MainMenu = "MainMenu";
         // Mientras no existan los niveles, Jugar y Tutorial abren la escena de prueba del jugador.

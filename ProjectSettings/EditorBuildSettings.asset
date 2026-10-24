@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Project/Scenes/Menus/Splash.unity
+    guid: b3cb55130edd7ac4e84b985382e26a1f
+  - enabled: 1
     path: Assets/_Project/Scenes/Menus/Title.unity
     guid: de6e5b68dc1b0d546bce3e8555d41f1b
   - enabled: 1
@@ -13,7 +16,7 @@ EditorBuildSettings:
     guid: 8883621b1722a984aa6ebe3d462178a0
   - enabled: 1
     path: Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity
-    guid: 5190bda77ed57a74caa34335f709ca0c
+    guid: 2690a62b234c8d747aa319eadb7e3777
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

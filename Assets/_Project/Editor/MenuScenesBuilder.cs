@@ -22,6 +22,7 @@ namespace Odisea.EditorTools
     public static class MenuScenesBuilder
     {
         private const string SourceFolder = "Docs/Referencias/Menu";
+        private const string SplashScenePath = "Assets/_Project/Scenes/Menus/Splash.unity";
         private const string TitleScenePath = "Assets/_Project/Scenes/Menus/Title.unity";
         private const string MenuScenePath = "Assets/_Project/Scenes/Menus/MainMenu.unity";
         private const string SandboxScenePath = "Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity";
@@ -60,12 +61,43 @@ namespace Odisea.EditorTools
                 UiAssetsBuilder.LoadUiSound(sound);
             AssetDatabase.SaveAssets();
 
+            // El logo mide 3200 px; en pantalla se ve a ~560 px, así que 1024 basta y pesa mucho menos.
+            string logoPath = AssetPathOf(ImportSprite("logo-juego", "LogoJuego", maxSize: 1024));
+            AssetDatabase.SaveAssets();
+
+            BuildSplashScene(logoPath);
             BuildTitleScene(videoPath);
             BuildMainMenuScene(backgroundPath, bookPath, pagePath);
             BuildPausePrefab();
             SetBuildScenes();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Pantalla de inicio y menú principal creados.");
+        }
+
+        // ---------- Logo (antes del título) ----------
+
+        private static void BuildSplashScene(string logoPath)
+        {
+            var scene = NewScene(SplashScenePath);
+            var logo = logoPath != null ? AssetDatabase.LoadAssetAtPath<Sprite>(logoPath) : null;
+            // Mismo café que el fondo del logo (#2B1E16): las orillas del ícono se funden con la pantalla.
+            CreateCamera(Cafe);
+            Transform canvas = CreateCanvas("UI");
+
+            var logoObject = new GameObject("Logo", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            var rect = (RectTransform)logoObject.transform;
+            rect.SetParent(canvas, false);
+            rect.sizeDelta = new Vector2(560f, 560f);
+            var image = logoObject.GetComponent<Image>();
+            image.sprite = logo;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            if (logo == null)
+                Debug.LogWarning($"[Odisea] No está logo-juego en {SourceFolder}; la pantalla del logo queda vacía.");
+
+            var splash = new GameObject("Pantalla del logo").AddComponent<SplashScreen>();
+            SetField(splash, "logo", logoObject.GetComponent<CanvasGroup>());
+            EditorSceneManager.SaveScene(scene);
         }
 
         // ---------- Pantalla de inicio ----------
@@ -937,7 +969,7 @@ namespace Odisea.EditorTools
 
         private static void SetBuildScenes()
         {
-            EditorBuildSettings.scenes = new[] { TitleScenePath, MenuScenePath, SandboxScenePath }
+            EditorBuildSettings.scenes = new[] { SplashScenePath, TitleScenePath, MenuScenePath, SandboxScenePath }
                 .Select(path => new EditorBuildSettingsScene(path, true))
                 .ToArray();
         }
@@ -971,7 +1003,7 @@ namespace Odisea.EditorTools
             return AssetDatabase.LoadAssetAtPath<T>(destination);
         }
 
-        private static Sprite ImportSprite(string sourceName, string destinationName)
+        private static Sprite ImportSprite(string sourceName, string destinationName, int maxSize = 4096)
         {
             var texture = ImportUserFile<Texture2D>(sourceName, ImageExtensions, UiArtFolder, destinationName);
             if (texture == null)
@@ -979,12 +1011,12 @@ namespace Odisea.EditorTools
 
             string path = AssetDatabase.GetAssetPath(texture);
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            if (importer.textureType != TextureImporterType.Sprite)
+            if (importer.textureType != TextureImporterType.Sprite || importer.maxTextureSize != maxSize)
             {
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.mipmapEnabled = false;
-                importer.maxTextureSize = 4096;
+                importer.maxTextureSize = maxSize;
                 importer.textureCompression = TextureImporterCompression.CompressedHQ;
                 importer.SaveAndReimport();
             }
