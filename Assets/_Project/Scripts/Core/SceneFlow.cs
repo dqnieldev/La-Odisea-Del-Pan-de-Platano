@@ -31,6 +31,21 @@ namespace Odisea.Core
             ScreenFader.Instance.FadeAndLoad(sceneName, viewportCenter);
         }
 
+        /// <summary>
+        /// Cambia de escena al instante, sin iris. Para cuando la pantalla ya quedó oscura por su cuenta
+        /// (el logo se desvanece y el título empieza sobre el mismo fondo café).
+        /// </summary>
+        public static void LoadWithoutTransition(string sceneName)
+        {
+            if (!Application.CanStreamedLevelBeLoaded(sceneName))
+            {
+                Debug.LogError($"[Odisea] La escena '{sceneName}' no está en la lista de escenas del build.");
+                return;
+            }
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+        }
+
         /// <summary>Vuelve a cargar la escena actual (reiniciar nivel).</summary>
         public static void ReloadCurrent() =>
             Load(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);

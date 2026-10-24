@@ -76,7 +76,8 @@ namespace Odisea.UI
             if (leaving)
                 return;
             leaving = true;
-            SceneFlow.Load(SceneFlow.Title);
+            // Sin iris: el logo ya se desvaneció sobre el mismo café con el que arranca el título.
+            SceneFlow.LoadWithoutTransition(SceneFlow.Title);
         }
     }
 }
