@@ -140,8 +140,14 @@ namespace Odisea.EditorTools
             CreateText("Texto", promptRect, "Presiona cualquier botón para comenzar", font, 46, Crema, stretch: true);
 
             CreateUiAudio();
+            // Cortina café encima de todo: la pantalla llega oscura desde el logo y se aclara al empezar el video.
+            Image cover = CreateImage("Cortina de entrada", canvas, null, Cafe, Vector2.zero, Vector2.zero, stretch: true);
+            var coverGroup = cover.gameObject.AddComponent<CanvasGroup>();
+            coverGroup.interactable = false;
+
             var title = new GameObject("Pantalla de inicio").AddComponent<TitleScreen>();
             SetField(title, "video", player);
+            SetField(title, "fadeCover", coverGroup);
 
             EditorSceneManager.SaveScene(scene);
         }
