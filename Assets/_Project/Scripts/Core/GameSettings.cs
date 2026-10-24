@@ -1,15 +1,20 @@
+using System;
 using UnityEngine;
 
 namespace Odisea.Core
 {
     /// <summary>
-    /// Ajustes del jugador (volumen general y pantalla completa), guardados en PlayerPrefs
+    /// Ajustes del jugador (volumen general, volumen de música y pantalla completa), guardados en PlayerPrefs
     /// y aplicados automáticamente al arrancar el juego.
     /// </summary>
     public static class GameSettings
     {
         private const string VolumeKey = "odisea.volumenGeneral";
         private const string FullscreenKey = "odisea.pantallaCompleta";
+        private const string MusicKey = "odisea.volumenMusica";
+
+        /// <summary>Se llama al cambiar el volumen de música, para que la música que ya suena se ajuste.</summary>
+        public static event Action<float> MusicVolumeChanged;
 
         /// <summary>Volumen general de 0 a 1. Afecta a todo el audio, incluido el video de inicio.</summary>
         public static float MasterVolume
@@ -20,6 +25,18 @@ namespace Odisea.Core
                 float volume = Mathf.Clamp01(value);
                 PlayerPrefs.SetFloat(VolumeKey, volume);
                 AudioListener.volume = volume;
+            }
+        }
+
+        /// <summary>Volumen de la música de 0 a 1. Se multiplica por el volumen general.</summary>
+        public static float MusicVolume
+        {
+            get => PlayerPrefs.GetFloat(MusicKey, 0.8f);
+            set
+            {
+                float volume = Mathf.Clamp01(value);
+                PlayerPrefs.SetFloat(MusicKey, volume);
+                MusicVolumeChanged?.Invoke(volume);
             }
         }
 

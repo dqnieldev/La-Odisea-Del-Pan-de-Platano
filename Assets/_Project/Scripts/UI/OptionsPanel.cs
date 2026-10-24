@@ -61,6 +61,9 @@ namespace Odisea.UI
         [Header("Ajustes")]
         [SerializeField] private Slider volumeSlider;
         [SerializeField] private TMP_Text volumeValue;
+        [Tooltip("Opcional: volumen de la música.")]
+        [SerializeField] private Slider musicSlider;
+        [SerializeField] private TMP_Text musicValue;
         [SerializeField] private Toggle fullscreenToggle;
 
         private const float OpenDuration = 0.28f;
@@ -80,6 +83,13 @@ namespace Odisea.UI
             // Sin números enteros el teclado y el mando mueven el volumen de 10 en 10 (con enteros sería de 1 en 1).
             volumeSlider.wholeNumbers = false;
             volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+            if (musicSlider != null)
+            {
+                musicSlider.minValue = 0f;
+                musicSlider.maxValue = 100f;
+                musicSlider.wholeNumbers = false;
+                musicSlider.onValueChanged.AddListener(OnMusicChanged);
+            }
             fullscreenToggle.onValueChanged.AddListener(value => GameSettings.Fullscreen = value);
 
             audioTab.onClick.AddListener(() => ShowSection(Section.Audio));
@@ -102,6 +112,11 @@ namespace Odisea.UI
 
             volumeSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.MasterVolume * 100f));
             UpdateVolumeLabel(volumeSlider.value);
+            if (musicSlider != null)
+            {
+                musicSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.MusicVolume * 100f));
+                musicValue.text = $"{musicSlider.value:0}%";
+            }
             fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
 
             SetSectionActive(homeSection != null ? Section.Home : Section.Audio, instantRibbon: true);
@@ -319,5 +334,12 @@ namespace Odisea.UI
         }
 
         private void UpdateVolumeLabel(float value) => volumeValue.text = $"{value:0}%";
+
+        private void OnMusicChanged(float value)
+        {
+            GameSettings.MusicVolume = value / 100f;
+            musicValue.text = $"{value:0}%";
+            UiAudio.Play(UiSound.Hover);
+        }
     }
 }

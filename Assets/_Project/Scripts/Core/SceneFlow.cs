@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Odisea.Core
@@ -19,6 +20,12 @@ namespace Odisea.Core
 
         public static bool IsLoading => ScreenFader.Instance.IsBusy;
 
+        /// <summary>
+        /// Avisa que empieza un cambio de escena (con el nombre de la escena destino), antes de que se cierre el iris.
+        /// La música del menú lo usa para desvanecerse.
+        /// </summary>
+        public static event Action<string> LoadStarted;
+
         /// <summary>Cierra la pantalla en iris, carga la escena y la vuelve a abrir.</summary>
         /// <param name="viewportCenter">Punto de la pantalla (0-1) hacia donde se cierra el iris; por defecto el centro.</param>
         public static void Load(string sceneName, Vector2? viewportCenter = null)
@@ -28,6 +35,9 @@ namespace Odisea.Core
                 Debug.LogError($"[Odisea] La escena '{sceneName}' no está en la lista de escenas del build.");
                 return;
             }
+            if (ScreenFader.Instance.IsBusy)
+                return;
+            LoadStarted?.Invoke(sceneName);
             ScreenFader.Instance.FadeAndLoad(sceneName, viewportCenter);
         }
 
@@ -43,6 +53,7 @@ namespace Odisea.Core
                 return;
             }
             Time.timeScale = 1f;
+            LoadStarted?.Invoke(sceneName);
             UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
         }
 

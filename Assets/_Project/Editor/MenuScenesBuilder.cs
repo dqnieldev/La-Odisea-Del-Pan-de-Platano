@@ -166,6 +166,7 @@ namespace Odisea.EditorTools
             CreateCamera(Cafe);
             CreateEventSystem();
             CreateUiAudio();
+            CreateMenuMusic();
             Transform canvas = CreateCanvas("UI");
 
             // Fondo: cubre la pantalla sin deformarse (recorta lo que sobre).
@@ -357,12 +358,19 @@ namespace Odisea.EditorTools
 
             RectTransform audio = CreateSection("Audio", right, titleFont);
             CreateText("Etiqueta volumen", audio, "Volumen general", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -210f), rectSize: new Vector2(540f, 60f));
-            Slider volume = CreateSlider(audio, rounded, new Vector2(-50f, -300f));
-            volume.navigation = new Navigation { mode = Navigation.Mode.None };
+                position: new Vector2(0f, -195f), rectSize: new Vector2(540f, 60f));
+            Slider volume = CreateSlider(audio, rounded, new Vector2(-50f, -265f));
             TMP_Text volumeValue = CreateText("Valor volumen", audio, "100%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(225f, -300f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
-            CreateHint(audio, bodyFont, "Izquierda / derecha para ajustar");
+                position: new Vector2(225f, -265f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
+            CreateText("Etiqueta música", audio, "Música", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -365f), rectSize: new Vector2(540f, 60f));
+            Slider music = CreateSlider(audio, rounded, new Vector2(-50f, -435f));
+            TMP_Text musicValue = CreateText("Valor música", audio, "80%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(225f, -435f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
+            // Arriba/abajo cambian de volumen; izquierda/derecha ajustan el valor (no hay vecino a los lados).
+            volume.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = music };
+            music.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = volume };
+            CreateHint(audio, bodyFont, "Arriba / abajo para elegir   ·   izquierda / derecha para ajustar");
 
             RectTransform screen = CreateSection("Pantalla", right, titleFont);
             TMP_Text fullscreenLabel = CreateText("Etiqueta pantalla completa", screen, "Pantalla completa", bodyFont, 40, Cafe,
@@ -424,6 +432,8 @@ namespace Odisea.EditorTools
             SetField(options, "controlsSection", controls.gameObject);
             SetField(options, "volumeSlider", volume);
             SetField(options, "volumeValue", volumeValue);
+            SetField(options, "musicSlider", music);
+            SetField(options, "musicValue", musicValue);
             SetField(options, "fullscreenToggle", fullscreen);
             return options;
         }
@@ -964,6 +974,36 @@ namespace Odisea.EditorTools
             var serialized = new SerializedObject(target);
             serialized.FindProperty(field).colorValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private const string MenuMusicPath = "Assets/_Project/Audio/Music/musica_menu";
+
+        /// <summary>Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio).</summary>
+        private static void CreateMenuMusic()
+        {
+            string path = new[] { ".ogg", ".mp3", ".wav" }.Select(ext => MenuMusicPath + ext).FirstOrDefault(File.Exists);
+            if (path == null)
+            {
+                Debug.LogWarning($"[Odisea] No está {MenuMusicPath} (.ogg, .mp3 o .wav); el menú queda sin música.");
+                return;
+            }
+
+            // Música larga: se lee del disco mientras suena (Streaming) para no ocupar memoria, en estéreo.
+            var importer = (AudioImporter)AssetImporter.GetAtPath(path);
+            AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+            if (settings.loadType != AudioClipLoadType.Streaming)
+            {
+                settings.loadType = AudioClipLoadType.Streaming;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = 0.7f;
+                importer.defaultSampleSettings = settings;
+                importer.forceToMono = false;
+                importer.SaveAndReimport();
+            }
+
+            var go = new GameObject("Música del menú", typeof(AudioSource));
+            go.GetComponent<AudioSource>().clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            go.AddComponent<MenuMusic>();
         }
 
         private static void SetEnum(UnityEngine.Object target, string field, int value)
