@@ -158,6 +158,25 @@ namespace Odisea.EditorTools
             return settings;
         }
 
+        private const string LumaKeyMaterialPath = "Assets/_Project/Art/UI/Materiales/QuitarNegro.mat";
+
+        /// <summary>Material que vuelve transparente lo negro de un video (hoja del recetario).</summary>
+        public static Material EnsureLumaKeyMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(LumaKeyMaterialPath);
+            if (material != null)
+                return material;
+
+            Shader shader = Shader.Find("Odisea/UI/LumaKey")
+                ?? throw new InvalidOperationException("No se encontró el shader Odisea/UI/LumaKey.");
+            if (!AssetDatabase.IsValidFolder("Assets/_Project/Art/UI/Materiales"))
+                AssetDatabase.CreateFolder("Assets/_Project/Art/UI", "Materiales");
+            material = new Material(shader) { name = "QuitarNegro" };
+            AssetDatabase.CreateAsset(material, LumaKeyMaterialPath);
+            AssetDatabase.SaveAssets();
+            return material;
+        }
+
         private const string RoundedSpritePath = "Assets/_Project/Art/UI/Redondeado.png";
         private const int RoundedSize = 64;
         private const int RoundedRadius = 24;

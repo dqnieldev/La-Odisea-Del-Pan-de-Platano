@@ -45,17 +45,23 @@ namespace Odisea.EditorTools
         {
             // Primero se importan y guardan los assets. Las referencias se vuelven a cargar después de crear
             // cada escena: NewScene descarga los assets en memoria y las referencias previas quedan inválidas.
-            string videoPath = AssetPathOf(ImportUserFile<VideoClip>(VideoExtensions, VideoFolder, "IntroLoop"));
-            string backgroundPath = AssetPathOf(ImportBackground());
+            // Cada archivo se busca por su nombre en Docs/Referencias/Menu.
+            string videoPath = AssetPathOf(ImportUserFile<VideoClip>("Pantalla_inicio", VideoExtensions, VideoFolder, "IntroLoop"));
+            string backgroundPath = AssetPathOf(ImportSprite("Background_inicio", "FondoMenu"));
+            string bookPath = AssetPathOf(ImportSprite("recetario-libro-opciones", "LibroRecetas"));
+            string pagePath = AssetPathOf(ImportUserFile<VideoClip>("animacion-menu", VideoExtensions, VideoFolder, "PasarPagina"));
             UiAssetsBuilder.EnsureRoundedSprite();
+            UiAssetsBuilder.EnsureLumaKeyMaterial();
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
-            foreach (string sound in new[] { "ui_hover", "ui_click", "ui_back" })
+            UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikRegular);
+            foreach (string sound in new[] { "ui_hover", "ui_click", "ui_back", "ui_page" })
                 UiAssetsBuilder.LoadUiSound(sound);
             AssetDatabase.SaveAssets();
 
             BuildTitleScene(videoPath);
-            BuildMainMenuScene(backgroundPath);
+            BuildMainMenuScene(backgroundPath, bookPath, pagePath);
             SetBuildScenes();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Pantalla de inicio y menú principal creados.");
@@ -109,10 +115,12 @@ namespace Odisea.EditorTools
 
         // ---------- Menú principal ----------
 
-        private static void BuildMainMenuScene(string backgroundPath)
+        private static void BuildMainMenuScene(string backgroundPath, string bookPath, string pagePath)
         {
             var scene = NewScene(MenuScenePath);
             var background = backgroundPath != null ? AssetDatabase.LoadAssetAtPath<Sprite>(backgroundPath) : null;
+            var bookSprite = bookPath != null ? AssetDatabase.LoadAssetAtPath<Sprite>(bookPath) : null;
+            var pageClip = pagePath != null ? AssetDatabase.LoadAssetAtPath<VideoClip>(pagePath) : null;
             Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
             TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
             TMP_FontAsset bodyFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
@@ -155,7 +163,7 @@ namespace Odisea.EditorTools
             Button options = CreateTextMenuItem("OPCIONES", buttonsRect, menuFont);
             Button quit = CreateTextMenuItem("SALIR", buttonsRect, menuFont);
 
-            OptionsPanel optionsPanel = CreateOptionsPanel(canvas, rounded, titleFont, bodyFont);
+            OptionsPanel optionsPanel = CreateRecipeBook(canvas, bookSprite, pageClip, rounded, titleFont, bodyFont, menuFont);
 
             var menu = new GameObject("Menú principal").AddComponent<MainMenu>();
             SetField(menu, "playButton", play);
@@ -168,55 +176,175 @@ namespace Odisea.EditorTools
             EditorSceneManager.SaveScene(scene);
         }
 
-        private static OptionsPanel CreateOptionsPanel(Transform canvas, Sprite rounded, TMP_FontAsset titleFont, TMP_FontAsset bodyFont)
+        // ---------- Opciones: recetario ----------
+
+        // Medidas del libro (PNG y video de 1920×1080): centro y tamaño del área útil de cada página.
+        private static readonly Vector2 LeftPageCenter = new(-405f, 10f);
+        private static readonly Vector2 RightPageCenter = new(407f, 10f);
+        private static readonly Vector2 PageSize = new(600f, 700f);
+        private static readonly Color TintaClara = new(0.45f, 0.36f, 0.27f);
+
+        /// <summary>
+        /// Opciones como recetario: el libro (PNG), el índice a la izquierda, la sección a la derecha
+        /// y encima la hoja que da vuelta (video con el negro quitado por el shader LumaKey).
+        /// </summary>
+        private static OptionsPanel CreateRecipeBook(Transform canvas, Sprite bookSprite, VideoClip pageClip, Sprite rounded,
+            TMP_FontAsset titleFont, TMP_FontAsset bodyFont, TMP_FontAsset menuFont)
         {
-            // Scrim café detrás del panel (design system).
-            var root = new GameObject("Opciones", typeof(RectTransform));
+            var root = new GameObject("Opciones (recetario)", typeof(RectTransform), typeof(CanvasGroup));
             var rootRect = (RectTransform)root.transform;
             rootRect.SetParent(canvas, false);
             Stretch(rootRect);
-            CreateImage("Scrim", rootRect, null, new Color(0.110f, 0.075f, 0.055f, 0.72f), Vector2.zero, Vector2.zero, stretch: true);
+            CreateImage("Scrim", rootRect, null, new Color(0.110f, 0.075f, 0.055f, 0.8f), Vector2.zero, Vector2.zero, stretch: true);
 
-            RectTransform panel = CreateCard("Panel", rootRect, rounded, new Vector2(1000f, 760f), Crema);
+            // El libro mide exactamente lo mismo que el video para que las páginas coincidan.
+            var book = new GameObject("Libro", typeof(RectTransform));
+            var bookRect = (RectTransform)book.transform;
+            bookRect.SetParent(rootRect, false);
+            bookRect.sizeDelta = new Vector2(1920f, 1080f);
+            Image bookImage = CreateImage("Imagen del libro", bookRect, bookSprite, bookSprite != null ? Color.white : Crema,
+                Vector2.zero, Vector2.zero, stretch: true);
+            if (bookSprite == null)
+                Debug.LogWarning($"[Odisea] No está recetario-libro-opciones en {SourceFolder}; Opciones queda sin libro.");
+            bookImage.preserveAspect = true;
 
-            CreateText("Título", panel, "Opciones", titleFont, 64, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -80f), rectSize: new Vector2(800f, 90f));
+            // ----- Página izquierda: índice -----
+            RectTransform left = CreatePage("Página izquierda (índice)", bookRect, LeftPageCenter);
+            CreateText("Título", left, "Opciones", titleFont, 76, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -70f), rectSize: new Vector2(560f, 100f));
+            CreateText("Subtítulo", left, "Recetario de Don Lupe", bodyFont, 30, TintaClara, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -135f), rectSize: new Vector2(560f, 50f));
+            CreateDivider(left, -180f);
 
-            // Volumen.
-            CreateText("Etiqueta volumen", panel, "Volumen general", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(-240f, -190f), rectSize: new Vector2(380f, 60f), alignment: TextAlignmentOptions.Left);
-            Slider volume = CreateSlider(panel, rounded, new Vector2(150f, -190f));
-            TMP_Text volumeValue = CreateText("Valor volumen", panel, "100%", bodyFont, 34, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(390f, -190f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Right);
+            Button audioTab = CreateIndexItem("AUDIO", left, menuFont, -280f);
+            Button screenTab = CreateIndexItem("PANTALLA", left, menuFont, -360f);
+            Button controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -440f);
+            Button backTab = CreateIndexItem("VOLVER", left, menuFont, -610f);
+            SetEnum(backTab.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
+            LinkVertically(audioTab, screenTab, controlsTab, backTab);
 
-            // Pantalla completa.
-            CreateText("Etiqueta pantalla completa", panel, "Pantalla completa", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(-240f, -280f), rectSize: new Vector2(380f, 60f), alignment: TextAlignmentOptions.Left);
-            Toggle fullscreen = CreateToggle(panel, rounded, new Vector2(-10f, -280f));
+            // ----- Página derecha: secciones -----
+            RectTransform right = CreatePage("Página derecha (sección)", bookRect, RightPageCenter);
+            var rightGroup = right.gameObject.AddComponent<CanvasGroup>();
 
-            // Controles.
-            CreateText("Título controles", panel, "CONTROLES", titleFont, 32, PlatanoOscuro, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -370f), rectSize: new Vector2(800f, 50f), alignment: TextAlignmentOptions.Left);
-            CreateText("Tabla controles", panel,
-                "<b>Moverse / escaleras</b>   A·D·W·S o flechas  ·  stick o cruceta\n" +
-                "<b>Saltar</b> (2 veces = doble salto)   Espacio  ·  A / Cruz\n" +
-                "<b>Golpear con el rodillo</b>   J o clic  ·  X / Cuadrado\n" +
-                "<b>Lanzar masa</b>   K o clic derecho  ·  Y / Triángulo",
-                bodyFont, 28, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -495f),
-                rectSize: new Vector2(800f, 190f), alignment: TextAlignmentOptions.TopLeft);
+            RectTransform audio = CreateSection("Audio", right, titleFont);
+            CreateText("Etiqueta volumen", audio, "Volumen general", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -210f), rectSize: new Vector2(540f, 60f));
+            Slider volume = CreateSlider(audio, rounded, new Vector2(-50f, -300f));
+            volume.navigation = new Navigation { mode = Navigation.Mode.None };
+            TMP_Text volumeValue = CreateText("Valor volumen", audio, "100%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(225f, -300f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
+            CreateHint(audio, bodyFont, "Izquierda / derecha para ajustar   ·   Esc: volver al índice");
 
-            Button back = CreateMenuButton("Volver", panel, rounded, titleFont, new Vector2(300f, 84f), 38);
-            SetEnum(back.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
-            var backRect = (RectTransform)back.transform;
-            backRect.anchorMin = backRect.anchorMax = backRect.pivot = new Vector2(0.5f, 0f);
-            backRect.anchoredPosition = new Vector2(0f, 50f);
+            RectTransform screen = CreateSection("Pantalla", right, titleFont);
+            CreateText("Etiqueta pantalla completa", screen, "Pantalla completa", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(-50f, -210f), rectSize: new Vector2(400f, 60f), alignment: TextAlignmentOptions.Left);
+            Toggle fullscreen = CreateToggle(screen, rounded, new Vector2(200f, -210f));
+            fullscreen.navigation = new Navigation { mode = Navigation.Mode.None };
+            CreateHint(screen, bodyFont, "Enter o A para cambiar   ·   Esc: volver al índice");
+
+            RectTransform controls = CreateSection("Controles", right, titleFont);
+            CreateText("Tabla controles", controls,
+                "<b>Moverse y escaleras</b>\n<size=80%><color=#73594A>A D W S o flechas  ·  stick o cruceta</color></size>\n\n" +
+                "<b>Saltar</b> (2 veces = doble salto)\n<size=80%><color=#73594A>Espacio  ·  A / Cruz</color></size>\n\n" +
+                "<b>Golpear con el rodillo</b>\n<size=80%><color=#73594A>J o clic  ·  X / Cuadrado</color></size>\n\n" +
+                "<b>Lanzar masa</b>\n<size=80%><color=#73594A>K o clic derecho  ·  Y / Triángulo</color></size>",
+                bodyFont, 32, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -400f),
+                rectSize: new Vector2(540f, 480f), alignment: TextAlignmentOptions.Top);
+
+            // ----- Hoja que da vuelta (encima de todo lo demás del libro) -----
+            var sheet = new GameObject("Hoja que da vuelta", typeof(RectTransform), typeof(RawImage));
+            var sheetRect = (RectTransform)sheet.transform;
+            sheetRect.SetParent(bookRect, false);
+            Stretch(sheetRect);
+            var sheetImage = sheet.GetComponent<RawImage>();
+            sheetImage.material = UiAssetsBuilder.EnsureLumaKeyMaterial();
+            sheetImage.raycastTarget = false;
+            var flipper = sheet.AddComponent<PageFlipper>();
+            sheet.GetComponent<VideoPlayer>().clip = pageClip;
+            SetField(flipper, "display", sheetImage);
+            if (pageClip == null)
+                Debug.LogWarning($"[Odisea] No está animacion-menu en {SourceFolder}; las secciones cambiarán sin animación.");
 
             var options = root.AddComponent<OptionsPanel>();
+            SetField(options, "book", bookRect);
+            SetField(options, "panelGroup", root.GetComponent<CanvasGroup>());
+            SetField(options, "pageFlipper", flipper);
+            SetField(options, "rightPage", rightGroup);
+            SetField(options, "audioTab", audioTab);
+            SetField(options, "screenTab", screenTab);
+            SetField(options, "controlsTab", controlsTab);
+            SetField(options, "backButton", backTab);
+            SetField(options, "audioSection", audio.gameObject);
+            SetField(options, "screenSection", screen.gameObject);
+            SetField(options, "controlsSection", controls.gameObject);
             SetField(options, "volumeSlider", volume);
             SetField(options, "volumeValue", volumeValue);
             SetField(options, "fullscreenToggle", fullscreen);
-            SetField(options, "backButton", back);
             return options;
+        }
+
+        private static RectTransform CreatePage(string name, RectTransform book, Vector2 center)
+        {
+            var page = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)page.transform;
+            rect.SetParent(book, false);
+            rect.anchoredPosition = center;
+            rect.sizeDelta = PageSize;
+            return rect;
+        }
+
+        /// <summary>Sección de la página derecha: título y línea; el contenido se agrega encima.</summary>
+        private static RectTransform CreateSection(string title, RectTransform page, TMP_FontAsset titleFont)
+        {
+            var section = new GameObject($"Sección {title}", typeof(RectTransform));
+            var rect = (RectTransform)section.transform;
+            rect.SetParent(page, false);
+            Stretch(rect);
+            CreateText("Título", rect, title, titleFont, 68, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -70f), rectSize: new Vector2(560f, 100f));
+            CreateDivider(rect, -125f);
+            return rect;
+        }
+
+        private static void CreateDivider(RectTransform parent, float y)
+        {
+            Image line = CreateImage("Línea", parent, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.45f), Vector2.zero, new Vector2(300f, 3f), stretch: false);
+            line.rectTransform.anchorMin = line.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            line.rectTransform.anchoredPosition = new Vector2(0f, y);
+        }
+
+        private static void CreateHint(RectTransform section, TMP_FontAsset font, string text)
+        {
+            CreateText("Ayuda", section, text, font, 26, TintaClara, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, -640f), rectSize: new Vector2(560f, 50f));
+        }
+
+        /// <summary>Opción del índice: mismo estilo que el menú principal, pero en tinta café sobre el papel.</summary>
+        private static Button CreateIndexItem(string label, RectTransform page, TMP_FontAsset font, float y)
+        {
+            Button item = CreateTextMenuItem(label, page, font, fontSize: 52, size: new Vector2(480f, 72f), ghostAlpha: 0.3f);
+            var rect = (RectTransform)item.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, y);
+            var feedback = item.GetComponent<TextMenuItemFeedback>();
+            SetColor(feedback, "normalColor", TintaClara);
+            SetColor(feedback, "selectedColor", Cafe);
+            return item;
+        }
+
+        /// <summary>Navegación explícita arriba/abajo en el índice, dando la vuelta de la última a la primera.</summary>
+        private static void LinkVertically(params Button[] buttons)
+        {
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                buttons[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = buttons[(i - 1 + buttons.Length) % buttons.Length],
+                    selectOnDown = buttons[(i + 1) % buttons.Length],
+                };
+            }
         }
 
         // ---------- Piezas de UI ----------
@@ -255,16 +383,17 @@ namespace Odisea.EditorTools
         /// Opción de menú solo de texto (estilo Cuphead): dos copias del texto en rojo y cian detrás,
         /// desplazadas, que se encienden al seleccionar.
         /// </summary>
-        private static Button CreateTextMenuItem(string label, RectTransform parent, TMP_FontAsset font)
+        private static Button CreateTextMenuItem(string label, RectTransform parent, TMP_FontAsset font,
+            float fontSize = 62f, Vector2? size = null, float ghostAlpha = 0.55f)
         {
             var root = new GameObject($"Botón {label}", typeof(RectTransform), typeof(Button));
             var rect = (RectTransform)root.transform;
             rect.SetParent(parent, false);
-            rect.sizeDelta = new Vector2(560f, 80f);
+            rect.sizeDelta = size ?? new Vector2(560f, 80f);
 
-            TMP_Text red = CreateMenuLabel("Aberración roja", rect, label, font, new Vector2(3f, 0f), new Color(1f, 0.22f, 0.22f, 0.55f));
-            TMP_Text cyan = CreateMenuLabel("Aberración cian", rect, label, font, new Vector2(-3f, 0f), new Color(0.2f, 0.85f, 1f, 0.55f));
-            TMP_Text main = CreateMenuLabel("Texto", rect, label, font, Vector2.zero, Color.white);
+            TMP_Text red = CreateMenuLabel("Aberración roja", rect, label, font, fontSize, new Vector2(3f, 0f), new Color(1f, 0.22f, 0.22f, ghostAlpha));
+            TMP_Text cyan = CreateMenuLabel("Aberración cian", rect, label, font, fontSize, new Vector2(-3f, 0f), new Color(0.2f, 0.85f, 1f, ghostAlpha));
+            TMP_Text main = CreateMenuLabel("Texto", rect, label, font, fontSize, Vector2.zero, Color.white);
 
             // Zona clicable invisible del tamaño de la opción (el texto no recibe clics).
             var hitArea = root.AddComponent<Image>();
@@ -288,9 +417,10 @@ namespace Odisea.EditorTools
             return button;
         }
 
-        private static TMP_Text CreateMenuLabel(string name, RectTransform parent, string label, TMP_FontAsset font, Vector2 offset, Color color)
+        private static TMP_Text CreateMenuLabel(string name, RectTransform parent, string label, TMP_FontAsset font, float fontSize,
+            Vector2 offset, Color color)
         {
-            TMP_Text text = CreateText(name, parent, label, font, 62, color, stretch: true);
+            TMP_Text text = CreateText(name, parent, label, font, fontSize, color, stretch: true);
             text.rectTransform.anchoredPosition = offset;
             text.characterSpacing = 4f;
             text.textWrappingMode = TextWrappingModes.NoWrap;
@@ -499,6 +629,14 @@ namespace Odisea.EditorTools
             SetField(audio, "hover", UiAssetsBuilder.LoadUiSound("ui_hover"));
             SetField(audio, "click", UiAssetsBuilder.LoadUiSound("ui_click"));
             SetField(audio, "back", UiAssetsBuilder.LoadUiSound("ui_back"));
+            SetField(audio, "page", UiAssetsBuilder.LoadUiSound("ui_page")); // Opcional.
+        }
+
+        private static void SetColor(UnityEngine.Object target, string field, Color value)
+        {
+            var serialized = new SerializedObject(target);
+            serialized.FindProperty(field).colorValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetEnum(UnityEngine.Object target, string field, int value)
@@ -517,10 +655,14 @@ namespace Odisea.EditorTools
 
         // ---------- Archivos del usuario ----------
 
-        private static T ImportUserFile<T>(string[] extensions, string destinationFolder, string destinationName) where T : UnityEngine.Object
+        /// <summary>Copia un archivo de Docs/Referencias/Menu (buscado por nombre, sin extensión) al proyecto.</summary>
+        private static T ImportUserFile<T>(string sourceName, string[] extensions, string destinationFolder, string destinationName)
+            where T : UnityEngine.Object
         {
             string source = Directory.Exists(SourceFolder)
-                ? Directory.GetFiles(SourceFolder).FirstOrDefault(f => extensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                ? Directory.GetFiles(SourceFolder).FirstOrDefault(f =>
+                    string.Equals(Path.GetFileNameWithoutExtension(f), sourceName, StringComparison.OrdinalIgnoreCase) &&
+                    extensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
                 : null;
             if (source == null)
                 return null;
@@ -540,9 +682,9 @@ namespace Odisea.EditorTools
             return AssetDatabase.LoadAssetAtPath<T>(destination);
         }
 
-        private static Sprite ImportBackground()
+        private static Sprite ImportSprite(string sourceName, string destinationName)
         {
-            var texture = ImportUserFile<Texture2D>(ImageExtensions, UiArtFolder, "FondoMenu");
+            var texture = ImportUserFile<Texture2D>(sourceName, ImageExtensions, UiArtFolder, destinationName);
             if (texture == null)
                 return null;
 
@@ -554,6 +696,7 @@ namespace Odisea.EditorTools
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.mipmapEnabled = false;
                 importer.maxTextureSize = 4096;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
                 importer.SaveAndReimport();
             }
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);

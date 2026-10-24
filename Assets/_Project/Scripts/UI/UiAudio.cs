@@ -7,6 +7,7 @@ namespace Odisea.UI
         Hover,
         Click,
         Back,
+        Page,
     }
 
     /// <summary>
@@ -20,6 +21,8 @@ namespace Odisea.UI
         [SerializeField] private AudioClip click;
         [Tooltip("Opcional. Si falta, Volver usa el sonido de click.")]
         [SerializeField] private AudioClip back;
+        [Tooltip("Opcional. Hoja que da vuelta en el recetario de Opciones; si falta, usa el click.")]
+        [SerializeField] private AudioClip page;
         [SerializeField, Range(0f, 1f)] private float volume = 0.8f;
         [Tooltip("Tiempo mínimo entre dos hovers, para que no se amontonen al mover el slider o el mouse rápido.")]
         [SerializeField, Min(0f)] private float hoverCooldown = 0.06f;
@@ -72,6 +75,7 @@ namespace Odisea.UI
             {
                 UiSound.Hover => hover,
                 UiSound.Back => back != null ? back : click,
+                UiSound.Page => page != null ? page : click,
                 _ => click,
             };
             if (clip != null)
