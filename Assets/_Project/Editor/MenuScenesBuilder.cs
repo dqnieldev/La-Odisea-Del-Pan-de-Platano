@@ -56,7 +56,7 @@ namespace Odisea.EditorTools
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikRegular);
-            foreach (string sound in new[] { "ui_hover", "ui_click", "ui_back", "ui_page" })
+            foreach (string sound in new[] { "ui_hover", "ui_click", "ui_back", PageSoundName })
                 UiAssetsBuilder.LoadUiSound(sound);
             AssetDatabase.SaveAssets();
 
@@ -183,6 +183,8 @@ namespace Odisea.EditorTools
         private static readonly Vector2 RightPageCenter = new(407f, 10f);
         private static readonly Vector2 PageSize = new(600f, 700f);
         private static readonly Color TintaClara = new(0.45f, 0.36f, 0.27f);
+        // Sonido de hoja que da vuelta; suena solo al cambiar de sección en el recetario.
+        private const string PageSoundName = "ui_clickOptions";
 
         /// <summary>
         /// Opciones como recetario: el libro (PNG), el índice a la izquierda, la sección a la derecha
@@ -219,6 +221,9 @@ namespace Odisea.EditorTools
             Button audioTab = CreateIndexItem("AUDIO", left, menuFont, -280f);
             Button screenTab = CreateIndexItem("PANTALLA", left, menuFont, -360f);
             Button controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -440f);
+            // Las secciones suenan a página (lo decide OptionsPanel), no a click.
+            foreach (Button tab in new[] { audioTab, screenTab, controlsTab })
+                SetBool(tab.GetComponent<SelectableSounds>(), "playPressSound", false);
             Button backTab = CreateIndexItem("VOLVER", left, menuFont, -610f);
             SetEnum(backTab.GetComponent<SelectableSounds>(), "pressSound", (int)UiSound.Back);
             LinkVertically(audioTab, screenTab, controlsTab, backTab);
@@ -629,7 +634,14 @@ namespace Odisea.EditorTools
             SetField(audio, "hover", UiAssetsBuilder.LoadUiSound("ui_hover"));
             SetField(audio, "click", UiAssetsBuilder.LoadUiSound("ui_click"));
             SetField(audio, "back", UiAssetsBuilder.LoadUiSound("ui_back"));
-            SetField(audio, "page", UiAssetsBuilder.LoadUiSound("ui_page")); // Opcional.
+            SetField(audio, "page", UiAssetsBuilder.LoadUiSound(PageSoundName)); // Opcional.
+        }
+
+        private static void SetBool(UnityEngine.Object target, string field, bool value)
+        {
+            var serialized = new SerializedObject(target);
+            serialized.FindProperty(field).boolValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetColor(UnityEngine.Object target, string field, Color value)

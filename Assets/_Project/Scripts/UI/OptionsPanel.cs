@@ -109,8 +109,10 @@ namespace Odisea.UI
             if (closing || pageFlipper.IsFlipping)
                 return;
 
+            // Las opciones del índice no hacen su propio click: aquí se decide entre página o click.
             if (section == current)
             {
+                UiAudio.Play(UiSound.Click);
                 FocusSection();
                 return;
             }

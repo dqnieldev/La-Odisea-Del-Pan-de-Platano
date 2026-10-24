@@ -13,9 +13,13 @@ namespace Odisea.UI
     {
         [Tooltip("Sonido al presionar. Volver usa Back.")]
         [SerializeField] private UiSound pressSound = UiSound.Click;
+        [Tooltip("Desactivar cuando otro script decide el sonido al presionar (p. ej. el índice del recetario suena a página).")]
+        [SerializeField] private bool playPressSound = true;
 
         private void Awake()
         {
+            if (!playPressSound)
+                return;
             if (TryGetComponent(out Button button))
                 button.onClick.AddListener(PlayPress);
             else if (TryGetComponent(out Toggle toggle))

@@ -21,7 +21,7 @@ namespace Odisea.UI
         [SerializeField] private AudioClip click;
         [Tooltip("Opcional. Si falta, Volver usa el sonido de click.")]
         [SerializeField] private AudioClip back;
-        [Tooltip("Opcional. Hoja que da vuelta en el recetario de Opciones; si falta, usa el click.")]
+        [Tooltip("Opcional. Hoja que da vuelta en el recetario de Opciones (ui_clickOptions); si falta, usa el click.")]
         [SerializeField] private AudioClip page;
         [SerializeField, Range(0f, 1f)] private float volume = 0.8f;
         [Tooltip("Tiempo mínimo entre dos hovers, para que no se amontonen al mover el slider o el mouse rápido.")]
