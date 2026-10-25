@@ -70,8 +70,13 @@ namespace Odisea.EditorTools
             AssetDatabase.SaveAssets();
 
             EnsureFolder(Path.GetDirectoryName(ScenePath));
-            if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath) &&
-                AssetDatabase.LoadMainAssetAtPath(ScenePath) == null)
+            if (File.Exists(ScenePath))
+            {
+                // Se reemplaza solo el contenido para conservar el .meta (y su GUID, al que apunta Build Settings).
+                File.Copy(BaseScenePath, ScenePath, overwrite: true);
+                AssetDatabase.ImportAsset(ScenePath, ImportAssetOptions.ForceSynchronousImport);
+            }
+            else if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath))
                 throw new InvalidOperationException($"No se pudo copiar {BaseScenePath}.");
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);

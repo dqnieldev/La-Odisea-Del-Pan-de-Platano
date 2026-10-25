@@ -440,14 +440,7 @@ namespace Odisea.EditorTools
             fullscreen.navigation = new Navigation { mode = Navigation.Mode.None };
 
             RectTransform controls = CreateSection("Controles", right, titleFont);
-            CreateText("Tabla controles", controls,
-                "<b>Moverse y escaleras</b>\n<size=80%><color=#73594A>A D W S o flechas  ·  stick o cruceta</color></size>\n\n" +
-                "<b>Saltar</b> (2 veces = doble salto)\n<size=80%><color=#73594A>Espacio  ·  A / Cruz</color></size>\n\n" +
-                "<b>Golpear con el rodillo</b>\n<size=80%><color=#73594A>J o clic  ·  X / Cuadrado</color></size>\n\n" +
-                "<b>Lanzar masa</b>\n<size=80%><color=#73594A>K o clic derecho  ·  Y / Triángulo</color></size>\n\n" +
-                "<b>Pausa</b>\n<size=80%><color=#73594A>Esc  ·  Start</color></size>",
-                bodyFont, 30, Cafe, anchor: new Vector2(0.5f, 1f), position: new Vector2(0f, -420f),
-                rectSize: new Vector2(540f, 540f), alignment: TextAlignmentOptions.Top);
+            CreateControlsPage(controls, bodyFont, rounded);
 
             // ----- Listón (sección abierta), manícula (opción seleccionada) y ayuda de botones -----
             SectionRibbon ribbon = CreateRibbon(bookRect);
@@ -639,7 +632,9 @@ namespace Odisea.EditorTools
                 return null;
             }
 
+            // Unity a veces importa los PNG como "Multiple" y los parte en pedazos; aquí siempre es un solo sprite.
             bool changed = importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled ||
+                           importer.spriteImportMode != SpriteImportMode.Single ||
                            (border.HasValue && importer.spriteBorder != border.Value);
             if (changed)
             {
@@ -698,6 +693,171 @@ namespace Odisea.EditorTools
             Image line = CreateImage("Línea", parent, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.45f), Vector2.zero, new Vector2(300f, 3f), stretch: false);
             line.rectTransform.anchorMin = line.rectTransform.anchorMax = new Vector2(0.5f, 1f);
             line.rectTransform.anchoredPosition = new Vector2(0f, y);
+        }
+
+        // ---------- Sección Controles: dibujo del mando o tabla de teclas ----------
+
+        // Dibujo del mando en la página (centro y tamaño, con la proporción de los PNG recortados de 1302 × 901).
+        private static readonly Vector2 PadCenter = new(0f, -378f);
+        private static readonly Vector2 PadSize = new(400f, 277f);
+        // Altura a la que llegan las líneas: arriba del dibujo y debajo de él.
+        private const float CalloutTop = -215f;
+        private const float CalloutBottom = -545f;
+        private const string DoubleJumpNote = "\n<size=70%><color=#73594A>2 veces: doble salto</color></size>";
+
+        /// <summary>Una acción del mando: su texto, en qué x va, si va arriba o abajo y a qué botón(es) apunta
+        /// (posición normalizada dentro del dibujo, 0,0 = abajo-izquierda).</summary>
+        private readonly struct Callout
+        {
+            public readonly string Label;
+            public readonly float X;
+            public readonly bool Top;
+            public readonly Vector2[] Targets;
+
+            public Callout(string label, float x, bool top, params Vector2[] targets)
+            {
+                Label = label;
+                X = x;
+                Top = top;
+                Targets = targets;
+            }
+        }
+
+        private static void CreateControlsPage(RectTransform section, TMP_FontAsset font, Sprite rounded)
+        {
+            GameObject keyboard = CreateKeyboardTable(section, font);
+            GameObject xbox = CreatePadDiagram("Mando Xbox", section, font, rounded, $"{UiFolder}/Mandos/MandoXbox.png",
+                new Callout("Pausa", -165f, true, new Vector2(0.572f, 0.693f)),
+                new Callout("Golpear", 10f, true, new Vector2(0.684f, 0.687f)),
+                new Callout("Lanzar masa", 195f, true, new Vector2(0.757f, 0.784f)),
+                new Callout("Moverse / escaleras", -150f, false, new Vector2(0.256f, 0.711f), new Vector2(0.382f, 0.462f)),
+                new Callout("Saltar" + DoubleJumpNote, 175f, false, new Vector2(0.757f, 0.595f)));
+            GameObject playStation = CreatePadDiagram("Mando PlayStation", section, font, rounded, $"{UiFolder}/Mandos/MandoPlayStation.png",
+                new Callout("Golpear", -150f, true, new Vector2(0.707f, 0.693f)),
+                new Callout("Pausa", 20f, true, new Vector2(0.700f, 0.839f)),
+                new Callout("Lanzar masa", 195f, true, new Vector2(0.776f, 0.791f)),
+                new Callout("Moverse / escaleras", -150f, false, new Vector2(0.230f, 0.689f), new Vector2(0.367f, 0.495f)),
+                new Callout("Saltar" + DoubleJumpNote, 175f, false, new Vector2(0.776f, 0.589f)));
+            xbox.SetActive(false);
+            playStation.SetActive(false);
+
+            var diagram = section.gameObject.AddComponent<ControlsDiagram>();
+            SetField(diagram, "keyboard", keyboard);
+            SetField(diagram, "xbox", xbox);
+            SetField(diagram, "playStation", playStation);
+        }
+
+        private static GameObject CreatePadDiagram(string name, RectTransform section, TMP_FontAsset font, Sprite rounded,
+            string spritePath, params Callout[] callouts)
+        {
+            var root = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(section, false);
+            Stretch(rect);
+
+            Image pad = CreateImage("Dibujo", rect, LoadUiSprite(spritePath), Color.white, Vector2.zero, PadSize, stretch: false);
+            pad.rectTransform.anchorMin = pad.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            pad.rectTransform.anchoredPosition = PadCenter;
+            pad.preserveAspect = true;
+
+            // Primero todas las líneas, luego los puntos y al final los textos, para que nada tape a un texto.
+            var points = new System.Collections.Generic.List<Vector2>();
+            foreach (Callout callout in callouts)
+            {
+                var end = new Vector2(callout.X, callout.Top ? CalloutTop : CalloutBottom);
+                foreach (Vector2 target in callout.Targets)
+                {
+                    Vector2 point = PadCenter + Vector2.Scale(target - new Vector2(0.5f, 0.5f), PadSize);
+                    CreateCalloutLine(rect, point, end);
+                    points.Add(point);
+                }
+            }
+            foreach (Vector2 point in points)
+            {
+                CreateDot(rect, rounded, point, 22f, Crema);
+                CreateDot(rect, rounded, point, 13f, Cafe);
+            }
+            foreach (Callout callout in callouts)
+            {
+                TMP_Text label = CreateText(callout.Label.Split('\n')[0], rect, $"<b>{callout.Label}</b>", font, 28, Cafe,
+                    anchor: new Vector2(0.5f, 1f), rectSize: new Vector2(270f, 80f),
+                    alignment: callout.Top ? TextAlignmentOptions.Bottom : TextAlignmentOptions.Top);
+                label.rectTransform.pivot = new Vector2(0.5f, callout.Top ? 0f : 1f);
+                label.rectTransform.anchoredPosition = new Vector2(callout.X, callout.Top ? CalloutTop + 4f : CalloutBottom - 4f);
+            }
+            return root;
+        }
+
+        private static void CreateCalloutLine(RectTransform parent, Vector2 from, Vector2 to)
+        {
+            Image line = CreateImage("Línea", parent, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.75f), Vector2.zero, Vector2.zero, stretch: false);
+            RectTransform rect = line.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            Vector2 delta = to - from;
+            rect.anchoredPosition = from;
+            rect.sizeDelta = new Vector2(delta.magnitude, 3f);
+            rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+        }
+
+        private static void CreateDot(RectTransform parent, Sprite rounded, Vector2 position, float size, Color color)
+        {
+            Image dot = CreateImage("Punto", parent, rounded, color, Vector2.zero, new Vector2(size, size), stretch: false);
+            dot.rectTransform.anchorMin = dot.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            dot.rectTransform.anchoredPosition = position;
+            // Esquinas enormes que Unity recorta al tamaño del punto: queda un círculo.
+            dot.pixelsPerUnitMultiplier = 0.05f;
+        }
+
+        /// <summary>Teclado y mouse: una fila por acción con las teclas dibujadas.</summary>
+        private static GameObject CreateKeyboardTable(RectTransform section, TMP_FontAsset font)
+        {
+            var root = new GameObject("Teclado y mouse", typeof(RectTransform));
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(section, false);
+            Stretch(rect);
+
+            (string label, string[] keys)[] rows =
+            {
+                ("Moverse / escaleras", new[] { "kb_w", "kb_a", "kb_s", "kb_d", "o", "kb_arrows" }),
+                ("Saltar" + DoubleJumpNote, new[] { "kb_space" }),
+                ("Golpear", new[] { "kb_j", "o", "mouse_left" }),
+                ("Lanzar masa", new[] { "kb_k", "o", "mouse_right" }),
+                ("Pausa", new[] { "kb_esc" }),
+            };
+            for (int i = 0; i < rows.Length; i++)
+            {
+                float y = -205f - i * 88f;
+                CreateText(rows[i].label.Split('\n')[0], rect, $"<b>{rows[i].label}</b>", font, 30, Cafe,
+                    anchor: new Vector2(0.5f, 1f), position: new Vector2(-148f, y), rectSize: new Vector2(265f, 80f),
+                    alignment: TextAlignmentOptions.Right);
+
+                var keys = new GameObject("Teclas", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+                var keysRect = (RectTransform)keys.transform;
+                keysRect.SetParent(rect, false);
+                keysRect.anchorMin = keysRect.anchorMax = new Vector2(0.5f, 1f);
+                keysRect.pivot = new Vector2(0f, 0.5f);
+                keysRect.anchoredPosition = new Vector2(5f, y);
+                keysRect.sizeDelta = new Vector2(290f, 60f);
+                var layout = keys.GetComponent<HorizontalLayoutGroup>();
+                layout.spacing = 2f;
+                layout.childAlignment = TextAnchor.MiddleLeft;
+                layout.childControlWidth = layout.childControlHeight = true;
+                layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+                foreach (string key in rows[i].keys)
+                {
+                    if (key == "o")
+                    {
+                        CreatePromptLabel(keysRect, font, " o ");
+                        continue;
+                    }
+                    Image icon = CreatePromptIcon(keysRect);
+                    icon.sprite = LoadUiSprite($"{UiFolder}/Botones/{key}.png");
+                    var element = icon.GetComponent<LayoutElement>();
+                    element.preferredWidth = element.preferredHeight = 54f;
+                }
+            }
+            return root;
         }
 
         private static void CreateHint(RectTransform section, TMP_FontAsset font, string text)
