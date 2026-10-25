@@ -22,6 +22,8 @@ namespace Odisea.EditorTools
     public static class MenuScenesBuilder
     {
         private const string SourceFolder = "Docs/Referencias/Menu";
+        // Versión que muestra el pie del menú y que lleva el build (Project Settings → Player → Version).
+        private const string GameVersion = "0.1.0";
         private const string SplashScenePath = "Assets/_Project/Scenes/Menus/Splash.unity";
         private const string TitleScenePath = "Assets/_Project/Scenes/Menus/Title.unity";
         private const string MenuScenePath = "Assets/_Project/Scenes/Menus/MainMenu.unity";
@@ -44,6 +46,7 @@ namespace Odisea.EditorTools
         [MenuItem("Odisea/Menús/Crear pantalla de inicio y menú principal")]
         public static void Build()
         {
+            PlayerSettings.bundleVersion = GameVersion;
             // Primero se importan y guardan los assets. Las referencias se vuelven a cargar después de crear
             // cada escena: NewScene descarga los assets en memoria y las referencias previas quedan inválidas.
             // Cada archivo se busca por su nombre en Docs/Referencias/Menu.
@@ -263,6 +266,27 @@ namespace Odisea.EditorTools
             Button options = CreateTextMenuItem("OPCIONES", buttonsRect, menuFont);
             Button quit = CreateTextMenuItem("SALIR", buttonsRect, menuFont);
 
+            // "¿Salir del juego?" en el mismo lugar que los botones; MainMenu la muestra al elegir SALIR.
+            var confirm = new GameObject("Confirmar salida", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            var confirmRect = (RectTransform)confirm.transform;
+            confirmRect.SetParent(canvas, false);
+            confirmRect.anchorMin = confirmRect.anchorMax = buttonsRect.anchorMin;
+            confirmRect.sizeDelta = buttonsRect.sizeDelta;
+            var confirmLayout = confirm.GetComponent<VerticalLayoutGroup>();
+            confirmLayout.spacing = 6f;
+            confirmLayout.childAlignment = TextAnchor.MiddleCenter;
+            confirmLayout.childControlWidth = confirmLayout.childControlHeight = false;
+            confirmLayout.childForceExpandWidth = confirmLayout.childForceExpandHeight = false;
+            TMP_Text question = CreateText("Pregunta", confirmRect, "¿SALIR DEL JUEGO?", menuFont, 46,
+                new Color(Crema.r, Crema.g, Crema.b, 0.75f), rectSize: new Vector2(600f, 80f));
+            question.characterSpacing = 4f;
+            question.textWrappingMode = TextWrappingModes.NoWrap;
+            Button quitNo = CreateTextMenuItem("NO", confirmRect, menuFont);
+            Button quitYes = CreateTextMenuItem("SÍ", confirmRect, menuFont);
+            confirm.SetActive(false);
+
+            GameObject footer = CreateMenuFooter(canvas, bodyFont);
+
             OptionsPanel optionsPanel = CreateRecipeBook(canvas, bookSprite, pageClip, rounded, titleFont, bodyFont, menuFont,
                 BookMode.Options, out _);
 
@@ -273,6 +297,10 @@ namespace Odisea.EditorTools
             SetField(menu, "quitButton", quit);
             SetField(menu, "buttonsPanel", buttons);
             SetField(menu, "optionsPanel", optionsPanel);
+            SetField(menu, "footer", footer);
+            SetField(menu, "quitConfirm", confirm);
+            SetField(menu, "quitNoButton", quitNo);
+            SetField(menu, "quitYesButton", quitYes);
 
             EditorSceneManager.SaveScene(scene);
         }
@@ -603,6 +631,48 @@ namespace Odisea.EditorTools
             SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_l1", "ps_r1");
         }
 
+        /// <summary>Pie del menú principal: nombre y versión a la izquierda (tenue) y "Seleccionar" a la derecha.</summary>
+        private static GameObject CreateMenuFooter(Transform canvas, TMP_FontAsset font)
+        {
+            var footer = new GameObject("Pie", typeof(RectTransform));
+            var rect = (RectTransform)footer.transform;
+            rect.SetParent(canvas, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(0f, 110f);
+
+            Color faded = new(Crema.r, Crema.g, Crema.b, 0.45f);
+            TMP_Text version = CreateText("Nombre y versión", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikRegular), 26, faded,
+                anchor: Vector2.zero, rectSize: new Vector2(700f, 50f), alignment: TextAlignmentOptions.BottomLeft);
+            version.rectTransform.pivot = Vector2.zero;
+            version.rectTransform.anchoredPosition = new Vector2(40f, 36f);
+            version.gameObject.AddComponent<VersionLabel>();
+
+            var prompt = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var promptRect = (RectTransform)prompt.transform;
+            promptRect.SetParent(rect, false);
+            promptRect.anchorMin = promptRect.anchorMax = promptRect.pivot = new Vector2(1f, 0f);
+            promptRect.anchoredPosition = new Vector2(-40f, 28f);
+            promptRect.sizeDelta = new Vector2(300f, 60f);
+            var layout = prompt.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 8f;
+            layout.childAlignment = TextAnchor.MiddleRight;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            Image icon = CreatePromptIcon(promptRect);
+            icon.color = new Color(Crema.r, Crema.g, Crema.b, 0.8f);
+            TMP_Text label = CreatePromptLabel(promptRect, font, "Seleccionar");
+            label.color = new Color(Crema.r, Crema.g, Crema.b, 0.8f);
+
+            var bar = prompt.AddComponent<ButtonPromptBar>();
+            SetField(bar, "confirmIcon", icon);
+            SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_q", "kb_e");
+            SetPromptSet(bar, "xbox", "xbox_a", "xbox_b", "xbox_lb", "xbox_rb");
+            SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_l1", "ps_r1");
+            return footer;
+        }
+
         private static Image CreatePromptIcon(RectTransform bar)
         {
             var go = new GameObject("Ícono", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
@@ -616,7 +686,7 @@ namespace Odisea.EditorTools
             return image;
         }
 
-        private static void CreatePromptLabel(RectTransform bar, TMP_FontAsset font, string text)
+        private static TMP_Text CreatePromptLabel(RectTransform bar, TMP_FontAsset font, string text)
         {
             var go = new GameObject(text, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(bar, false);
@@ -628,6 +698,7 @@ namespace Odisea.EditorTools
             label.alignment = TextAlignmentOptions.MidlineLeft;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
+            return label;
         }
 
         private static void CreatePromptSpacer(RectTransform bar)

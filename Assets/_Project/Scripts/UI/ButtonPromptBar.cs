@@ -45,10 +45,14 @@ namespace Odisea.UI
                 InputScheme.PlayStation => playStation,
                 _ => keyboard,
             };
+            // Solo Seleccionar es obligatorio: el pie del menú principal no tiene Atrás ni Página.
             confirmIcon.sprite = set.confirm;
-            backIcon.sprite = set.back;
-            pageLeftIcon.sprite = set.pageLeft;
-            pageRightIcon.sprite = set.pageRight;
+            if (backIcon != null)
+                backIcon.sprite = set.back;
+            if (pageLeftIcon != null)
+                pageLeftIcon.sprite = set.pageLeft;
+            if (pageRightIcon != null)
+                pageRightIcon.sprite = set.pageRight;
         }
     }
 }
