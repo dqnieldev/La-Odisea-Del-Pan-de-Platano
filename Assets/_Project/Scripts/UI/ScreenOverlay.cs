@@ -59,22 +59,55 @@ namespace Odisea.UI
             return image;
         }
 
+        // Píldora café con el número en crema: se lee igual sobre fondos claros y oscuros.
         private static TextMeshProUGUI CreateFpsText(Transform parent)
         {
-            var go = new GameObject("FPS", typeof(RectTransform), typeof(TextMeshProUGUI));
+            var pill = new GameObject("FPS", typeof(RectTransform), typeof(Image));
+            var pillRect = (RectTransform)pill.transform;
+            pillRect.SetParent(parent, false);
+            pillRect.anchorMin = pillRect.anchorMax = pillRect.pivot = new Vector2(1f, 1f);
+            pillRect.anchoredPosition = new Vector2(-20f, -16f);
+            pillRect.sizeDelta = new Vector2(150f, 46f);
+            var background = pill.GetComponent<Image>();
+            background.sprite = CreatePillSprite();
+            background.type = Image.Type.Sliced;
+            // Casi opaca: en espacio lineal un café al 78 % sobre blanco se ve gris.
+            background.color = new Color(0.169f, 0.118f, 0.086f, 0.92f);
+            background.raycastTarget = false;
+
+            var go = new GameObject("Texto", typeof(RectTransform), typeof(TextMeshProUGUI));
             var rect = (RectTransform)go.transform;
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-24f, -18f);
-            rect.sizeDelta = new Vector2(220f, 50f);
+            rect.SetParent(pillRect, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
             var text = go.GetComponent<TextMeshProUGUI>();
-            text.fontSize = 30;
-            text.alignment = TextAlignmentOptions.TopRight;
-            text.color = new Color(0.98f, 0.97f, 0.95f, 0.9f);
-            text.outlineWidth = 0.25f;
-            text.outlineColor = new Color32(43, 30, 22, 255);
+            text.fontSize = 26;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = new Color(0.984f, 0.973f, 0.949f);
             text.raycastTarget = false;
             return text;
+        }
+
+        // Rectángulo redondeado blanco hecho en código (esta capa no depende de assets del proyecto).
+        private static Sprite CreatePillSprite()
+        {
+            const int size = 48;
+            const float radius = 23f;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float cx = Mathf.Clamp(x + 0.5f, radius, size - radius);
+                    float cy = Mathf.Clamp(y + 0.5f, radius, size - radius);
+                    float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(cx, cy));
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance + 0.5f)));
+                }
+            }
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f,
+                0, SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
         }
 
         private void OnEnable()
@@ -116,7 +149,7 @@ namespace Odisea.UI
         {
             if (fpsText == null)
                 return;
-            fpsText.gameObject.SetActive(show);
+            fpsText.transform.parent.gameObject.SetActive(show);
             frames = 0;
             elapsed = 0f;
             fpsText.text = "";
@@ -124,7 +157,7 @@ namespace Odisea.UI
 
         private void Update()
         {
-            if (fpsText == null || !fpsText.gameObject.activeSelf)
+            if (fpsText == null || !fpsText.gameObject.activeInHierarchy)
                 return;
             frames++;
             elapsed += Time.unscaledDeltaTime;

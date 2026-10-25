@@ -447,11 +447,8 @@ namespace Odisea.EditorTools
             Toggle showFps = CreateToggle(screen, rounded, new Vector2(63f, ScreenRowY(3)));
             showFps.gameObject.name = "Toggle mostrar FPS";
             AddScreenLabel(screen, bodyFont, "Mostrar FPS", 3, showFps);
-            Toggle vibration = CreateToggle(screen, rounded, new Vector2(63f, ScreenRowY(4)));
-            vibration.gameObject.name = "Toggle vibración";
-            AddScreenLabel(screen, bodyFont, "Vibración", 4, vibration);
             // Arriba / abajo recorren las filas; izquierda / derecha cambian el valor (selectores y brillo).
-            Selectable[] screenRows = { windowMode, brightness, frameRate, showFps, vibration };
+            Selectable[] screenRows = { windowMode, brightness, frameRate, showFps };
             for (int i = 0; i < screenRows.Length; i++)
             {
                 screenRows[i].navigation = new Navigation
@@ -464,7 +461,7 @@ namespace Odisea.EditorTools
             CreateHint(screen, bodyFont, "Arriba / abajo para elegir   ·   izquierda / derecha para cambiar");
 
             RectTransform controls = CreateSection("Controles", right, titleFont);
-            CreateControlsPage(controls, bodyFont, rounded);
+            Toggle vibration = CreateControlsPage(controls, bodyFont, rounded);
 
             // ----- Listón (sección abierta), manícula (opción seleccionada) y ayuda de botones -----
             SectionRibbon ribbon = CreateRibbon(bookRect);
@@ -727,11 +724,13 @@ namespace Odisea.EditorTools
         // ---------- Sección Controles: dibujo del mando o tabla de teclas ----------
 
         // Dibujo del mando en la página (centro y tamaño, con la proporción de los PNG recortados de 1302 × 901).
-        private static readonly Vector2 PadCenter = new(0f, -378f);
-        private static readonly Vector2 PadSize = new(400f, 277f);
+        // Más chico que la página para dejar abajo la fila de Vibración.
+        private static readonly Vector2 PadCenter = new(0f, -362f);
+        private static readonly Vector2 PadSize = new(340f, 235f);
         // Altura a la que llegan las líneas: arriba del dibujo y debajo de él.
         private const float CalloutTop = -215f;
-        private const float CalloutBottom = -545f;
+        private const float CalloutBottom = -505f;
+        private const float VibrationRowY = -625f;
         private const string DoubleJumpNote = "\n<size=70%><color=#73594A>2 veces: doble salto</color></size>";
 
         /// <summary>Una acción del mando: su texto, en qué x va, si va arriba o abajo y a qué botón(es) apunta
@@ -752,7 +751,8 @@ namespace Odisea.EditorTools
             }
         }
 
-        private static void CreateControlsPage(RectTransform section, TMP_FontAsset font, Sprite rounded)
+        /// <summary>Arma la página y devuelve la casilla de Vibración (solo visible con mando).</summary>
+        private static Toggle CreateControlsPage(RectTransform section, TMP_FontAsset font, Sprite rounded)
         {
             GameObject keyboard = CreateKeyboardTable(section, font);
             GameObject xbox = CreatePadDiagram("Mando Xbox", section, font, rounded, $"{UiFolder}/Mandos/MandoXbox.png",
@@ -774,6 +774,21 @@ namespace Odisea.EditorTools
             SetField(diagram, "keyboard", keyboard);
             SetField(diagram, "xbox", xbox);
             SetField(diagram, "playStation", playStation);
+
+            // Fila "Vibración ☐" centrada debajo del dibujo; la manícula apunta al texto.
+            var row = new GameObject("Fila vibración", typeof(RectTransform));
+            var rowRect = (RectTransform)row.transform;
+            rowRect.SetParent(section, false);
+            Stretch(rowRect);
+            TMP_Text label = CreateText("Etiqueta vibración", rowRect, "Vibración", font, 34, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(-70f, VibrationRowY), rectSize: new Vector2(200f, 60f), alignment: TextAlignmentOptions.Right);
+            Toggle vibration = CreateToggle(rowRect, rounded, new Vector2(70f, VibrationRowY));
+            vibration.gameObject.name = "Toggle vibración";
+            ((RectTransform)vibration.transform).sizeDelta = new Vector2(52f, 52f);
+            vibration.navigation = new Navigation { mode = Navigation.Mode.None };
+            SetField(vibration.gameObject.AddComponent<PointerTarget>(), "target", label.rectTransform);
+            SetField(diagram, "gamepadOnly", row);
+            return vibration;
         }
 
         private static GameObject CreatePadDiagram(string name, RectTransform section, TMP_FontAsset font, Sprite rounded,

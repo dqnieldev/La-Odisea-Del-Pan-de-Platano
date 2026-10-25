@@ -71,6 +71,9 @@ namespace Odisea.UI
         [SerializeField] private TMP_Text brightnessValue;
         [SerializeField] private OptionSelector frameRateSelector;
         [SerializeField] private Toggle showFpsToggle;
+
+        [Header("Controles")]
+        [Tooltip("Solo se ve al jugar con mando (la oculta ControlsDiagram).")]
         [SerializeField] private Toggle vibrationToggle;
 
         private const float OpenDuration = 0.28f;
@@ -156,6 +159,11 @@ namespace Odisea.UI
             if (closing || pageFlipper.IsFlipping || !panelGroup.interactable)
                 return;
 
+            // Si lo seleccionado se ocultó (p. ej. Vibración al cambiar de mando a teclado), vuelve al índice.
+            GameObject focused = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            if (focused != null && !focused.activeInHierarchy)
+                Select(TabFor(current).gameObject);
+
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
             bool toIndex = (gamepad != null && gamepad.leftShoulder.wasPressedThisFrame) ||
@@ -217,7 +225,7 @@ namespace Odisea.UI
             }
         }
 
-        /// <summary>RB / E: pasa a los ajustes de la sección abierta (Controles y la portada no tienen).</summary>
+        /// <summary>RB / E: pasa a los ajustes de la sección abierta (la portada no tiene; Controles solo con mando).</summary>
         private void GoToSettings()
         {
             Selectable first = FirstSetting(current);
@@ -238,10 +246,11 @@ namespace Odisea.UI
         {
             Section.Audio => volumeSlider,
             Section.Screen => windowModeSelector,
+            Section.Controls => vibrationToggle.gameObject.activeInHierarchy ? vibrationToggle : null,
             _ => null,
         };
 
-        /// <summary>Lleva la selección al primer ajuste de la sección; Controles no tiene, se queda en el índice.</summary>
+        /// <summary>Lleva la selección al primer ajuste de la sección; si no tiene (Controles con teclado), se queda en el índice.</summary>
         private void FocusSection()
         {
             Selectable first = FirstSetting(current);

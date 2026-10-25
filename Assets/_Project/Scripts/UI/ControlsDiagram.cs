@@ -12,6 +12,8 @@ namespace Odisea.UI
         [SerializeField] private GameObject keyboard;
         [SerializeField] private GameObject xbox;
         [SerializeField] private GameObject playStation;
+        [Tooltip("Opcional: lo que solo tiene sentido con mando (la casilla de Vibración).")]
+        [SerializeField] private GameObject gamepadOnly;
 
         private void OnEnable()
         {
@@ -29,6 +31,8 @@ namespace Odisea.UI
                 xbox.SetActive(scheme == InputScheme.Xbox);
             if (playStation != null)
                 playStation.SetActive(scheme == InputScheme.PlayStation);
+            if (gamepadOnly != null)
+                gamepadOnly.SetActive(scheme != InputScheme.Keyboard);
         }
     }
 }
