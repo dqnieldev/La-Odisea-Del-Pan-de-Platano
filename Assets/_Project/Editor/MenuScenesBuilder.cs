@@ -63,6 +63,13 @@ namespace Odisea.EditorTools
 
             // El logo mide 3200 px; en pantalla se ve a ~560 px, así que 1024 basta y pesa mucho menos.
             string logoPath = AssetPathOf(ImportSprite("logo-juego", "LogoJuego", maxSize: 1024));
+            // Piezas recortadas del logo para animar los brillitos: si existen, sustituyen al logo completo.
+            if (LoadLocalSprite($"{LogoPartsFolder}/LogoSinBrillos.png", 1024) != null)
+            {
+                foreach (string side in SparkleNames)
+                    LoadLocalSprite($"{LogoPartsFolder}/LogoBrillo{side}.png", 256);
+            }
+            UiAssetsBuilder.LoadUiSound(LogoSparkleSoundName);
             AssetDatabase.SaveAssets();
 
             BuildSplashScene(logoPath);
@@ -76,10 +83,28 @@ namespace Odisea.EditorTools
 
         // ---------- Logo (antes del título) ----------
 
+        private const string LogoPartsFolder = UiArtFolder + "/Logo";
+        private const string LogoSparkleSoundName = "logo_brillo";
+        private static readonly string[] SparkleNames = { "Izquierdo", "Centro", "Derecho" };
+        // Dónde está cada brillito dentro del logo (anclas normalizadas, abajo-izquierda / arriba-derecha)
+        // y el punto desde el que crece al chispear: el extremo que mira al pan.
+        private static readonly (Vector2 min, Vector2 max, Vector2 pivot)[] SparkleLayout =
+        {
+            (new Vector2(0.6062f, 0.7569f), new Vector2(0.6759f, 0.8375f), new Vector2(0.85f, 0.1f)),
+            (new Vector2(0.7409f, 0.7819f), new Vector2(0.7734f, 0.8750f), new Vector2(0.5f, 0.05f)),
+            (new Vector2(0.8406f, 0.7588f), new Vector2(0.9100f, 0.8394f), new Vector2(0.15f, 0.1f)),
+        };
+        // Amarillo del logo; los brillitos son blancos para poder destellar por encima de este color.
+        private static readonly Color LogoYellow = new(0.961f, 0.718f, 0.192f);
+
         private static void BuildSplashScene(string logoPath)
         {
             var scene = NewScene(SplashScenePath);
             var logo = logoPath != null ? AssetDatabase.LoadAssetAtPath<Sprite>(logoPath) : null;
+            var logoBase = AssetDatabase.LoadAssetAtPath<Sprite>($"{LogoPartsFolder}/LogoSinBrillos.png");
+            Sprite[] sparkleSprites = Array.ConvertAll(SparkleNames,
+                side => AssetDatabase.LoadAssetAtPath<Sprite>($"{LogoPartsFolder}/LogoBrillo{side}.png"));
+            bool animatedSparkles = logoBase != null && sparkleSprites.All(s => s != null);
             // Mismo café que el fondo del logo (#2B1E16): las orillas del ícono se funden con la pantalla.
             CreateCamera(Cafe);
             Transform canvas = CreateCanvas("UI");
@@ -89,14 +114,48 @@ namespace Odisea.EditorTools
             rect.SetParent(canvas, false);
             rect.sizeDelta = new Vector2(560f, 560f);
             var image = logoObject.GetComponent<Image>();
-            image.sprite = logo;
+            image.sprite = animatedSparkles ? logoBase : logo;
             image.preserveAspect = true;
             image.raycastTarget = false;
-            if (logo == null)
+            if (logo == null && !animatedSparkles)
                 Debug.LogWarning($"[Odisea] No está logo-juego en {SourceFolder}; la pantalla del logo queda vacía.");
 
             var splash = new GameObject("Pantalla del logo").AddComponent<SplashScreen>();
             SetField(splash, "logo", logoObject.GetComponent<CanvasGroup>());
+
+            if (animatedSparkles)
+            {
+                var serialized = new SerializedObject(splash);
+                SerializedProperty list = serialized.FindProperty("sparkles");
+                list.arraySize = SparkleNames.Length;
+                for (int i = 0; i < SparkleNames.Length; i++)
+                {
+                    var sparkle = new GameObject($"Brillo {SparkleNames[i]}", typeof(RectTransform), typeof(Image));
+                    var sparkleRect = (RectTransform)sparkle.transform;
+                    sparkleRect.SetParent(rect, false);
+                    (sparkleRect.anchorMin, sparkleRect.anchorMax, sparkleRect.pivot) = SparkleLayout[i];
+                    sparkleRect.offsetMin = sparkleRect.offsetMax = Vector2.zero;
+                    var sparkleImage = sparkle.GetComponent<Image>();
+                    sparkleImage.sprite = sparkleSprites[i];
+                    sparkleImage.color = LogoYellow;
+                    sparkleImage.raycastTarget = false;
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = sparkleImage;
+                }
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else
+                Debug.LogWarning($"[Odisea] Faltan las piezas del logo en {LogoPartsFolder}; los brillitos no se animan.");
+
+            AudioClip sparkleClip = UiAssetsBuilder.LoadUiSound(LogoSparkleSoundName);
+            if (sparkleClip != null)
+            {
+                var audio = splash.gameObject.AddComponent<AudioSource>();
+                audio.playOnAwake = false;
+                audio.clip = sparkleClip;
+                SetField(splash, "sparkleSound", audio);
+            }
+            else
+                Debug.LogWarning($"[Odisea] No está {LogoSparkleSoundName} en Audio/SFX/UI; los brillitos chispean sin sonido.");
             EditorSceneManager.SaveScene(scene);
         }
 
@@ -1062,6 +1121,24 @@ namespace Odisea.EditorTools
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.mipmapEnabled = false;
+                importer.maxTextureSize = maxSize;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        // Sprite que ya vive dentro de Assets (no se copia de Docs).
+        private static Sprite LoadLocalSprite(string path, int maxSize)
+        {
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                return null;
+            if (importer.textureType != TextureImporterType.Sprite || importer.maxTextureSize != maxSize)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
                 importer.maxTextureSize = maxSize;
                 importer.textureCompression = TextureImporterCompression.CompressedHQ;
                 importer.SaveAndReimport();
