@@ -25,6 +25,10 @@ namespace Odisea.Core
         [SerializeField, Min(0f)] private float shakeAmount = 0.08f;
         [SerializeField, Min(0.01f)] private float punchDuration = 0.2f;
 
+        [Header("Mando")]
+        [Tooltip("Vibra el mando al recibir daño (solo para Ulises; respeta el ajuste Vibración de Opciones).")]
+        [SerializeField] private bool rumble;
+
         [Header("Muerte")]
         [Tooltip("Al morir se encoge, se desvanece y se destruye el objeto.")]
         [SerializeField] private bool shrinkAndDestroyOnDeath;
@@ -68,6 +72,8 @@ namespace Odisea.Core
         {
             Restart(ref flashRoutine, Flash());
             Restart(ref hitRoutine, PunchAndShake());
+            if (rumble)
+                GamepadRumble.Play(0.35f, 0.75f, 0.2f);
         }
 
         private void OnDied()

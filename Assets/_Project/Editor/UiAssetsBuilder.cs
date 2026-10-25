@@ -141,6 +141,27 @@ namespace Odisea.EditorTools
             return material;
         }
 
+        private const string BrightnessShaderName = "Odisea/UI/Brightness";
+        // En Resources para que ScreenOverlay lo cargue al arrancar el juego.
+        private const string BrightnessMaterialPath = "Assets/_Project/Resources/UI/Brillo.mat";
+
+        /// <summary>Material de la capa de brillo (ajuste Brillo de Opciones).</summary>
+        public static Material EnsureBrightnessMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(BrightnessMaterialPath);
+            if (material != null)
+                return material;
+
+            Shader shader = Shader.Find(BrightnessShaderName)
+                ?? throw new InvalidOperationException($"No se encontró el shader {BrightnessShaderName}.");
+            if (!AssetDatabase.IsValidFolder("Assets/_Project/Resources/UI"))
+                AssetDatabase.CreateFolder("Assets/_Project/Resources", "UI");
+            material = new Material(shader) { name = "Brillo" };
+            AssetDatabase.CreateAsset(material, BrightnessMaterialPath);
+            AssetDatabase.SaveAssets();
+            return material;
+        }
+
         private const string TransitionSettingsPath = "Assets/_Project/Resources/Transitions/TransitionSettings.asset";
 
         /// <summary>Asset con duraciones, color y curvas del iris, editable en el Inspector.</summary>

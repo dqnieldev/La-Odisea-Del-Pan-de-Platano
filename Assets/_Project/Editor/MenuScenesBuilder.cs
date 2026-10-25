@@ -53,6 +53,7 @@ namespace Odisea.EditorTools
             string pagePath = AssetPathOf(ImportUserFile<VideoClip>("animacion-menu", VideoExtensions, VideoFolder, "PasarPagina"));
             UiAssetsBuilder.EnsureRoundedSprite();
             UiAssetsBuilder.EnsureLumaKeyMaterial();
+            UiAssetsBuilder.EnsureBrightnessMaterial();
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
             UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
@@ -432,12 +433,35 @@ namespace Odisea.EditorTools
             CreateHint(audio, bodyFont, "Arriba / abajo para elegir   ·   izquierda / derecha para ajustar");
 
             RectTransform screen = CreateSection("Pantalla", right, titleFont);
-            TMP_Text fullscreenLabel = CreateText("Etiqueta pantalla completa", screen, "Pantalla completa", bodyFont, 40, Cafe,
-                anchor: new Vector2(0.5f, 1f), position: new Vector2(-50f, -210f), rectSize: new Vector2(400f, 60f),
-                alignment: TextAlignmentOptions.Left);
-            Toggle fullscreen = CreateToggle(screen, rounded, new Vector2(200f, -210f));
-            SetField(fullscreen.gameObject.AddComponent<PointerTarget>(), "target", fullscreenLabel.rectTransform);
-            fullscreen.navigation = new Navigation { mode = Navigation.Mode.None };
+            // Una fila por ajuste: etiqueta a la izquierda (a ella apunta la manícula) y el control a la derecha.
+            OptionSelector windowMode = CreateSelector("Selector modo de ventana", screen, rounded, bodyFont, ScreenRowY(0));
+            AddScreenLabel(screen, bodyFont, "Modo de ventana", 0, windowMode);
+            Slider brightness = CreateSlider(screen, rounded, new Vector2(130f, ScreenRowY(1)));
+            brightness.gameObject.name = "Slider brillo";
+            ((RectTransform)brightness.transform).sizeDelta = new Vector2(190f, 44f);
+            TMP_Text brightnessValue = CreateText("Valor brillo", screen, "50%", bodyFont, 32, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(275f, ScreenRowY(1)), rectSize: new Vector2(80f, 60f), alignment: TextAlignmentOptions.Left);
+            AddScreenLabel(screen, bodyFont, "Brillo", 1, brightness);
+            OptionSelector frameRate = CreateSelector("Selector límite de FPS", screen, rounded, bodyFont, ScreenRowY(2));
+            AddScreenLabel(screen, bodyFont, "Límite de FPS", 2, frameRate);
+            Toggle showFps = CreateToggle(screen, rounded, new Vector2(63f, ScreenRowY(3)));
+            showFps.gameObject.name = "Toggle mostrar FPS";
+            AddScreenLabel(screen, bodyFont, "Mostrar FPS", 3, showFps);
+            Toggle vibration = CreateToggle(screen, rounded, new Vector2(63f, ScreenRowY(4)));
+            vibration.gameObject.name = "Toggle vibración";
+            AddScreenLabel(screen, bodyFont, "Vibración", 4, vibration);
+            // Arriba / abajo recorren las filas; izquierda / derecha cambian el valor (selectores y brillo).
+            Selectable[] screenRows = { windowMode, brightness, frameRate, showFps, vibration };
+            for (int i = 0; i < screenRows.Length; i++)
+            {
+                screenRows[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = i > 0 ? screenRows[i - 1] : null,
+                    selectOnDown = i < screenRows.Length - 1 ? screenRows[i + 1] : null,
+                };
+            }
+            CreateHint(screen, bodyFont, "Arriba / abajo para elegir   ·   izquierda / derecha para cambiar");
 
             RectTransform controls = CreateSection("Controles", right, titleFont);
             CreateControlsPage(controls, bodyFont, rounded);
@@ -486,7 +510,12 @@ namespace Odisea.EditorTools
             SetField(options, "volumeValue", volumeValue);
             SetField(options, "musicSlider", music);
             SetField(options, "musicValue", musicValue);
-            SetField(options, "fullscreenToggle", fullscreen);
+            SetField(options, "windowModeSelector", windowMode);
+            SetField(options, "brightnessSlider", brightness);
+            SetField(options, "brightnessValue", brightnessValue);
+            SetField(options, "frameRateSelector", frameRate);
+            SetField(options, "showFpsToggle", showFps);
+            SetField(options, "vibrationToggle", vibration);
             return options;
         }
 
@@ -1028,6 +1057,58 @@ namespace Odisea.EditorTools
             // El Slider estira la perilla a toda la altura (anclas y de 0 a 1); con alto extra 0 mide 44 × 44 y queda circular.
             handle.rectTransform.sizeDelta = new Vector2(44f, 0f);
             return slider;
+        }
+
+        // ---------- Sección Pantalla ----------
+
+        private static float ScreenRowY(int row) => -195f - row * 78f;
+
+        private static void AddScreenLabel(RectTransform section, TMP_FontAsset font, string text, int row, Selectable control)
+        {
+            TMP_Text label = CreateText($"Etiqueta {text}", section, text, font, 34, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(-110f, ScreenRowY(row)), rectSize: new Vector2(250f, 60f),
+                alignment: TextAlignmentOptions.Left);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 24f;
+            label.fontSizeMax = 34f;
+            SetField(control.gameObject.AddComponent<PointerTarget>(), "target", label.rectTransform);
+        }
+
+        /// <summary>Selector "‹ Valor ›" sobre una píldora beige; las opciones las pone OptionsPanel.</summary>
+        private static OptionSelector CreateSelector(string name, RectTransform parent, Sprite rounded, TMP_FontAsset font, float y)
+        {
+            var root = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(155f, y);
+            rect.sizeDelta = new Vector2(240f, 54f);
+            var background = root.GetComponent<Image>();
+            background.sprite = rounded;
+            background.type = Image.Type.Sliced;
+            background.pixelsPerUnitMultiplier = 1.5f;
+
+            TMP_Text value = CreateText("Valor", rect, "", font, 30, Cafe, stretch: true);
+            value.margin = new Vector4(36f, 0f, 36f, 0f);
+            value.enableAutoSizing = true;
+            value.fontSizeMin = 22f;
+            value.fontSizeMax = 30f;
+            value.textWrappingMode = TextWrappingModes.NoWrap;
+            TMP_FontAsset arrowFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            TMP_Text left = CreateText("Flecha izquierda", rect, "‹", arrowFont, 44, Cafe, anchor: new Vector2(0f, 0.5f),
+                position: new Vector2(20f, 3f), rectSize: new Vector2(30f, 54f));
+            TMP_Text right = CreateText("Flecha derecha", rect, "›", arrowFont, 44, Cafe, anchor: new Vector2(1f, 0.5f),
+                position: new Vector2(-20f, 3f), rectSize: new Vector2(30f, 54f));
+
+            var selector = root.AddComponent<OptionSelector>();
+            selector.targetGraphic = background;
+            selector.colors = SelectionColors(normal: BeigeMasa);
+            SetField(selector, "valueText", value);
+            SetField(selector, "leftArrow", left.rectTransform);
+            SetField(selector, "rightArrow", right.rectTransform);
+            root.AddComponent<SelectableSounds>();
+            return selector;
         }
 
         private static Toggle CreateToggle(RectTransform parent, Sprite rounded, Vector2 position)

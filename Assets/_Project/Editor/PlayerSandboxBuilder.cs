@@ -226,6 +226,7 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "visual", visual.transform);
             SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer, noseRenderer });
             SetSerialized(feedback, "flashColor", Chile);
+            SetSerialized(feedback, "rumble", true);
 
             CreateAttackVisual(player, combat, square, config, playerLayer);
             return player;

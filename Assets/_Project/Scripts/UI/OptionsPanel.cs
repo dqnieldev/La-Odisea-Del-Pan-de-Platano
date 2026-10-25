@@ -64,7 +64,14 @@ namespace Odisea.UI
         [Tooltip("Opcional: volumen de la música.")]
         [SerializeField] private Slider musicSlider;
         [SerializeField] private TMP_Text musicValue;
-        [SerializeField] private Toggle fullscreenToggle;
+
+        [Header("Pantalla")]
+        [SerializeField] private OptionSelector windowModeSelector;
+        [SerializeField] private Slider brightnessSlider;
+        [SerializeField] private TMP_Text brightnessValue;
+        [SerializeField] private OptionSelector frameRateSelector;
+        [SerializeField] private Toggle showFpsToggle;
+        [SerializeField] private Toggle vibrationToggle;
 
         private const float OpenDuration = 0.28f;
         private const float CloseDuration = 0.16f;
@@ -90,7 +97,18 @@ namespace Odisea.UI
                 musicSlider.wholeNumbers = false;
                 musicSlider.onValueChanged.AddListener(OnMusicChanged);
             }
-            fullscreenToggle.onValueChanged.AddListener(value => GameSettings.Fullscreen = value);
+
+            // Mismo orden que el enum WindowMode.
+            windowModeSelector.SetOptions(new[] { "Completa", "Sin bordes", "Ventana" });
+            windowModeSelector.Changed += index => GameSettings.WindowMode = (WindowMode)index;
+            brightnessSlider.minValue = 0f;
+            brightnessSlider.maxValue = 100f;
+            brightnessSlider.wholeNumbers = false;
+            brightnessSlider.onValueChanged.AddListener(OnBrightnessChanged);
+            frameRateSelector.SetOptions(Array.ConvertAll(GameSettings.FrameRateOptions, fps => fps > 0 ? fps.ToString() : "Sin límite"));
+            frameRateSelector.Changed += index => GameSettings.FrameRateLimit = GameSettings.FrameRateOptions[index];
+            showFpsToggle.onValueChanged.AddListener(value => GameSettings.ShowFps = value);
+            vibrationToggle.onValueChanged.AddListener(OnVibrationChanged);
 
             audioTab.onClick.AddListener(() => ShowSection(Section.Audio));
             screenTab.onClick.AddListener(() => ShowSection(Section.Screen));
@@ -117,7 +135,13 @@ namespace Odisea.UI
                 musicSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.MusicVolume * 100f));
                 musicValue.text = $"{musicSlider.value:0}%";
             }
-            fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
+            windowModeSelector.SetIndexWithoutNotify((int)GameSettings.WindowMode);
+            brightnessSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.Brightness * 100f));
+            brightnessValue.text = $"{brightnessSlider.value:0}%";
+            int frameRate = Array.IndexOf(GameSettings.FrameRateOptions, GameSettings.FrameRateLimit);
+            frameRateSelector.SetIndexWithoutNotify(frameRate >= 0 ? frameRate : 1);
+            showFpsToggle.SetIsOnWithoutNotify(GameSettings.ShowFps);
+            vibrationToggle.SetIsOnWithoutNotify(GameSettings.Vibration);
 
             SetSectionActive(homeSection != null ? Section.Home : Section.Audio, instantRibbon: true);
             rightPage.alpha = 1f;
@@ -213,7 +237,7 @@ namespace Odisea.UI
         private Selectable FirstSetting(Section section) => section switch
         {
             Section.Audio => volumeSlider,
-            Section.Screen => fullscreenToggle,
+            Section.Screen => windowModeSelector,
             _ => null,
         };
 
@@ -334,6 +358,23 @@ namespace Odisea.UI
         }
 
         private void UpdateVolumeLabel(float value) => volumeValue.text = $"{value:0}%";
+
+        private void OnBrightnessChanged(float value)
+        {
+            GameSettings.Brightness = value / 100f;
+            brightnessValue.text = $"{value:0}%";
+            UiAudio.Play(UiSound.Hover);
+        }
+
+        private void OnVibrationChanged(bool on)
+        {
+            GameSettings.Vibration = on;
+            // Al activarla, un zumbido corto para que se sienta; al desactivarla, se corta lo que esté vibrando.
+            if (on)
+                GamepadRumble.Play(0.25f, 0.6f, 0.15f);
+            else
+                GamepadRumble.Stop();
+        }
 
         private void OnMusicChanged(float value)
         {
