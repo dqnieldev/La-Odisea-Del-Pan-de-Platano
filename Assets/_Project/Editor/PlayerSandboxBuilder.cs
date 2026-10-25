@@ -70,8 +70,13 @@ namespace Odisea.EditorTools
             AssetDatabase.SaveAssets();
 
             EnsureFolder(Path.GetDirectoryName(ScenePath));
-            if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath) &&
-                AssetDatabase.LoadMainAssetAtPath(ScenePath) == null)
+            if (File.Exists(ScenePath))
+            {
+                // Se reemplaza solo el contenido para conservar el .meta (y su GUID, al que apunta Build Settings).
+                File.Copy(BaseScenePath, ScenePath, overwrite: true);
+                AssetDatabase.ImportAsset(ScenePath, ImportAssetOptions.ForceSynchronousImport);
+            }
+            else if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath))
                 throw new InvalidOperationException($"No se pudo copiar {BaseScenePath}.");
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -116,6 +121,20 @@ namespace Odisea.EditorTools
 
             var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
             SetSerialized(shortcuts, "playerHealth", player.GetComponent<Health>());
+
+            // Menú de pausa (Esc / Start). Lo genera Odisea > Menús > Crear menú de pausa.
+            var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
+            if (pausePrefab != null)
+            {
+                var pause = (GameObject)PrefabUtility.InstantiatePrefab(pausePrefab);
+                var serialized = new SerializedObject(pause.GetComponent<PauseMenu>());
+                serialized.FindProperty("levelName").stringValue = "Escena de prueba";
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else
+            {
+                Debug.LogWarning("[Odisea] Falta el prefab del menú de pausa; genéralo con Odisea > Menús > Crear menú de pausa.");
+            }
 
             var camera = GameObject.Find("Main Camera");
             camera.transform.position = new Vector3(0f, 2f, -10f);
@@ -207,6 +226,7 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "visual", visual.transform);
             SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer, noseRenderer });
             SetSerialized(feedback, "flashColor", Chile);
+            SetSerialized(feedback, "rumble", true);
 
             CreateAttackVisual(player, combat, square, config, playerLayer);
             return player;
@@ -334,8 +354,8 @@ namespace Odisea.EditorTools
                 "Escaleras:  arriba / abajo  (saltar para soltarte)\n" +
                 "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
                 "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
-                "Reiniciar:  R  ·  Start\n" +
-                "Salir:  Esc  ·  Select\n" +
+                "Pausa:  Esc  ·  Start\n" +
+                "Reiniciar:  R\n" +
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
         }
 
