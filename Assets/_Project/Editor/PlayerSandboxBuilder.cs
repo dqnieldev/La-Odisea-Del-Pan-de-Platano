@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using Odisea.Core;
+using Odisea.Enemies;
 using Odisea.Player;
 using Odisea.UI;
 using UnityEditor;
@@ -12,8 +14,9 @@ using UnityEngine.UI;
 namespace Odisea.EditorTools
 {
     /// <summary>
-    /// Crea la escena Sandbox/PlayerSandbox para probar a Ulises con placeholders:
-    /// suelo, plataformas a distintas alturas, un peligro y un muñeco para golpear.
+    /// Crea la escena Sandbox/PlayerSandbox para probar a Ulises: suelo, plataformas a distintas alturas,
+    /// escaleras, un peligro, un muñeco para golpear y un cocodrilo. Usa el arte importado con
+    /// Odisea > Arte > Importar arte de la sandbox; lo que no exista se dibuja con cuadros de colores.
     /// Menú: Odisea > Sandbox > Crear escena de prueba del jugador.
     /// </summary>
     public static class PlayerSandboxBuilder
@@ -96,24 +99,28 @@ namespace Odisea.EditorTools
             CreateBlock("Pared derecha", level, square, new Vector2(40.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
             // Madera = plataformas de un sentido: se suben saltando desde abajo o por escalera, y no se puede bajar de ellas
             // más que por escalera o cayendo por la orilla. Café = bloques sólidos.
-            MakeOneWay(CreateBlock("Plataforma baja", level, square, new Vector2(4f, 2f), new Vector2(4f, 0.4f), Madera, groundLayer));
-            MakeOneWay(CreateBlock("Plataforma media", level, square, new Vector2(10f, 4.5f), new Vector2(3f, 0.4f), Madera, groundLayer));
-            MakeOneWay(CreateBlock("Plataforma doble salto", level, square, new Vector2(16f, 8f), new Vector2(3f, 0.4f), Madera, groundLayer));
-            MakeOneWay(CreateBlock("Repisa 1", level, square, new Vector2(-14f, 2.5f), new Vector2(4f, 0.4f), Madera, groundLayer));
-            MakeOneWay(CreateBlock("Repisa 2", level, square, new Vector2(-14f, 5f), new Vector2(4f, 0.4f), Madera, groundLayer));
-            MakeOneWay(CreateBlock("Repisa 3", level, square, new Vector2(-16f, 7.5f), new Vector2(4f, 0.4f), Madera, groundLayer));
+            var art = LevelArt.Load();
+            // Las vigas se saltan donde hay escalera, para no quedar una encima de la otra.
+            art.LadderXs = new[] { 5.5f, -13f, -15.5f };
+            CreatePlatform("Plataforma baja", level, square, art, new Vector2(4f, 2f), 4f, groundLayer);
+            CreatePlatform("Plataforma media", level, square, art, new Vector2(10f, 4.5f), 3f, groundLayer);
+            CreatePlatform("Plataforma doble salto", level, square, art, new Vector2(16f, 8f), 3f, groundLayer, posts: false);
+            CreatePlatform("Repisa 1", level, square, art, new Vector2(-14f, 2.5f), 4f, groundLayer);
+            CreatePlatform("Repisa 2", level, square, art, new Vector2(-14f, 5f), 4f, groundLayer, posts: false);
+            CreatePlatform("Repisa 3", level, square, art, new Vector2(-16f, 7.5f), 4f, groundLayer, posts: false);
             CreateBlock("Escalón", level, square, new Vector2(-8f, 0.75f), new Vector2(3f, 1.5f), Cafe, groundLayer);
 
             // Escaleras: abajo = suelo donde empiezan, arriba = superficie de la plataforma donde terminan.
-            CreateLadder("Escalera a plataforma baja", level, square, 5.5f, 0f, 2.2f, ladderLayer);
-            CreateLadder("Escalera de la torre", level, square, -13f, 0f, 5.2f, ladderLayer);
-            CreateLadder("Escalera a repisa 3", level, square, -15.5f, 5.2f, 7.7f, ladderLayer);
+            CreateLadder("Escalera a plataforma baja", level, square, art, 5.5f, 0f, 2.2f, ladderLayer);
+            CreateLadder("Escalera de la torre", level, square, art, -13f, 0f, 5.2f, ladderLayer);
+            CreateLadder("Escalera a repisa 3", level, square, art, -15.5f, 5.2f, 7.7f, ladderLayer);
 
             var hazard = CreateBlock("Peligro (resta 1 vida)", level, square, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f), Chile, groundLayer);
             var hazardComponent = hazard.AddComponent<Hazard>();
             SetSerialized(hazardComponent, "targetLayers", 1 << playerLayer);
 
             CreateDummy(level, square, enemyLayer);
+            CreateCrocodile(level, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
 
             GameObject player = CreatePlayer(square, noFriction, config, inputActions, playerLayer);
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", doughBall);
@@ -179,21 +186,36 @@ namespace Odisea.EditorTools
             // El sprite va en un hijo para poder cambiar el placeholder por el arte real sin tocar la física.
             var visual = new GameObject("Visual") { layer = playerLayer };
             visual.transform.SetParent(player.transform, false);
-            visual.transform.localScale = new Vector3(0.8f, 1.6f, 1f);
             var renderer = visual.AddComponent<SpriteRenderer>();
-            renderer.sprite = square;
-            renderer.color = Platano;
             renderer.sortingOrder = 10;
+            var renderers = new System.Collections.Generic.List<UnityEngine.Object> { renderer };
+            var ulisesController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.UlisesControllerPath);
+            Animator spriteAnimator = null;
+            if (ulisesController != null)
+            {
+                // Arte real: el pivote de cada cuadro está en los pies, así que el visual va en la base del collider.
+                visual.transform.localPosition = new Vector3(0f, -0.8f, 0f);
+                renderer.sprite = FirstSprite("Assets/_Project/Art/Characters/Ulises/Ulises_Idle.png");
+                spriteAnimator = visual.AddComponent<Animator>();
+                spriteAnimator.runtimeAnimatorController = ulisesController;
+            }
+            else
+            {
+                visual.transform.localScale = new Vector3(0.8f, 1.6f, 1f);
+                renderer.sprite = square;
+                renderer.color = Platano;
 
-            // "Nariz" para ver hacia dónde mira mientras no hay sprite real.
-            var nose = new GameObject("Frente") { layer = playerLayer };
-            nose.transform.SetParent(player.transform, false);
-            nose.transform.localPosition = new Vector3(0.35f, 0.4f, 0f);
-            nose.transform.localScale = new Vector3(0.3f, 0.2f, 1f);
-            var noseRenderer = nose.AddComponent<SpriteRenderer>();
-            noseRenderer.sprite = square;
-            noseRenderer.color = Cafe;
-            noseRenderer.sortingOrder = 11;
+                // "Nariz" para ver hacia dónde mira mientras no hay sprite real.
+                var nose = new GameObject("Frente") { layer = playerLayer };
+                nose.transform.SetParent(player.transform, false);
+                nose.transform.localPosition = new Vector3(0.35f, 0.4f, 0f);
+                nose.transform.localScale = new Vector3(0.3f, 0.2f, 1f);
+                var noseRenderer = nose.AddComponent<SpriteRenderer>();
+                noseRenderer.sprite = square;
+                noseRenderer.color = Cafe;
+                noseRenderer.sortingOrder = 11;
+                renderers.Add(noseRenderer);
+            }
 
             var groundCheck = new GameObject("GroundCheck").transform;
             groundCheck.SetParent(player.transform, false);
@@ -220,19 +242,22 @@ namespace Odisea.EditorTools
             SetSerialized(animator, "combat", combat);
             SetSerialized(animator, "health", health);
             SetSerialized(animator, "spriteRenderer", renderer);
+            if (spriteAnimator != null)
+                SetSerialized(animator, "animator", spriteAnimator);
 
             var feedback = player.AddComponent<DamageFeedback>();
             SetSerialized(feedback, "health", health);
             SetSerialized(feedback, "visual", visual.transform);
-            SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer, noseRenderer });
+            SetSerialized(feedback, "renderers", renderers.ToArray());
             SetSerialized(feedback, "flashColor", Chile);
             SetSerialized(feedback, "rumble", true);
 
-            CreateAttackVisual(player, combat, square, config, playerLayer);
+            CreateAttackVisual(player, combat, square, config, playerLayer, showBar: ulisesController == null);
             return player;
         }
 
-        private static void CreateAttackVisual(GameObject player, PlayerCombat combat, Sprite square, PlayerConfig config, int layer)
+        private static void CreateAttackVisual(GameObject player, PlayerCombat combat, Sprite square, PlayerConfig config, int layer,
+            bool showBar)
         {
             // Rodillo: el pivote es la mano; la barra sale hacia adelante y gira hacia abajo.
             var pivot = new GameObject("Rodillo") { layer = layer };
@@ -244,6 +269,7 @@ namespace Odisea.EditorTools
             bar.transform.localPosition = new Vector3(0.6f, 0f, 0f);
             bar.transform.localScale = new Vector3(1f, 0.22f, 1f);
             var barRenderer = bar.AddComponent<SpriteRenderer>();
+            barRenderer.enabled = showBar;
             barRenderer.sprite = square;
             barRenderer.color = Madera;
             barRenderer.sortingOrder = 12;
@@ -356,10 +382,10 @@ namespace Odisea.EditorTools
                 "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
                 "Pausa:  Esc  ·  Start\n" +
                 "Reiniciar:  R\n" +
-                "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes)</color>";
+                "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes) · Cocodrilo (2 golpes)</color>";
         }
 
-        private static void CreateLadder(string name, Transform parent, Sprite square, float x, float bottom, float top, int layer)
+        private static void CreateLadder(string name, Transform parent, Sprite square, LevelArt art, float x, float bottom, float top, int layer)
         {
             float height = top - bottom;
             var ladder = new GameObject(name) { layer = layer };
@@ -369,6 +395,22 @@ namespace Odisea.EditorTools
             area.isTrigger = true;
             area.size = new Vector2(0.9f, height);
             ladder.AddComponent<Odisea.Level.Ladder>();
+
+            if (art.Ladder != null)
+            {
+                // El dibujo es más angosto que el área para trepar: se escala parejo hasta ese ancho y se repite a lo alto.
+                float scale = area.size.x / art.Ladder.bounds.size.x;
+                var drawing = new GameObject("Dibujo") { layer = layer };
+                drawing.transform.SetParent(ladder.transform, false);
+                drawing.transform.localScale = new Vector3(scale, scale, 1f);
+                var ladderRenderer = drawing.AddComponent<SpriteRenderer>();
+                ladderRenderer.sprite = art.Ladder;
+                ladderRenderer.drawMode = SpriteDrawMode.Tiled;
+                ladderRenderer.tileMode = SpriteTileMode.Continuous;
+                ladderRenderer.size = new Vector2(art.Ladder.bounds.size.x, height / scale);
+                ladderRenderer.sortingOrder = 1; // Detrás de Ulises y de las plataformas.
+                return;
+            }
 
             var wood = new Color(0.71f, 0.50f, 0.28f);
             foreach (float side in new[] { -0.38f, 0.38f })
@@ -416,6 +458,142 @@ namespace Odisea.EditorTools
             UnityEngine.Object.DestroyImmediate(root);
             return LoadRequired<GameObject>(path).GetComponent<Projectile>();
         }
+
+        /// <summary>Sprites del nivel 1 (los que no existan quedan en null y se usan cuadros de colores).</summary>
+        private sealed class LevelArt
+        {
+            public Sprite Plank;
+            public Sprite BrokenPlank;
+            public Sprite Post;
+            public Sprite Ladder;
+            public float[] LadderXs = Array.Empty<float>();
+
+            public static LevelArt Load() => new()
+            {
+                Plank = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PlankPath),
+                BrokenPlank = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.BrokenPlankPath),
+                Post = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PostPath),
+                Ladder = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.LadderPath),
+            };
+        }
+
+        private const float PlatformThickness = 0.4f;
+
+        /// <summary>
+        /// Plataforma de un sentido. Con arte: tablón repetido a lo ancho (las cortas usan el tablón roto)
+        /// y, si se pide, vigas que la sostienen desde el suelo. Sin arte: el cuadro café de siempre.
+        /// </summary>
+        private static void CreatePlatform(string name, Transform parent, Sprite square, LevelArt art, Vector2 center,
+            float width, int layer, bool posts = true)
+        {
+            Sprite plank = width <= 3f && art.BrokenPlank != null ? art.BrokenPlank : art.Plank;
+            if (plank == null)
+            {
+                MakeOneWay(CreateBlock(name, parent, square, center, new Vector2(width, PlatformThickness), Madera, layer));
+                return;
+            }
+
+            var platform = new GameObject(name) { layer = layer };
+            platform.transform.SetParent(parent, false);
+            platform.transform.position = center;
+            var collider = platform.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(width, PlatformThickness);
+            MakeOneWay(platform);
+
+            // La cara de arriba del tablón coincide con la del collider (donde pisa Ulises).
+            float plankHeight = plank.bounds.size.y;
+            var drawing = new GameObject("Tablón") { layer = layer };
+            drawing.transform.SetParent(platform.transform, false);
+            drawing.transform.localPosition = new Vector3(0f, PlatformThickness / 2f - plankHeight / 2f, 0f);
+            var renderer = drawing.AddComponent<SpriteRenderer>();
+            renderer.sprite = plank;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(width + 0.2f, plankHeight);
+            renderer.sortingOrder = 3;
+
+            if (!posts || art.Post == null)
+                return;
+            float bottom = center.y - PlatformThickness / 2f;
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float x = center.x + side * (width / 2f - 0.35f);
+                if (art.LadderXs.All(ladderX => Mathf.Abs(ladderX - x) > 0.9f))
+                    CreatePost(platform.transform, art.Post, new Vector2(x, 0f), bottom, layer);
+            }
+        }
+
+        // Viga decorativa del suelo (y = ground) hasta debajo de la plataforma; no tiene collider.
+        private static void CreatePost(Transform parent, Sprite post, Vector2 foot, float top, int layer)
+        {
+            float height = top - foot.y;
+            if (height < 0.5f)
+                return;
+            var drawing = new GameObject("Viga") { layer = layer };
+            drawing.transform.SetParent(parent, true);
+            drawing.transform.position = new Vector3(foot.x, foot.y + height / 2f, 0f);
+            var renderer = drawing.AddComponent<SpriteRenderer>();
+            renderer.sprite = post;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(post.bounds.size.x * 0.8f, height);
+            renderer.sortingOrder = 0;
+        }
+
+        /// <summary>Cocodrilo que patrulla: 2 golpes, daña a Ulises al tocarlo y da la vuelta en paredes y orillas.</summary>
+        private static void CreateCrocodile(Transform parent, Sprite square, Vector2 feet, int enemyLayer, int groundLayer, int playerLayer)
+        {
+            var crocodile = new GameObject("Cocodrilo") { layer = enemyLayer };
+            crocodile.transform.SetParent(parent, false);
+            crocodile.transform.position = feet;
+            var body = crocodile.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            var collider = crocodile.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = new Vector2(1.5f, 0.75f);
+            collider.offset = new Vector2(0f, 0.4f);
+
+            var visual = new GameObject("Visual") { layer = enemyLayer };
+            visual.transform.SetParent(crocodile.transform, false);
+            var renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = 6;
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.CrocodileControllerPath);
+            if (controller != null)
+            {
+                renderer.sprite = FirstSprite("Assets/_Project/Art/Characters/Enemigos/Cocodrilo/Cocodrilo_Walk.png");
+                visual.AddComponent<Animator>().runtimeAnimatorController = controller;
+            }
+            else
+            {
+                visual.transform.localPosition = new Vector3(0f, 0.4f, 0f);
+                visual.transform.localScale = new Vector3(1.5f, 0.75f, 1f);
+                renderer.sprite = square;
+                renderer.color = Manglar;
+            }
+
+            var health = crocodile.AddComponent<Health>();
+            SetSerialized(health, "maxHealth", 2);
+            SetSerialized(health, "invulnerabilityTime", 0.2f);
+            SetSerialized(health, "destroyOnDeath", false); // Lo destruye DamageFeedback tras la animación.
+
+            var hazard = crocodile.AddComponent<Hazard>();
+            SetSerialized(hazard, "targetLayers", 1 << playerLayer);
+
+            var patrol = crocodile.AddComponent<PatrolEnemy>();
+            SetSerialized(patrol, "groundLayers", 1 << groundLayer);
+            SetSerialized(patrol, "health", health);
+
+            var feedback = crocodile.AddComponent<DamageFeedback>();
+            SetSerialized(feedback, "health", health);
+            SetSerialized(feedback, "visual", visual.transform);
+            SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer });
+            SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+        }
+
+        // Primer cuadro de una tira (Nombre_0) para que la escena se vea bien aun antes de darle Play.
+        private static Sprite FirstSprite(string texturePath) =>
+            AssetDatabase.LoadAllAssetsAtPath(texturePath).OfType<Sprite>()
+                .OrderBy(s => s.name.Length).ThenBy(s => s.name, StringComparer.Ordinal).FirstOrDefault();
 
         private static void MakeOneWay(GameObject platform)
         {
