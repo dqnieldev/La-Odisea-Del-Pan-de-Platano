@@ -65,8 +65,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.025316456}
-  spritePixelsToUnits: 82.77778
+  spritePivot: {x: 0.5, y: 0.05851064}
+  spritePixelsToUnits: 190.55556
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -122,15 +122,15 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: 2baa138cd7ede6d30800000000000000
       internalID: 4426720115562752690
@@ -142,17 +142,17 @@ TextureImporter:
       name: Ulises_Run_1
       rect:
         serializedVersion: 2
-        x: 120
+        x: 316
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: feec44ef318ef19f0800000000000000
       internalID: -495422261419520273
@@ -164,17 +164,17 @@ TextureImporter:
       name: Ulises_Run_2
       rect:
         serializedVersion: 2
-        x: 240
+        x: 632
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: cece9a7201ba42500800000000000000
       internalID: 370609155224497388
@@ -186,17 +186,17 @@ TextureImporter:
       name: Ulises_Run_3
       rect:
         serializedVersion: 2
-        x: 360
+        x: 948
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: 8fcb97f16cd43c730800000000000000
       internalID: 4018140805871549688
@@ -208,17 +208,17 @@ TextureImporter:
       name: Ulises_Run_4
       rect:
         serializedVersion: 2
-        x: 480
+        x: 1264
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: e3c30a0503e818600800000000000000
       internalID: 468812174385495102
@@ -230,20 +230,130 @@ TextureImporter:
       name: Ulises_Run_5
       rect:
         serializedVersion: 2
-        x: 600
+        x: 1580
         y: 0
-        width: 120
-        height: 158
+        width: 316
+        height: 376
       alignment: 9
-      pivot: {x: 0.5, y: 0.025316456}
+      pivot: {x: 0.5, y: 0.05851064}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: ca5cabeffd2865840800000000000000
       internalID: 5212497517290898860
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Run_6
+      rect:
+        serializedVersion: 2
+        x: 1896
+        y: 0
+        width: 316
+        height: 376
+      alignment: 9
+      pivot: {x: 0.5, y: 0.05851064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 11dee68421a95194b9413a93c6f00913
+      internalID: -1235616940
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Run_7
+      rect:
+        serializedVersion: 2
+        x: 2212
+        y: 0
+        width: 316
+        height: 376
+      alignment: 9
+      pivot: {x: 0.5, y: 0.05851064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 32d8c7b29e5a7f844868ee48d7370b9e
+      internalID: -488630441
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Run_8
+      rect:
+        serializedVersion: 2
+        x: 2528
+        y: 0
+        width: 316
+        height: 376
+      alignment: 9
+      pivot: {x: 0.5, y: 0.05851064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7152578ed8b89f44abf6cc6d8a15891a
+      internalID: -1146208788
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Run_9
+      rect:
+        serializedVersion: 2
+        x: 2844
+        y: 0
+        width: 316
+        height: 376
+      alignment: 9
+      pivot: {x: 0.5, y: 0.05851064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f952d8b252e2764ead4ec099130a2d2
+      internalID: 1842455244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Run_10
+      rect:
+        serializedVersion: 2
+        x: 3160
+        y: 0
+        width: 316
+        height: 376
+      alignment: 9
+      pivot: {x: 0.5, y: 0.05851064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d88b78ad1da07be4e9da6cd906a119b3
+      internalID: 1725995182
       vertices: []
       indices: 
       edges: []
@@ -264,10 +374,15 @@ TextureImporter:
     nameFileIdTable:
       Ulises_Run_0: 4426720115562752690
       Ulises_Run_1: -495422261419520273
+      Ulises_Run_10: 1725995182
       Ulises_Run_2: 370609155224497388
       Ulises_Run_3: 4018140805871549688
       Ulises_Run_4: 468812174385495102
       Ulises_Run_5: 5212497517290898860
+      Ulises_Run_6: -1235616940
+      Ulises_Run_7: -488630441
+      Ulises_Run_8: -1146208788
+      Ulises_Run_9: 1842455244
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

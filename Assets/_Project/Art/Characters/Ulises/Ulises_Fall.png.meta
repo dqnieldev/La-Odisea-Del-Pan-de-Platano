@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.016666668}
-  spritePixelsToUnits: 115
+  spritePivot: {x: 0.5, y: 0.052401748}
+  spritePixelsToUnits: 323.0769
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -105,20 +105,64 @@ TextureImporter:
       name: Ulises_Fall_0
       rect:
         serializedVersion: 2
-        x: 3
-        y: 3
-        width: 79
-        height: 234
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 446
+        height: 687
+      alignment: 9
+      pivot: {x: 0.5, y: 0.052401748}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: c7b6dc4bb820c78c0800000000000000
       internalID: -4000319569954772100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Fall_1
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 0
+        width: 446
+        height: 687
+      alignment: 9
+      pivot: {x: 0.5, y: 0.052401748}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a38cbb83862369549816c809a0183120
+      internalID: -1746100203
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Fall_2
+      rect:
+        serializedVersion: 2
+        x: 892
+        y: 0
+        width: 446
+        height: 687
+      alignment: 9
+      pivot: {x: 0.5, y: 0.052401748}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 576cf7c1ebcfcc54d91347b9433ba2f3
+      internalID: 1804125490
       vertices: []
       indices: 
       edges: []
@@ -138,6 +182,8 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Ulises_Fall_0: -4000319569954772100
+      Ulises_Fall_1: -1746100203
+      Ulises_Fall_2: 1804125490
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.016736401}
-  spritePixelsToUnits: 115
+  spritePivot: {x: 0.5, y: 0.0038131555}
+  spritePixelsToUnits: 500.51282
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -105,20 +105,130 @@ TextureImporter:
       name: Ulises_Idle_0
       rect:
         serializedVersion: 2
-        x: 4
-        y: 3
-        width: 94
-        height: 233
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
       spriteID: c740ce61ec03828f0800000000000000
       internalID: -565148091529034628
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Idle_1
+      rect:
+        serializedVersion: 2
+        x: 462
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 57361d480c2d53f419da179094791bd8
+      internalID: -669435467
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Idle_2
+      rect:
+        serializedVersion: 2
+        x: 924
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d5bd128c7aa0d23488bc22375f6fee4e
+      internalID: 995533763
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Idle_3
+      rect:
+        serializedVersion: 2
+        x: 1386
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 74958ae7215eafe45a727eef72f87e33
+      internalID: -517793993
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Idle_4
+      rect:
+        serializedVersion: 2
+        x: 1848
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8999009905e2f0746af601a2303b52cc
+      internalID: -2143029355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Idle_5
+      rect:
+        serializedVersion: 2
+        x: 2310
+        y: 0
+        width: 462
+        height: 1049
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038131555}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 837054d918a5df8489ebbc04e8130f0f
+      internalID: 1062060023
       vertices: []
       indices: 
       edges: []
@@ -138,6 +248,11 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Ulises_Idle_0: -565148091529034628
+      Ulises_Idle_1: -669435467
+      Ulises_Idle_2: 995533763
+      Ulises_Idle_3: -517793993
+      Ulises_Idle_4: -2143029355
+      Ulises_Idle_5: 1062060023
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

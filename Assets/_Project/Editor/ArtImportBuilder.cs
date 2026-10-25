@@ -21,6 +21,9 @@ namespace Odisea.EditorTools
         private const string SourceFolder = "Docs/Referencias";
         private const string UlisesSheet = "Personajes/sprite en png/ulises/ulises.png";
         private const string UlisesRunSheet = "Personajes/sprite en png/ulises/correrulises.png";
+        // Hojas por animación (convención personaje_animacion.png, cuadros en una sola fila).
+        // Si alguna no existe se usa el sustituto de ulises.png / correrulises.png.
+        private const string UlisesFolderSource = "Personajes/sprite en png/ulises/";
         private const string CrocodileSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
 
@@ -38,6 +41,11 @@ namespace Odisea.EditorTools
 
         // Tamaños en el juego (unidades). Ulises mide 1.6 de collider; el dibujo corriendo, con pelo, un poco más.
         private const float UlisesRunHeight = 1.8f;
+        // Ulises parado. Cada hoja nueva viene a otra escala; se mide su cuadro parado y se lleva a esta altura.
+        private const float UlisesStandHeight = 1.95f;
+        // En el aire el dibujo se centra en el cuerpo (no en los pies) para que las vueltas no "brinquen":
+        // el centro del cuerpo queda a esta altura sobre los pies del collider.
+        private const float BodyCenterAboveFeet = 0.95f;
         private const float CrocodileHeight = 0.95f;
         // Grosor del tablón = grosor de las plataformas de la sandbox.
         private const float PlankHeight = 0.45f;
@@ -84,19 +92,59 @@ namespace Odisea.EditorTools
 
             EnsureFolder(UlisesFolder);
             // Sustitutos mientras llega el arte que falta (ver Docs): golpe = puñetazo, lanzar = inicio del puñetazo,
-            // daño = pose de frente echándose para atrás, escalera = subida del salto, reposo = parado de 3/4.
+            // daño = pose de frente echándose para atrás, escalera = subida del salto.
             var clips = new Dictionary<string, AnimationClip>
             {
-                ["Idle"] = StripClip(sheet, Pick(rows, 3, 6), ppu, "Idle", 8f, loop: true),
-                ["Run"] = StripClip(runSheet, runRows.SelectMany(r => r).ToList(), runPpu, "Run", 12f, loop: true),
-                ["Jump"] = StripClip(sheet, Pick(rows, 3, 1, 2), ppu, "Jump", 10f, loop: false),
-                ["DoubleJump"] = StripClip(sheet, Pick(rows, 3, 3), ppu, "DoubleJump", 10f, loop: false, holdLast: 0.15f),
-                ["Fall"] = StripClip(sheet, Pick(rows, 3, 4), ppu, "Fall", 8f, loop: true),
                 ["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true),
                 ["Attack"] = StripClip(sheet, Pick(rows, 2, 0, 1, 2), ppu, "Attack", 16f, loop: false, holdLast: 0.06f),
                 ["Throw"] = StripClip(sheet, Pick(rows, 2, 0, 1), ppu, "Throw", 14f, loop: false, holdLast: 0.1f),
                 ["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f),
             };
+
+            // Reposo: respiración de 3/4 (todos los cuadros están parados).
+            if (TryLoadRow("ulises_idle.png", attachDistance: 20, minFrames: 2, out Sheet idleSheet, out List<Frame> idle))
+            {
+                float idlePpu = MedianCoreHeight(idle) / UlisesStandHeight;
+                clips["Idle"] = StripClip(idleSheet, idle, idlePpu, "Idle", 7f, loop: true);
+            }
+            else
+                clips["Idle"] = StripClip(sheet, Pick(rows, 3, 6), ppu, "Idle", 8f, loop: true);
+
+            // Correr: el polvo suelto se descarta (solo se pega lo que toca al cuerpo) para no mezclarlo con el cuadro vecino.
+            if (TryLoadRow("ulises_correr.png", attachDistance: 8, minFrames: 4, out Sheet runNewSheet, out List<Frame> run))
+            {
+                float newRunPpu = MedianCoreHeight(run) / UlisesRunHeight;
+                clips["Run"] = StripClip(runNewSheet, run, newRunPpu, "Run", 14f, loop: true);
+            }
+            else
+                clips["Run"] = StripClip(runSheet, runRows.SelectMany(r => r).ToList(), runPpu, "Run", 12f, loop: true);
+
+            // Salto (9 cuadros): 0 agachado, 1-3 subida, 4 punta, 5-6 caída, 7 aterrizaje, 8 parado.
+            // El agachado no se usa: el salto del juego es inmediato. La subida dura ~0.2 s, por eso va rápida;
+            // la caída empieza en la punta (brazos abiertos).
+            if (TryLoadRow("ulises_salto.png", attachDistance: 30, minFrames: 9, out Sheet jumpSheet, out List<Frame> jump))
+            {
+                float jumpPpu = jump[8].Core.Height / UlisesStandHeight;
+                clips["Jump"] = StripClip(jumpSheet, Centered(jump, jumpPpu, 1, 2, 3), jumpPpu, "Jump", 18f, loop: false);
+                clips["Fall"] = StripClip(jumpSheet, Centered(jump, jumpPpu, 4, 5, 6), jumpPpu, "Fall", 12f, loop: false);
+                clips["Land"] = StripClip(jumpSheet, PickFrames(jump, 7, 8), jumpPpu, "Land", 14f, loop: false);
+            }
+            else
+            {
+                clips["Jump"] = StripClip(sheet, Pick(rows, 3, 1, 2), ppu, "Jump", 10f, loop: false);
+                clips["Fall"] = StripClip(sheet, Pick(rows, 3, 4), ppu, "Fall", 8f, loop: true);
+                clips["Land"] = StripClip(sheet, Pick(rows, 3, 5, 6), ppu, "Land", 14f, loop: false);
+            }
+
+            // Doble salto (8 cuadros): 1 encogido, 2-4 vuelta en el aire; 5 parado sirve de medida.
+            if (TryLoadRow("ulises_doble_salto.png", attachDistance: 30, minFrames: 6, out Sheet doubleSheet, out List<Frame> spin))
+            {
+                float spinPpu = spin[5].Core.Height / UlisesStandHeight;
+                clips["DoubleJump"] = StripClip(doubleSheet, Centered(spin, spinPpu, 1, 2, 3, 4), spinPpu, "DoubleJump", 16f, loop: false);
+            }
+            else
+                clips["DoubleJump"] = StripClip(sheet, Pick(rows, 3, 3), ppu, "DoubleJump", 10f, loop: false, holdLast: 0.15f);
+
             BuildUlisesController(clips);
         }
 
@@ -131,7 +179,7 @@ namespace Odisea.EditorTools
             machine.defaultState = states["Idle"];
 
             AnimatorState idle = states["Idle"], run = states["Run"], jump = states["Jump"], fall = states["Fall"],
-                climb = states["Climb"];
+                climb = states["Climb"], land = states["Land"];
             // Desplazamiento: suelo (reposo / correr), aire (subir / caer) y escalera.
             Link(idle, run, Cond("IsGrounded", true), Cond("Speed", AnimatorConditionMode.Greater, 0.1f));
             Link(run, idle, Cond("Speed", AnimatorConditionMode.Less, 0.1f));
@@ -141,11 +189,15 @@ namespace Odisea.EditorTools
                 Link(ground, fall, Cond("IsGrounded", false), Cond("VerticalSpeed", AnimatorConditionMode.Less, -0.1f));
             }
             Link(jump, fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));
+            // Al tocar el suelo: quieto = aterrizaje (agacharse y pararse); corriendo = sigue corriendo sin frenar.
             foreach (AnimatorState air in new[] { jump, fall })
             {
-                Link(air, idle, Cond("IsGrounded", true), Cond("Speed", AnimatorConditionMode.Less, 0.1f));
+                Link(air, land, Cond("IsGrounded", true), Cond("Speed", AnimatorConditionMode.Less, 0.1f));
                 Link(air, run, Cond("IsGrounded", true), Cond("Speed", AnimatorConditionMode.Greater, 0.1f));
             }
+            Link(land, run, Cond("Speed", AnimatorConditionMode.Greater, 0.1f));
+            Link(land, jump, Cond("IsGrounded", false), Cond("VerticalSpeed", AnimatorConditionMode.Greater, 0.1f));
+            ExitWhenDone(land, idle);
             foreach (AnimatorState any in new[] { idle, run, jump, fall })
                 Link(any, climb, Cond("IsClimbing", true));
             Link(climb, idle, Cond("IsClimbing", false));
@@ -158,6 +210,8 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
+            // Tras la vuelta: si ya va bajando, a caída; si no, a la subida (que luego pasa a caída).
+            ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));
             ExitWhenDone(states["DoubleJump"], jump);
             EditorUtility.SetDirty(controller);
         }
@@ -255,15 +309,25 @@ namespace Odisea.EditorTools
             public Blob Core;
             public readonly HashSet<int> BlobIds = new();
             public int MinX, MinY, MaxX, MaxY;
-            // Ancla = pies: centro horizontal y parte de abajo del cuerpo.
+            private int? centerAbovePx;
+
+            // Ancla = pies: centro horizontal y parte de abajo del cuerpo. Centrado: centro del cuerpo menos
+            // la distancia a la que deben quedar los pies (así el pivote sigue estando "en los pies").
             public int AnchorX => (Core.MinX + Core.MaxX) / 2;
-            public int AnchorY => Core.MinY;
+            public int AnchorY => centerAbovePx.HasValue ? (Core.MinY + Core.MaxY) / 2 - centerAbovePx.Value : Core.MinY;
 
             public Frame(Blob core)
             {
                 Core = core;
                 BlobIds.Add(core.Id);
                 MinX = core.MinX; MinY = core.MinY; MaxX = core.MaxX; MaxY = core.MaxY;
+            }
+
+            public Frame WithCenterAnchor(int abovePx)
+            {
+                var copy = (Frame)MemberwiseClone();
+                copy.centerAbovePx = abovePx;
+                return copy;
             }
 
             public void Attach(Blob blob)
@@ -274,12 +338,13 @@ namespace Odisea.EditorTools
             }
         }
 
-        private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1)
+        private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1, bool warnIfMissing = true)
         {
             string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
             {
-                Debug.LogWarning($"[Odisea] No se encontró {path}.");
+                if (warnIfMissing)
+                    Debug.LogWarning($"[Odisea] No se encontró {path}.");
                 return null;
             }
             var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
@@ -469,6 +534,32 @@ namespace Odisea.EditorTools
             return rows;
         }
 
+        /// <summary>Hoja de una sola fila (convención nueva). false si no existe o tiene menos cuadros de los esperados.</summary>
+        private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames)
+        {
+            frames = null;
+            sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false);
+            if (sheet == null)
+                return false;
+            frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {fileName}: {frames.Count} cuadros.");
+            if (frames.Count >= minFrames)
+                return true;
+            Debug.LogWarning($"[Odisea] {fileName} tiene {frames.Count} cuadros y se esperaban al menos {minFrames}; se usa el sustituto.");
+            return false;
+        }
+
+        private static List<Frame> PickFrames(List<Frame> frames, params int[] indices) =>
+            indices.Select(i => frames[Mathf.Min(i, frames.Count - 1)]).ToList();
+
+        // Cuadros en el aire: el ancla es el centro del cuerpo, puesto a BodyCenterAboveFeet sobre los pies.
+        private static List<Frame> Centered(List<Frame> frames, float ppu, params int[] indices)
+        {
+            int abovePx = Mathf.RoundToInt(BodyCenterAboveFeet * ppu);
+            return PickFrames(frames, indices).Select(f => f.WithCenterAnchor(abovePx)).ToList();
+        }
+
         private static List<Frame> Pick(List<List<Frame>> rows, int row, params int[] indices) =>
             indices.Select(i => rows[row][Mathf.Min(i, rows[row].Count - 1)]).ToList();
 
@@ -487,8 +578,8 @@ namespace Odisea.EditorTools
         {
             int left = frames.Max(f => f.AnchorX - f.MinX);
             int right = frames.Max(f => f.MaxX - f.AnchorX);
-            int up = frames.Max(f => f.MaxY - f.AnchorY);
-            int down = frames.Max(f => f.AnchorY - f.MinY);
+            int up = Mathf.Max(0, frames.Max(f => f.MaxY - f.AnchorY));
+            int down = Mathf.Max(0, frames.Max(f => f.AnchorY - f.MinY));
             int half = Mathf.Max(left, right) + Padding;
             int cellWidth = half * 2;
             int cellHeight = down + up + Padding * 2 + 1;
@@ -498,11 +589,14 @@ namespace Odisea.EditorTools
             for (int i = 0; i < frames.Count; i++)
                 CopyFrame(sheet, frames[i], pixels, stripWidth, i * cellWidth + half, Padding + down);
 
+            // Los cortes viejos se quitan antes de reescribir la imagen (si la tira cambió de tamaño quedarían fuera
+            // y Unity avisaría); sus IDs se guardan para reutilizarlos y que los clips no pierdan la referencia.
+            Dictionary<string, GUID> previousIds = TakeSpriteIds(path);
             WritePng(path, pixels, stripWidth, cellHeight);
             var pivot = new Vector2(0.5f, (Padding + down) / (float)cellHeight);
             ConfigureTexture(path, ppu, pivot, Vector4.zero, frames.Count > 1);
             if (frames.Count > 1)
-                SliceGrid(path, frames.Count, cellWidth, cellHeight, pivot, spriteName);
+                SliceGrid(path, frames.Count, cellWidth, cellHeight, pivot, spriteName, previousIds);
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>()
                 .OrderBy(s => s.name.Length).ThenBy(s => s.name, StringComparer.Ordinal).ToList();
         }
@@ -566,15 +660,33 @@ namespace Odisea.EditorTools
         }
 
         // Rebana la tira en cuadros; conserva el ID de cada sprite para que los clips no pierdan la referencia.
-        private static void SliceGrid(string path, int count, int cellWidth, int cellHeight, Vector2 pivot, string baseName)
+        private static ISpriteEditorDataProvider SpriteProvider(TextureImporter importer)
         {
-            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             var factory = new SpriteDataProviderFactories();
             factory.Init();
             ISpriteEditorDataProvider provider = factory.GetSpriteEditorDataProviderFromObject(importer);
             provider.InitSpriteEditorDataProvider();
-            Dictionary<string, GUID> previous = provider.GetSpriteRects()
+            return provider;
+        }
+
+        /// <summary>IDs de los cortes actuales (por nombre) y los quita de la textura. Vacío si aún no existe.</summary>
+        private static Dictionary<string, GUID> TakeSpriteIds(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer || importer.spriteImportMode != SpriteImportMode.Multiple)
+                return new Dictionary<string, GUID>();
+            ISpriteEditorDataProvider provider = SpriteProvider(importer);
+            Dictionary<string, GUID> ids = provider.GetSpriteRects()
                 .GroupBy(r => r.name).ToDictionary(g => g.Key, g => g.First().spriteID);
+            provider.SetSpriteRects(Array.Empty<SpriteRect>());
+            provider.Apply();
+            return ids;
+        }
+
+        private static void SliceGrid(string path, int count, int cellWidth, int cellHeight, Vector2 pivot, string baseName,
+            Dictionary<string, GUID> previous)
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            ISpriteEditorDataProvider provider = SpriteProvider(importer);
 
             var rects = new SpriteRect[count];
             for (int i = 0; i < count; i++)
@@ -678,12 +790,14 @@ namespace Odisea.EditorTools
             transition.AddCondition(AnimatorConditionMode.If, 0f, trigger);
         }
 
-        private static void ExitWhenDone(AnimatorState from, AnimatorState to)
+        private static void ExitWhenDone(AnimatorState from, AnimatorState to, params Condition[] conditions)
         {
             AnimatorStateTransition transition = from.AddTransition(to);
             transition.hasExitTime = true;
             transition.exitTime = 1f;
             transition.duration = 0f;
+            foreach (Condition condition in conditions)
+                transition.AddCondition(condition.Mode, condition.Threshold, condition.Parameter);
         }
 
         private static void EnsureFolder(string path)
