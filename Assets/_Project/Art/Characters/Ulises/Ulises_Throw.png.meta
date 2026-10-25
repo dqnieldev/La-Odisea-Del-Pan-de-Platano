@@ -53,8 +53,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.01746725}
-  spritePixelsToUnits: 115
+  spritePivot: {x: 0.5, y: 0.0060975607}
+  spritePixelsToUnits: 332.30768
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -110,10 +110,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 202
-        height: 229
+        width: 554
+        height: 656
       alignment: 9
-      pivot: {x: 0.5, y: 0.01746725}
+      pivot: {x: 0.5, y: 0.0060975607}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -130,12 +130,12 @@ TextureImporter:
       name: Ulises_Throw_1
       rect:
         serializedVersion: 2
-        x: 202
+        x: 554
         y: 0
-        width: 202
-        height: 229
+        width: 554
+        height: 656
       alignment: 9
-      pivot: {x: 0.5, y: 0.01746725}
+      pivot: {x: 0.5, y: 0.0060975607}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -144,6 +144,28 @@ TextureImporter:
       bones: []
       spriteID: fccd15f66ed320030800000000000000
       internalID: 3459395523693370575
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Throw_2
+      rect:
+        serializedVersion: 2
+        x: 1108
+        y: 0
+        width: 554
+        height: 656
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0060975607}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5eed9e89b49cb294ca7ad0c54ad96c47
+      internalID: 873470930
       vertices: []
       indices: 
       edges: []
@@ -164,6 +186,7 @@ TextureImporter:
     nameFileIdTable:
       Ulises_Throw_0: 2950579662741699828
       Ulises_Throw_1: 3459395523693370575
+      Ulises_Throw_2: 873470930
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

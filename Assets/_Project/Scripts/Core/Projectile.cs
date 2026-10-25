@@ -12,7 +12,10 @@ namespace Odisea.Core
     {
         [Tooltip("Hijo con el sprite; gira mientras vuela.")]
         [SerializeField] private Transform visual;
+        [Tooltip("0 = no gira: el dibujo se voltea según la dirección (para arte que ya trae el movimiento dibujado).")]
         [SerializeField] private float spinSpeed = 540f;
+        [Tooltip("Opcional: efecto que aparece donde choca con un enemigo o una pared (p. ej. la masa que se embarra).")]
+        [SerializeField] private GameObject impactPrefab;
 
         private Rigidbody2D body;
         private int damage;
@@ -38,6 +41,13 @@ namespace Odisea.Core
             targetLayers = targets;
             obstacleLayers = obstacles;
             owner = shooter;
+            // Sin giro, el dibujo (dibujado hacia la derecha) mira hacia donde va.
+            if (visual != null && Mathf.Approximately(spinSpeed, 0f) && velocity.x < 0f)
+            {
+                Vector3 scale = visual.localScale;
+                scale.x = -Mathf.Abs(scale.x);
+                visual.localScale = scale;
+            }
         }
 
         private void Update()
@@ -49,7 +59,7 @@ namespace Odisea.Core
                 return;
             }
 
-            if (visual != null)
+            if (visual != null && !Mathf.Approximately(spinSpeed, 0f))
                 visual.Rotate(0f, 0f, -spinSpeed * Mathf.Sign(body.linearVelocity.x) * Time.deltaTime);
         }
 
@@ -65,13 +75,29 @@ namespace Odisea.Core
                 if (target == null)
                     return;
                 target.TakeDamage(new DamageInfo(damage, transform.position, owner));
-                Destroy(gameObject);
+                Impact();
                 return;
             }
 
             // Atraviesa plataformas de un sentido y zonas trigger (escaleras); se rompe contra lo sólido.
             if ((obstacleLayers.value & layerBit) != 0 && !other.isTrigger && !other.usedByEffector)
-                Destroy(gameObject);
+                Impact();
+        }
+
+        private void Impact()
+        {
+            if (impactPrefab != null)
+            {
+                GameObject effect = Instantiate(impactPrefab, transform.position, Quaternion.identity);
+                // El efecto también va dibujado hacia la derecha: se voltea si el proyectil iba a la izquierda.
+                if (body.linearVelocity.x < 0f)
+                {
+                    Vector3 scale = effect.transform.localScale;
+                    scale.x = -Mathf.Abs(scale.x);
+                    effect.transform.localScale = scale;
+                }
+            }
+            Destroy(gameObject);
         }
     }
 }

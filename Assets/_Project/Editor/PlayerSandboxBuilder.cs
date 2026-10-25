@@ -446,14 +446,31 @@ namespace Odisea.EditorTools
 
             var visual = new GameObject("Visual") { layer = layer };
             visual.transform.SetParent(root.transform, false);
-            visual.transform.localScale = new Vector3(0.38f, 0.38f, 1f);
             var renderer = visual.AddComponent<SpriteRenderer>();
-            renderer.sprite = square;
-            renderer.color = new Color(0.86f, 0.66f, 0.38f); // Masa tostada.
             renderer.sortingOrder = 11;
-
             var projectile = root.AddComponent<Projectile>();
             SetSerialized(projectile, "visual", visual.transform);
+
+            Sprite[] flying = ArtImportBuilder.LoadStrip(ArtImportBuilder.DoughFlyPath);
+            Sprite[] splat = ArtImportBuilder.LoadStrip(ArtImportBuilder.DoughImpactPath);
+            if (flying.Length > 0)
+            {
+                // Arte: la bolita ya trae el giro y las rayitas dibujados; no gira, se voltea según la dirección.
+                renderer.sprite = flying[0];
+                var flipbook = visual.AddComponent<SpriteFlipbook>();
+                SetSerialized(flipbook, "target", renderer);
+                SetSerialized(flipbook, "frames", flying);
+                SetSerialized(flipbook, "framesPerSecond", 14f);
+                SetSerialized(projectile, "spinSpeed", 0f);
+                if (splat.Length > 0)
+                    SetSerialized(projectile, "impactPrefab", EnsureImpactPrefab(splat, layer));
+            }
+            else
+            {
+                visual.transform.localScale = new Vector3(0.38f, 0.38f, 1f);
+                renderer.sprite = square;
+                renderer.color = new Color(0.86f, 0.66f, 0.38f); // Masa tostada.
+            }
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             UnityEngine.Object.DestroyImmediate(root);
@@ -595,6 +612,26 @@ namespace Odisea.EditorTools
         private static Sprite FirstSprite(string texturePath) =>
             AssetDatabase.LoadAllAssetsAtPath(texturePath).OfType<Sprite>()
                 .OrderBy(s => s.name.Length).ThenBy(s => s.name, StringComparer.Ordinal).FirstOrDefault();
+
+        // Embarrón de masa: se reproduce una vez donde chocó la bolita, se desvanece y se destruye solo.
+        private static GameObject EnsureImpactPrefab(Sprite[] frames, int layer)
+        {
+            const string path = "Assets/_Project/Prefabs/Player/ImpactoMasa.prefab";
+            var root = new GameObject("ImpactoMasa") { layer = layer };
+            var renderer = root.AddComponent<SpriteRenderer>();
+            renderer.sprite = frames[0];
+            renderer.sortingOrder = 11;
+            var flipbook = root.AddComponent<SpriteFlipbook>();
+            SetSerialized(flipbook, "target", renderer);
+            SetSerialized(flipbook, "frames", frames);
+            SetSerialized(flipbook, "framesPerSecond", 14f);
+            SetSerialized(flipbook, "loop", false);
+            SetSerialized(flipbook, "fadeOutDuration", 0.25f);
+            SetSerialized(flipbook, "destroyWhenDone", true);
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            UnityEngine.Object.DestroyImmediate(root);
+            return LoadRequired<GameObject>(path);
+        }
 
         private static void MakeOneWay(GameObject platform)
         {

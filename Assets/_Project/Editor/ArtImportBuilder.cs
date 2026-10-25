@@ -28,6 +28,9 @@ namespace Odisea.EditorTools
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
 
         private const string UlisesFolder = "Assets/_Project/Art/Characters/Ulises";
+        private const string DoughFolder = "Assets/_Project/Art/VFX/Masa";
+        public const string DoughFlyPath = DoughFolder + "/Masa_Vuela.png";
+        public const string DoughImpactPath = DoughFolder + "/Masa_Impacto.png";
         private const string CrocodileFolder = "Assets/_Project/Art/Characters/Enemigos/Cocodrilo";
         private const string Level1Folder = "Assets/_Project/Art/Environment/Nivel1";
 
@@ -49,6 +52,8 @@ namespace Odisea.EditorTools
         private const float CrocodileHeight = 0.95f;
         // Grosor del tablón = grosor de las plataformas de la sandbox.
         private const float PlankHeight = 0.45f;
+        // Diámetro de la bolita de masa (su collider mide 0.4).
+        private const float DoughBallSize = 0.45f;
 
         // Fondo blanco: huecos blancos encerrados (entre brazo y cuerpo) de al menos este tamaño también son fondo;
         // los más chicos (blanco de los ojos, dientes) se respetan.
@@ -61,6 +66,7 @@ namespace Odisea.EditorTools
         public static void ImportAll()
         {
             ImportUlises();
+            ImportDough();
             ImportCrocodile();
             ImportLevel1();
             AssetDatabase.SaveAssets();
@@ -96,7 +102,6 @@ namespace Odisea.EditorTools
             var clips = new Dictionary<string, AnimationClip>
             {
                 ["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true),
-                ["Throw"] = StripClip(sheet, Pick(rows, 2, 0, 1), ppu, "Throw", 14f, loop: false, holdLast: 0.1f),
                 ["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f),
             };
 
@@ -116,6 +121,17 @@ namespace Odisea.EditorTools
             }
             else
                 clips["Attack"] = StripClip(sheet, Pick(rows, 2, 0, 1, 2), ppu, "Attack", 16f, loop: false, holdLast: 0.06f);
+
+            // Lanzar (6 cuadros): 0 listo, 1 prepara, 2 brazo atrás (aún con la bolita), 3 suelta, 4 brazo estirado, 5 parado.
+            // La bolita sale al instante de presionar: se empieza en "suelta" (3) para no ver dos bolitas a la vez,
+            // y termina antes de poder volver a lanzar (0.3 s).
+            if (TryLoadRow("ulises_lanzar.png", attachDistance: 20, minFrames: 6, out Sheet throwSheet, out List<Frame> toss))
+            {
+                float throwPpu = toss[5].Body.Height / UlisesStandHeight;
+                clips["Throw"] = StripClip(throwSheet, PickFrames(toss, 3, 4, 5), throwPpu, "Throw", 12f, loop: false);
+            }
+            else
+                clips["Throw"] = StripClip(sheet, Pick(rows, 2, 0, 1), ppu, "Throw", 14f, loop: false, holdLast: 0.1f);
 
             // Reposo: respiración de 3/4 (todos los cuadros están parados).
             if (TryLoadRow("ulises_idle.png", attachDistance: 20, minFrames: 2, out Sheet idleSheet, out List<Frame> idle))
@@ -230,6 +246,25 @@ namespace Odisea.EditorTools
             ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));
             ExitWhenDone(states["DoubleJump"], jump);
             EditorUtility.SetDirty(controller);
+        }
+
+        // ---------- Bolita de masa ----------
+
+        /// <summary>
+        /// masa_volando.png (7 cuadros): 0-2 volando, 3 choca, 4 estalla, 5-6 charco en el suelo. Solo sprites (sin
+        /// Animator): los pasa SpriteFlipbook. Centrados en la bolita, para que el embarrón quede donde chocó.
+        /// El charco no se usa todavía: la bolita vuela recta y choca en el aire (enemigos, paredes).
+        /// </summary>
+        private static void ImportDough()
+        {
+            // Las migajas que salen volando en el estallido son grandes (~17 % del cuadro mayor): con el 30 % se pegan
+            // a su cuadro en vez de contar como cuadro propio.
+            if (!TryLoadRow("masa_volando.png", attachDistance: 40, minFrames: 7, out Sheet sheet, out List<Frame> frames))
+                return;
+            float ppu = frames[0].Body.Height / DoughBallSize;
+            EnsureFolder(DoughFolder);
+            WriteStrip(sheet, PickFrames(frames, 0, 1, 2).Select(f => f.WithCenterAnchor(0)).ToList(), DoughFlyPath, ppu, "Masa_Vuela");
+            WriteStrip(sheet, PickFrames(frames, 3, 4).Select(f => f.WithCenterAnchor(0)).ToList(), DoughImpactPath, ppu, "Masa_Impacto");
         }
 
         // ---------- Cocodrilo ----------
@@ -603,13 +638,13 @@ namespace Odisea.EditorTools
 
         /// <summary>Hoja de una sola fila (convención nueva). false si no existe o tiene menos cuadros de los esperados.</summary>
         private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames,
-            bool removeGroundLine = false)
+            bool removeGroundLine = false, float coreFraction = 0.3f)
         {
             frames = null;
             sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false, removeGroundLine: removeGroundLine);
             if (sheet == null)
                 return false;
-            frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance).SelectMany(r => r)
+            frames = FindFrames(sheet, coreFraction, attachDistance).SelectMany(r => r)
                 .OrderBy(f => f.Core.MinX).ToList();
             Debug.Log($"[Odisea] {fileName}: {frames.Count} cuadros.");
             if (frames.Count >= minFrames)
@@ -640,6 +675,11 @@ namespace Odisea.EditorTools
         }
 
         // ---------- Escritura de sprites ----------
+
+        /// <summary>Sprites de una tira, en orden (Nombre_0, Nombre_1...).</summary>
+        public static Sprite[] LoadStrip(string path) =>
+            AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>()
+                .OrderBy(s => s.name.Length).ThenBy(s => s.name, StringComparer.Ordinal).ToArray();
 
         /// <summary>Tira horizontal de cuadros del mismo tamaño, con los pies de todos en el mismo punto (el pivote).</summary>
         private static List<Sprite> WriteStrip(Sheet sheet, List<Frame> frames, string path, float ppu, string spriteName)
