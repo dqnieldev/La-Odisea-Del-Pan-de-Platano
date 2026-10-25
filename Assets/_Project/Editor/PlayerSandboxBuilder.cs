@@ -281,7 +281,8 @@ namespace Odisea.EditorTools
             trail.transform.localScale = new Vector3(config.attackSize.x, config.attackSize.y, 1f);
             var trailRenderer = trail.AddComponent<SpriteRenderer>();
             trailRenderer.sprite = square;
-            trailRenderer.color = new Color(Platano.r, Platano.g, Platano.b, 0.45f);
+            // Con arte el rodillo ya se ve en el dibujo: la estela del área de golpe queda invisible.
+            trailRenderer.color = new Color(Platano.r, Platano.g, Platano.b, showBar ? 0.45f : 0f);
             trailRenderer.sortingOrder = 9;
 
             var attackVisual = player.AddComponent<PlayerAttackVisual>();

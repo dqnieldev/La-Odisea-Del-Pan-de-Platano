@@ -128,7 +128,7 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 460
+        width: 388
         height: 638
       alignment: 9
       pivot: {x: 0.5, y: 0.0062695923}
@@ -148,9 +148,9 @@ TextureImporter:
       name: Ulises_Land_1
       rect:
         serializedVersion: 2
-        x: 460
+        x: 388
         y: 0
-        width: 460
+        width: 388
         height: 638
       alignment: 9
       pivot: {x: 0.5, y: 0.0062695923}

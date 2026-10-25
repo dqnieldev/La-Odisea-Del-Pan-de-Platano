@@ -96,10 +96,26 @@ namespace Odisea.EditorTools
             var clips = new Dictionary<string, AnimationClip>
             {
                 ["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true),
-                ["Attack"] = StripClip(sheet, Pick(rows, 2, 0, 1, 2), ppu, "Attack", 16f, loop: false, holdLast: 0.06f),
                 ["Throw"] = StripClip(sheet, Pick(rows, 2, 0, 1), ppu, "Throw", 14f, loop: false, holdLast: 0.1f),
                 ["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f),
             };
+
+            // Golpe con rodillo (9 cuadros): 0-1 levanta, 2 arriba, 3 carga, 4 madrazo, 5 sigue, 6-7 regresa, 8 parado.
+            // El daño es inmediato y se puede volver a golpear a los 0.35 s: se usa de 2 a 7 a 18 fps (~0.33 s),
+            // así el madrazo se ve a ~0.1 s de presionar. La hoja trae una línea de suelo dibujada que se quita.
+            if (TryLoadRow("ulises_golpe.png", attachDistance: 30, minFrames: 8, out Sheet attackSheet, out List<Frame> attack,
+                    removeGroundLine: true))
+            {
+                float attackPpu = attack[^1].Body.Height / UlisesStandHeight;
+                // Con 8 manchas, el 5 y el 6 vienen encimados en la hoja (no se pueden separar): se brincan y queda
+                // arriba, carga, madrazo y regreso. Con la hoja corregida (9 separados) se usa la secuencia completa.
+                List<Frame> swing = attack.Count >= 9 ? PickFrames(attack, 2, 3, 4, 5, 6, 7) : PickFrames(attack, 2, 3, 4, 6);
+                if (attack.Count < 9)
+                    Debug.LogWarning("[Odisea] ulises_golpe.png: los cuadros 5 y 6 están encimados; se usa el golpe sin ellos.");
+                clips["Attack"] = StripClip(attackSheet, swing, attackPpu, "Attack", attack.Count >= 9 ? 18f : 14f, loop: false);
+            }
+            else
+                clips["Attack"] = StripClip(sheet, Pick(rows, 2, 0, 1, 2), ppu, "Attack", 16f, loop: false, holdLast: 0.06f);
 
             // Reposo: respiración de 3/4 (todos los cuadros están parados).
             if (TryLoadRow("ulises_idle.png", attachDistance: 20, minFrames: 2, out Sheet idleSheet, out List<Frame> idle))
@@ -122,9 +138,9 @@ namespace Odisea.EditorTools
             // Salto (9 cuadros): 0 agachado, 1-3 subida, 4 punta, 5-6 caída, 7 aterrizaje, 8 parado.
             // El agachado no se usa: el salto del juego es inmediato. La subida dura ~0.2 s, por eso va rápida;
             // la caída empieza en la punta (brazos abiertos).
-            if (TryLoadRow("ulises_salto.png", attachDistance: 30, minFrames: 9, out Sheet jumpSheet, out List<Frame> jump))
+            if (TryLoadRow("ulises_salto.png", attachDistance: 12, minFrames: 9, out Sheet jumpSheet, out List<Frame> jump))
             {
-                float jumpPpu = jump[8].Core.Height / UlisesStandHeight;
+                float jumpPpu = jump[8].Body.Height / UlisesStandHeight;
                 clips["Jump"] = StripClip(jumpSheet, Centered(jump, jumpPpu, 1, 2, 3), jumpPpu, "Jump", 18f, loop: false);
                 clips["Fall"] = StripClip(jumpSheet, Centered(jump, jumpPpu, 4, 5, 6), jumpPpu, "Fall", 12f, loop: false);
                 clips["Land"] = StripClip(jumpSheet, PickFrames(jump, 7, 8), jumpPpu, "Land", 14f, loop: false);
@@ -139,7 +155,7 @@ namespace Odisea.EditorTools
             // Doble salto (8 cuadros): 1 encogido, 2-4 vuelta en el aire; 5 parado sirve de medida.
             if (TryLoadRow("ulises_doble_salto.png", attachDistance: 30, minFrames: 6, out Sheet doubleSheet, out List<Frame> spin))
             {
-                float spinPpu = spin[5].Core.Height / UlisesStandHeight;
+                float spinPpu = spin[5].Body.Height / UlisesStandHeight;
                 clips["DoubleJump"] = StripClip(doubleSheet, Centered(spin, spinPpu, 1, 2, 3, 4), spinPpu, "DoubleJump", 16f, loop: false);
             }
             else
@@ -303,24 +319,29 @@ namespace Odisea.EditorTools
             }
         }
 
-        /// <summary>Un cuadro: la mancha principal (cuerpo) y las piezas sueltas que le pertenecen (destellos, polvo).</summary>
+        /// <summary>Un cuadro: la mancha principal y las piezas sueltas que le pertenecen (destellos, polvo).</summary>
         private sealed class Frame
         {
             public Blob Core;
+            // Cuerpo = la mancha principal más las piezas grandes pegadas (p. ej. piernas que quedaron separadas
+            // del torso); sin polvo ni rayitas. Con él se mide la altura y se ponen los pies.
+            public readonly Blob Body = new();
             public readonly HashSet<int> BlobIds = new();
             public int MinX, MinY, MaxX, MaxY;
             private int? centerAbovePx;
 
             // Ancla = pies: centro horizontal y parte de abajo del cuerpo. Centrado: centro del cuerpo menos
             // la distancia a la que deben quedar los pies (así el pivote sigue estando "en los pies").
-            public int AnchorX => (Core.MinX + Core.MaxX) / 2;
-            public int AnchorY => centerAbovePx.HasValue ? (Core.MinY + Core.MaxY) / 2 - centerAbovePx.Value : Core.MinY;
+            public int AnchorX => (Body.MinX + Body.MaxX) / 2;
+            public int AnchorY => centerAbovePx.HasValue ? (Body.MinY + Body.MaxY) / 2 - centerAbovePx.Value : Body.MinY;
 
             public Frame(Blob core)
             {
                 Core = core;
                 BlobIds.Add(core.Id);
                 MinX = core.MinX; MinY = core.MinY; MaxX = core.MaxX; MaxY = core.MaxY;
+                Body.Area = core.Area;
+                Body.MinX = MinX; Body.MinY = MinY; Body.MaxX = MaxX; Body.MaxY = MaxY;
             }
 
             public Frame WithCenterAnchor(int abovePx)
@@ -335,10 +356,16 @@ namespace Odisea.EditorTools
                 BlobIds.Add(blob.Id);
                 MinX = Mathf.Min(MinX, blob.MinX); MinY = Mathf.Min(MinY, blob.MinY);
                 MaxX = Mathf.Max(MaxX, blob.MaxX); MaxY = Mathf.Max(MaxY, blob.MaxY);
+                if (blob.Area >= Core.Area / 4)
+                {
+                    Body.MinX = Mathf.Min(Body.MinX, blob.MinX); Body.MinY = Mathf.Min(Body.MinY, blob.MinY);
+                    Body.MaxX = Mathf.Max(Body.MaxX, blob.MaxX); Body.MaxY = Mathf.Max(Body.MaxY, blob.MaxY);
+                }
             }
         }
 
-        private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1, bool warnIfMissing = true)
+        private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1, bool warnIfMissing = true,
+            bool removeGroundLine = false)
         {
             string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
@@ -353,6 +380,8 @@ namespace Odisea.EditorTools
             UnityEngine.Object.DestroyImmediate(texture);
             if (whiteThreshold > 0)
                 RemoveWhiteBackground(sheet, whiteThreshold);
+            if (removeGroundLine)
+                RemoveGroundLine(sheet);
             LabelBlobs(sheet);
             return sheet;
         }
@@ -433,6 +462,39 @@ namespace Odisea.EditorTools
             sheet.Pixels = result;
         }
 
+        /// <summary>
+        /// Quita una línea de suelo dibujada bajo todos los cuadros (filas que cruzan casi toda la hoja): si no,
+        /// une a todos los cuadros en una sola mancha. Los pies que la tocaban pierden solo ese par de píxeles.
+        /// </summary>
+        private static void RemoveGroundLine(Sheet sheet)
+        {
+            int width = sheet.Width, height = sheet.Height;
+            var lineRows = new List<int>();
+            for (int y = 0; y < height; y++)
+            {
+                int opaque = 0;
+                for (int x = 0; x < width; x++)
+                {
+                    if (sheet.Pixels[y * width + x].a > 24)
+                        opaque++;
+                }
+                // La línea cruza ~95 % del ancho; los personajes juntos llegan a ~50 %.
+                if (opaque > width * 0.85f)
+                    lineRows.Add(y);
+            }
+            // Se limpia también un píxel arriba y abajo (la orilla suavizada de la línea).
+            foreach (int row in lineRows)
+            {
+                for (int y = Mathf.Max(0, row - 1); y <= Mathf.Min(height - 1, row + 1); y++)
+                {
+                    for (int x = 0; x < width; x++)
+                        sheet.Pixels[y * width + x].a = 0;
+                }
+            }
+            if (lineRows.Count > 0)
+                Debug.Log($"[Odisea] Línea de suelo quitada ({lineRows.Count} filas).");
+        }
+
         private static bool NearBackground(bool[] background, int width, int height, int x, int y, int radius)
         {
             for (int dy = -radius; dy <= radius; dy++)
@@ -501,23 +563,28 @@ namespace Odisea.EditorTools
         {
             int maxArea = sheet.Blobs.Max(b => b.Area);
             var frames = sheet.Blobs.Where(b => b.Area >= maxArea * coreFraction).Select(b => new Frame(b)).ToList();
+            // Cada pieza suelta va al cuadro cercano (a attachDistance o menos) cuyo cuerpo tenga el centro más
+            // próximo en horizontal: si una pieza toca a dos cuadros encimados (p. ej. las piernas de un cuadro que
+            // quedaron separadas del torso), gana el que está realmente encima de ella.
             foreach (Blob blob in sheet.Blobs.Where(b => b.Area < maxArea * coreFraction))
             {
                 Frame nearest = null;
-                int best = int.MaxValue;
+                float best = float.MaxValue;
+                float blobCenterX = (blob.MinX + blob.MaxX) * 0.5f;
                 foreach (Frame frame in frames)
                 {
                     int gapX = Mathf.Max(0, Mathf.Max(frame.Core.MinX - blob.MaxX, blob.MinX - frame.Core.MaxX));
                     int gapY = Mathf.Max(0, Mathf.Max(frame.Core.MinY - blob.MaxY, blob.MinY - frame.Core.MaxY));
-                    int gap = Mathf.Max(gapX, gapY);
-                    if (gap < best)
+                    if (Mathf.Max(gapX, gapY) > attachDistance)
+                        continue;
+                    float distance = Mathf.Abs((frame.Core.MinX + frame.Core.MaxX) * 0.5f - blobCenterX);
+                    if (distance < best)
                     {
-                        best = gap;
+                        best = distance;
                         nearest = frame;
                     }
                 }
-                if (nearest != null && best <= attachDistance)
-                    nearest.Attach(blob);
+                nearest?.Attach(blob);
             }
 
             float tolerance = 0.5f * Median(frames.Select(f => (float)f.Core.Height).ToList());
@@ -535,10 +602,11 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Hoja de una sola fila (convención nueva). false si no existe o tiene menos cuadros de los esperados.</summary>
-        private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames)
+        private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames,
+            bool removeGroundLine = false)
         {
             frames = null;
-            sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false);
+            sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false, removeGroundLine: removeGroundLine);
             if (sheet == null)
                 return false;
             frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance).SelectMany(r => r)
@@ -563,7 +631,7 @@ namespace Odisea.EditorTools
         private static List<Frame> Pick(List<List<Frame>> rows, int row, params int[] indices) =>
             indices.Select(i => rows[row][Mathf.Min(i, rows[row].Count - 1)]).ToList();
 
-        private static float MedianCoreHeight(List<Frame> frames) => Median(frames.Select(f => (float)f.Core.Height).ToList());
+        private static float MedianCoreHeight(List<Frame> frames) => Median(frames.Select(f => (float)f.Body.Height).ToList());
 
         private static float Median(List<float> values)
         {

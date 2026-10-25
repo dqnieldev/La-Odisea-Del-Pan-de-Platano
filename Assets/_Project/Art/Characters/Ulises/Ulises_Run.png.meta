@@ -65,8 +65,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.05851064}
-  spritePixelsToUnits: 190.55556
+  spritePivot: {x: 0.5, y: 0.016666668}
+  spritePixelsToUnits: 190
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -122,10 +122,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -142,12 +142,12 @@ TextureImporter:
       name: Ulises_Run_1
       rect:
         serializedVersion: 2
-        x: 316
+        x: 270
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -164,12 +164,12 @@ TextureImporter:
       name: Ulises_Run_2
       rect:
         serializedVersion: 2
-        x: 632
+        x: 540
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -186,12 +186,12 @@ TextureImporter:
       name: Ulises_Run_3
       rect:
         serializedVersion: 2
-        x: 948
+        x: 810
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -208,12 +208,12 @@ TextureImporter:
       name: Ulises_Run_4
       rect:
         serializedVersion: 2
-        x: 1264
+        x: 1080
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -230,12 +230,12 @@ TextureImporter:
       name: Ulises_Run_5
       rect:
         serializedVersion: 2
-        x: 1580
+        x: 1350
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -252,12 +252,12 @@ TextureImporter:
       name: Ulises_Run_6
       rect:
         serializedVersion: 2
-        x: 1896
+        x: 1620
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -274,12 +274,12 @@ TextureImporter:
       name: Ulises_Run_7
       rect:
         serializedVersion: 2
-        x: 2212
+        x: 1890
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -296,12 +296,12 @@ TextureImporter:
       name: Ulises_Run_8
       rect:
         serializedVersion: 2
-        x: 2528
+        x: 2160
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -318,12 +318,12 @@ TextureImporter:
       name: Ulises_Run_9
       rect:
         serializedVersion: 2
-        x: 2844
+        x: 2430
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -340,12 +340,12 @@ TextureImporter:
       name: Ulises_Run_10
       rect:
         serializedVersion: 2
-        x: 3160
+        x: 2700
         y: 0
-        width: 316
-        height: 376
+        width: 270
+        height: 360
       alignment: 9
-      pivot: {x: 0.5, y: 0.05851064}
+      pivot: {x: 0.5, y: 0.016666668}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []

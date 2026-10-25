@@ -107,7 +107,7 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 572
+        width: 494
         height: 683
       alignment: 9
       pivot: {x: 0.5, y: 0.0058565154}
@@ -127,9 +127,9 @@ TextureImporter:
       name: Ulises_DoubleJump_1
       rect:
         serializedVersion: 2
-        x: 572
+        x: 494
         y: 0
-        width: 572
+        width: 494
         height: 683
       alignment: 9
       pivot: {x: 0.5, y: 0.0058565154}
@@ -149,9 +149,9 @@ TextureImporter:
       name: Ulises_DoubleJump_2
       rect:
         serializedVersion: 2
-        x: 1144
+        x: 988
         y: 0
-        width: 572
+        width: 494
         height: 683
       alignment: 9
       pivot: {x: 0.5, y: 0.0058565154}
@@ -171,9 +171,9 @@ TextureImporter:
       name: Ulises_DoubleJump_3
       rect:
         serializedVersion: 2
-        x: 1716
+        x: 1482
         y: 0
-        width: 572
+        width: 494
         height: 683
       alignment: 9
       pivot: {x: 0.5, y: 0.0058565154}
