@@ -27,6 +27,8 @@ namespace Odisea.EditorTools
         private const string CrocodileSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo.png";
         private const string CrocodileWalkSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_caminar.png";
         private const string CrocodileBiteSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_mordida.png";
+        private const string CrocodileHurtSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_dano.png";
+        private const string CrocodileDeathSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_muerte.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
         // Mismas piezas solo con contorno (estilo boceto) para el tutorial.
         private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/spritesheet_nivel1BN.png";
@@ -58,6 +60,8 @@ namespace Odisea.EditorTools
         // Ritmo de las patas: 10 fps se veía bien a velocidad 1.5; a 2.6 (la de la sandbox) va en proporción
         // para que no parezca que patina.
         private const float CrocodileWalkFps = 17f;
+        // Segundos que se queda boca arriba al final de la muerte, antes de desvanecerse.
+        public const float CrocodileDeathHold = 0.5f;
         // Grosor del tablón = grosor de las plataformas de la sandbox.
         private const float PlankHeight = 0.45f;
         // Diámetro de la bolita de masa (su collider mide 0.4).
@@ -309,6 +313,7 @@ namespace Odisea.EditorTools
             EnsureFolder(CrocodileFolder);
             List<Sprite> walkSprites;
             float ppu;
+            float walkLength; // Largo de la cola al hocico en píxeles de la hoja del caminar.
 
             // Caminar nuevo (2 filas de 6): solo la primera fila, que tiene el mismo tamaño en todos los cuadros;
             // en la segunda el cocodrilo cambia de tamaño entre cuadros y "palpitaría" al caminar.
@@ -319,6 +324,7 @@ namespace Odisea.EditorTools
                 List<Frame> walk = walkRows[0];
                 Debug.Log($"[Odisea] cocodrilo_caminar.png: {walk.Count} cuadros (fila de arriba).");
                 ppu = MedianCoreHeight(walk) / CrocodileHeight;
+                walkLength = Median(walk.Select(f => (float)f.Body.Width).ToList());
                 walkSprites = WriteStrip(walkSheet, walk, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
             }
             else
@@ -329,6 +335,7 @@ namespace Odisea.EditorTools
                 List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 15).SelectMany(r => r).ToList();
                 Debug.Log($"[Odisea] Cocodrilo: {frames.Count} cuadros.");
                 ppu = MedianCoreHeight(frames) / CrocodileHeight;
+                walkLength = Median(frames.Select(f => (float)f.Body.Width).ToList());
                 walkSprites = WriteStrip(sheet, frames, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
             }
             AnimationClip walkClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Walk.anim", walkSprites, CrocodileWalkFps, loop: true);
@@ -357,6 +364,53 @@ namespace Odisea.EditorTools
                     biteState.motion = biteClip;
                     AnyState(machine, biteState, "Bite", toSelf: false);
                     ExitWhenDone(biteState, walkState);
+                }
+            }
+
+            // Muerte (6 cuadros): se espanta, salta, gira en el aire y cae boca arriba. Mismo lienzo y escala
+            // que el caminar. Se alinea al suelo común de la hoja (no a los pies de cada cuadro) para que el salto se vea.
+            // Su transición va antes que la de daño: si el golpe mata, gana la muerte.
+            Sheet deathSheet = LoadSheet(CrocodileDeathSheet, warnIfMissing: false);
+            if (deathSheet != null)
+            {
+                List<Frame> death = FindFrames(deathSheet, coreFraction: 0.3f, attachDistance: 40).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] cocodrilo_muerte.png: {death.Count} cuadros.");
+                if (death.Count >= 4)
+                {
+                    int ground = death.Min(f => f.Body.MinY);
+                    death = death.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    List<Sprite> deathSprites = WriteStrip(deathSheet, death, $"{CrocodileFolder}/Cocodrilo_Die.png", ppu, "Cocodrilo_Die");
+                    AnimationClip deathClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Die.anim", deathSprites, 10f, loop: false,
+                        holdLast: CrocodileDeathHold);
+                    controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+                    AnimatorState deathState = machine.AddState("Die");
+                    deathState.motion = deathClip;
+                    AnyState(machine, deathState, "Die", toSelf: false);
+                }
+            }
+
+            // Daño (3 cuadros): grita, se encoge de dolor y se recompone. Esta hoja viene dibujada más grande que
+            // el caminar; se escala para que el cocodrilo mida lo mismo de la cola al hocico.
+            Sheet hurtSheet = LoadSheet(CrocodileHurtSheet, warnIfMissing: false);
+            if (hurtSheet != null)
+            {
+                List<Frame> hurt = FindFrames(hurtSheet, coreFraction: 0.3f, attachDistance: 60).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] cocodrilo_dano.png: {hurt.Count} cuadros.");
+                if (hurt.Count >= 2)
+                {
+                    float hurtPpu = ppu * hurt.Max(f => f.Body.Width) / walkLength;
+                    int ground = hurt.Min(f => f.Body.MinY);
+                    hurt = hurt.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    List<Sprite> hurtSprites = WriteStrip(hurtSheet, hurt, $"{CrocodileFolder}/Cocodrilo_Hurt.png", hurtPpu, "Cocodrilo_Hurt");
+                    // Lento a propósito (~0.65 s): el golpe tiene que notarse; el cocodrilo se queda quieto ese tiempo.
+                    AnimationClip hurtClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Hurt.anim", hurtSprites, 6f, loop: false, holdLast: 0.15f);
+                    controller.AddParameter("Hurt", AnimatorControllerParameterType.Trigger);
+                    AnimatorState hurtState = machine.AddState("Hurt");
+                    hurtState.motion = hurtClip;
+                    AnyState(machine, hurtState, "Hurt", toSelf: true);
+                    ExitWhenDone(hurtState, walkState);
                 }
             }
             EditorUtility.SetDirty(controller);
@@ -442,11 +496,12 @@ namespace Odisea.EditorTools
             public readonly HashSet<int> BlobIds = new();
             public int MinX, MinY, MaxX, MaxY;
             private int? centerAbovePx;
+            private int? groundY;
 
             // Ancla = pies: centro horizontal y parte de abajo del cuerpo. Centrado: centro del cuerpo menos
             // la distancia a la que deben quedar los pies (así el pivote sigue estando "en los pies").
             public int AnchorX => (Body.MinX + Body.MaxX) / 2;
-            public int AnchorY => centerAbovePx.HasValue ? (Body.MinY + Body.MaxY) / 2 - centerAbovePx.Value : Body.MinY;
+            public int AnchorY => groundY ?? (centerAbovePx.HasValue ? (Body.MinY + Body.MaxY) / 2 - centerAbovePx.Value : Body.MinY);
 
             public Frame(Blob core)
             {
@@ -461,6 +516,14 @@ namespace Odisea.EditorTools
             {
                 var copy = (Frame)MemberwiseClone();
                 copy.centerAbovePx = abovePx;
+                return copy;
+            }
+
+            /// <summary>Ancla en una línea de suelo común a toda la hoja (los cuadros en el aire conservan su salto).</summary>
+            public Frame WithGroundAnchor(int y)
+            {
+                var copy = (Frame)MemberwiseClone();
+                copy.groundY = y;
                 return copy;
             }
 

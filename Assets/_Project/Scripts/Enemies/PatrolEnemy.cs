@@ -13,11 +13,15 @@ namespace Odisea.Enemies
     /// Opcional: si ve a Ulises cerca y enfrente, se detiene y muerde (trigger "Bite" del Animator);
     /// el daño de la mordida llega en el cuadro en que cierra el hocico. Si le pegan por la espalda,
     /// se voltea y muerde de inmediato (contraataque).
+    /// Si el Animator tiene los triggers "Hurt" y "Die": al recibir un golpe de frente se queja y se detiene un momento
+    /// (si estaba mordiendo, el golpe le corta la mordida), y al morir hace su animación de muerte.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     public class PatrolEnemy : MonoBehaviour
     {
         private static readonly int BiteId = Animator.StringToHash("Bite");
+        private static readonly int HurtId = Animator.StringToHash("Hurt");
+        private static readonly int DieId = Animator.StringToHash("Die");
 
         [SerializeField, Min(0f)] private float speed = 1.5f;
         [Tooltip("Capas de suelo y paredes (para no caerse de la orilla ni atravesar paredes).")]
@@ -28,6 +32,8 @@ namespace Odisea.Enemies
         [SerializeField] private int startDirection = -1;
         [Tooltip("Opcional: al morir deja de caminar.")]
         [SerializeField] private Health health;
+        [Tooltip("Segundos que se queda quieto quejándose al recibir un golpe.")]
+        [SerializeField, Min(0f)] private float hurtStun = 0.6f;
 
         [Header("Mordida (opcional)")]
         [Tooltip("Sin capas de objetivo no muerde: solo camina y daña al tocarlo.")]
@@ -58,7 +64,9 @@ namespace Odisea.Enemies
         private Rigidbody2D body;
         private int direction;
         private bool biting;
+        private Coroutine biteRoutine;
         private float cooldownTimer;
+        private float stunTimer;
 
         private void Awake()
         {
@@ -72,26 +80,85 @@ namespace Odisea.Enemies
         private void OnEnable()
         {
             if (health != null)
+            {
                 health.Damaged += OnDamaged;
+                health.Died += OnDied;
+            }
         }
 
         private void OnDisable()
         {
             if (health != null)
+            {
                 health.Damaged -= OnDamaged;
+                health.Died -= OnDied;
+            }
+        }
+
+        private void OnDamaged(DamageInfo info)
+        {
+            // La muerte la maneja OnDied; por la espalda contraataca en vez de quejarse.
+            if (health.IsDead || TryCounterBite(info))
+                return;
+            // Pegarle primero le corta la mordida (y no hace daño): premia al que se adelanta.
+            if (biting)
+                CancelBite();
+            stunTimer = hurtStun;
+            SetTrigger(HurtId);
         }
 
         // Golpe por la espalda (el atacante o la bolita están del lado contrario al que mira): se voltea y muerde.
-        private void OnDamaged(DamageInfo info)
+        private bool TryCounterBite(DamageInfo info)
         {
-            if (!counterBiteFromBehind || biting || biteTargets.value == 0 || health.IsDead)
-                return;
+            if (!counterBiteFromBehind || biting || biteTargets.value == 0)
+                return false;
             float side = info.SourcePosition.x - body.position.x;
             if (Mathf.Approximately(side, 0f) || Mathf.Sign(side) == direction)
-                return;
+                return false;
             direction = -direction;
             ApplyFacing();
-            StartCoroutine(Bite());
+            biteRoutine = StartCoroutine(Bite());
+            return true;
+        }
+
+        private void CancelBite()
+        {
+            if (biteRoutine != null)
+                StopCoroutine(biteRoutine);
+            biteRoutine = null;
+            biting = false;
+            cooldownTimer = biteCooldown;
+            var contactDamage = GetComponent<Hazard>();
+            if (contactDamage != null)
+                contactDamage.enabled = true;
+            if (animator != null)
+                animator.ResetTrigger(BiteId);
+        }
+
+        private void OnDied()
+        {
+            StopAllCoroutines();
+            biting = false;
+            if (animator == null)
+                return;
+            // Sin esto, el "Hurt" del mismo golpe quedaría pendiente y cortaría la animación de muerte.
+            animator.ResetTrigger(HurtId);
+            animator.ResetTrigger(BiteId);
+            SetTrigger(DieId);
+        }
+
+        private void SetTrigger(int id)
+        {
+            if (animator == null)
+                return;
+            foreach (AnimatorControllerParameter parameter in animator.parameters)
+            {
+                if (parameter.nameHash == id)
+                {
+                    animator.SetTrigger(id);
+                    return;
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -100,11 +167,12 @@ namespace Odisea.Enemies
                 return;
 
             cooldownTimer -= Time.fixedDeltaTime;
-            if (biting)
+            stunTimer -= Time.fixedDeltaTime;
+            if (biting || stunTimer > 0f)
                 return;
             if (CanBite() && TargetInBiteZone())
             {
-                StartCoroutine(Bite());
+                biteRoutine = StartCoroutine(Bite());
                 return;
             }
 
@@ -171,6 +239,7 @@ namespace Odisea.Enemies
             if (contactDamage != null)
                 contactDamage.enabled = true;
             biting = false;
+            biteRoutine = null;
             cooldownTimer = biteCooldown;
         }
 

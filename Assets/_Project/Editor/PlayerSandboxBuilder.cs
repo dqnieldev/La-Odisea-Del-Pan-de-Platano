@@ -67,6 +67,7 @@ namespace Odisea.EditorTools
             EnsureHeartSprite(HeartFullPath, Chile, Crema);
             EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
             EnsureNoFrictionMaterial();
+            EnsureFlashMaterial();
             GameSoundsBuilder.EnsureFolders();
             EnsurePlayerConfig(groundLayer, enemyLayer, ladderLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
@@ -594,6 +595,8 @@ namespace Odisea.EditorTools
             visual.transform.SetParent(crocodile.transform, false);
             var renderer = visual.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = 6;
+            // Material que permite que se ilumine de blanco al recibir un golpe (DamageFeedback).
+            renderer.sharedMaterial = LoadRequired<Material>(FlashMaterialPath);
             var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.CrocodileControllerPath);
             Animator crocodileAnimator = null;
             if (controller != null)
@@ -622,6 +625,10 @@ namespace Odisea.EditorTools
             SetSerialized(patrol, "groundLayers", 1 << groundLayer);
             SetSerialized(patrol, "speed", CrocodileSpeed);
             SetSerialized(patrol, "health", health);
+            // Se queda quieto lo que dura su animación de daño, para que se vea completa.
+            var hurtClip = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/_Project/Art/Characters/Enemigos/Cocodrilo/Cocodrilo_Hurt.anim");
+            if (hurtClip != null)
+                SetSerialized(patrol, "hurtStun", hurtClip.length);
             // Muerde a Ulises cuando lo tiene cerca y enfrente (además del daño al tocarlo).
             SetSerialized(patrol, "biteTargets", 1 << playerLayer);
             if (crocodileAnimator != null)
@@ -642,6 +649,12 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "visual", visual.transform);
             SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer });
             SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+            SetSerialized(feedback, "flashColor", Color.white);
+            SetSerialized(feedback, "flashDuration", 0.2f);
+            // Con animación de muerte: se deja ver completa (y un momento boca arriba) antes de desvanecerse.
+            var deathClip = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/_Project/Art/Characters/Enemigos/Cocodrilo/Cocodrilo_Die.anim");
+            if (deathClip != null)
+                SetSerialized(feedback, "deathAnimationTime", deathClip.length);
         }
 
         // Primer cuadro de una tira (Nombre_0) para que la escena se vea bien aun antes de darle Play.
@@ -846,6 +859,18 @@ namespace Odisea.EditorTools
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
+        }
+
+        private const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
+
+        // Material de sprite con destello (shader Odisea/Sprites/Flash) para los enemigos.
+        private static void EnsureFlashMaterial()
+        {
+            if (AssetDatabase.LoadAssetAtPath<Material>(FlashMaterialPath) != null)
+                return;
+            Shader shader = Shader.Find("Odisea/Sprites/Flash")
+                ?? throw new InvalidOperationException("No se encontró el shader Odisea/Sprites/Flash.");
+            AssetDatabase.CreateAsset(new Material(shader) { name = "SpriteFlash" }, FlashMaterialPath);
         }
 
         private static void EnsureNoFrictionMaterial()
