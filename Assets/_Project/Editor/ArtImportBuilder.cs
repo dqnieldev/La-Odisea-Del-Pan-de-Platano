@@ -26,6 +26,9 @@ namespace Odisea.EditorTools
         private const string UlisesFolderSource = "Personajes/sprite en png/ulises/";
         private const string CrocodileSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
+        // Mismas piezas solo con contorno (estilo boceto) para el tutorial.
+        private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/spritesheet_nivel1BN.png";
+        public const string TutorialFolder = "Assets/_Project/Art/Environment/Tutorial";
 
         private const string UlisesFolder = "Assets/_Project/Art/Characters/Ulises";
         private const string DoughFolder = "Assets/_Project/Art/VFX/Masa";
@@ -68,7 +71,8 @@ namespace Odisea.EditorTools
             ImportUlises();
             ImportDough();
             ImportCrocodile();
-            ImportLevel1();
+            ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
+            ImportLevelPieces(TutorialSheet, whiteThreshold: -1, TutorialFolder, "Tutorial");
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
         }
@@ -101,23 +105,16 @@ namespace Odisea.EditorTools
             // daño = pose de frente echándose para atrás, escalera = subida del salto.
             var clips = new Dictionary<string, AnimationClip>
             {
-                ["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true),
-                ["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f),
             };
 
-            // Golpe con rodillo (9 cuadros): 0-1 levanta, 2 arriba, 3 carga, 4 madrazo, 5 sigue, 6-7 regresa, 8 parado.
-            // El daño es inmediato y se puede volver a golpear a los 0.35 s: se usa de 2 a 7 a 18 fps (~0.33 s),
-            // así el madrazo se ve a ~0.1 s de presionar. La hoja trae una línea de suelo dibujada que se quita.
+            // Golpe con rodillo (8 cuadros): 0-1 listo, 2 lo levanta, 3 barrida (estela), 4 madrazo, 5 sigue, 6-7 regresa.
+            // El daño es inmediato y se puede volver a golpear a los 0.35 s: se usa de la barrida al final a 15 fps
+            // (~0.33 s), así el madrazo se ve a ~0.07 s de presionar.
             if (TryLoadRow("ulises_golpe.png", attachDistance: 30, minFrames: 8, out Sheet attackSheet, out List<Frame> attack,
                     removeGroundLine: true))
             {
-                float attackPpu = attack[^1].Body.Height / UlisesStandHeight;
-                // Con 8 manchas, el 5 y el 6 vienen encimados en la hoja (no se pueden separar): se brincan y queda
-                // arriba, carga, madrazo y regreso. Con la hoja corregida (9 separados) se usa la secuencia completa.
-                List<Frame> swing = attack.Count >= 9 ? PickFrames(attack, 2, 3, 4, 5, 6, 7) : PickFrames(attack, 2, 3, 4, 6);
-                if (attack.Count < 9)
-                    Debug.LogWarning("[Odisea] ulises_golpe.png: los cuadros 5 y 6 están encimados; se usa el golpe sin ellos.");
-                clips["Attack"] = StripClip(attackSheet, swing, attackPpu, "Attack", attack.Count >= 9 ? 18f : 14f, loop: false);
+                float attackPpu = attack[7].Body.Height / UlisesStandHeight;
+                clips["Attack"] = StripClip(attackSheet, PickFrames(attack, 3, 4, 5, 6, 7), attackPpu, "Attack", 15f, loop: false);
             }
             else
                 clips["Attack"] = StripClip(sheet, Pick(rows, 2, 0, 1, 2), ppu, "Attack", 16f, loop: false, holdLast: 0.06f);
@@ -134,13 +131,40 @@ namespace Odisea.EditorTools
                 clips["Throw"] = StripClip(sheet, Pick(rows, 2, 0, 1), ppu, "Throw", 14f, loop: false, holdLast: 0.1f);
 
             // Reposo: respiración de 3/4 (todos los cuadros están parados).
+            // Daño y escalera no tienen un cuadro parado para medirlos; vienen en el mismo lienzo y a la misma escala
+            // que el reposo, así que usan su escala.
+            float idlePpu = ppu;
             if (TryLoadRow("ulises_idle.png", attachDistance: 20, minFrames: 2, out Sheet idleSheet, out List<Frame> idle))
             {
-                float idlePpu = MedianCoreHeight(idle) / UlisesStandHeight;
+                idlePpu = MedianCoreHeight(idle) / UlisesStandHeight;
                 clips["Idle"] = StripClip(idleSheet, idle, idlePpu, "Idle", 7f, loop: true);
             }
             else
                 clips["Idle"] = StripClip(sheet, Pick(rows, 3, 6), ppu, "Idle", 8f, loop: true);
+
+            // Daño (4 cuadros): 0 recibe el golpe, 1 sale volando mareado, 2 trastabilla, 3 se recupera.
+            // El golpe quita el control 0.25 s y lo avienta hacia arriba: se usan 0-2 a 12 fps y de ahí pasa a la caída.
+            if (TryLoadRow("ulises_dano.png", attachDistance: 40, minFrames: 3, out Sheet hurtSheet, out List<Frame> hurt))
+                clips["Hurt"] = StripClip(hurtSheet, PickFrames(hurt, 0, 1, 2), idlePpu, "Hurt", 12f, loop: false);
+            else
+                clips["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f);
+
+            // Escalera (4 cuadros, de espaldas). Anclada en los pies (al pie de la escalera queda parado en el suelo);
+            // solo avanza mientras sube o baja (parámetro ClimbSpeed del Animator).
+            if (TryLoadRow("ulises_escalera.png", attachDistance: 20, minFrames: 4, out Sheet climbSheet, out List<Frame> climb))
+                clips["Climb"] = StripClip(climbSheet, PickFrames(climb, 0, 1, 2, 3), idlePpu, "Climb", 8f, loop: true);
+            else
+                clips["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true);
+
+            // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
+            // Se queda en el último cuadro; la escena se reinicia aparte.
+            if (TryLoadRow("ulises_muerte.png", attachDistance: 30, minFrames: 7, out Sheet deathSheet, out List<Frame> death))
+            {
+                float deathPpu = death[3].Body.Height / UlisesStandHeight;
+                clips["Die"] = StripClip(deathSheet, death, deathPpu, "Die", 10f, loop: false);
+            }
+            else
+                clips["Die"] = clips["Hurt"];
 
             // Correr: el polvo suelto se descarta (solo se pega lo que toca al cuerpo) para no mezclarlo con el cuadro vecino.
             if (TryLoadRow("ulises_correr.png", attachDistance: 8, minFrames: 4, out Sheet runNewSheet, out List<Frame> run))
@@ -191,7 +215,7 @@ namespace Odisea.EditorTools
         private static void BuildUlisesController(Dictionary<string, AnimationClip> clips)
         {
             AnimatorController controller = ResetController(UlisesControllerPath);
-            foreach (string name in new[] { "Speed", "VerticalSpeed" })
+            foreach (string name in new[] { "Speed", "VerticalSpeed", "ClimbSpeed" })
                 controller.AddParameter(name, AnimatorControllerParameterType.Float);
             foreach (string name in new[] { "IsGrounded", "IsClimbing" })
                 controller.AddParameter(name, AnimatorControllerParameterType.Bool);
@@ -233,9 +257,14 @@ namespace Odisea.EditorTools
             foreach (AnimatorState any in new[] { idle, run, jump, fall })
                 Link(any, climb, Cond("IsClimbing", true));
             Link(climb, idle, Cond("IsClimbing", false));
+            // En la escalera la animación solo avanza mientras se mueve (PlayerAnimator pone ClimbSpeed en 0 o 1).
+            climb.speedParameterActive = true;
+            climb.speedParameter = "ClimbSpeed";
 
             // Acciones de un momento: desde cualquier estado con su trigger; al terminar regresan a reposo
             // y de ahí el desplazamiento elige (correr, caer...) en el siguiente cuadro.
+            // La muerte va primero: gana aunque en el mismo cuadro se haya pedido otra acción. No tiene salida.
+            AnyState(machine, states["Die"], "Die", toSelf: false);
             AnyState(machine, states["Attack"], "Attack", toSelf: true);
             AnyState(machine, states["Throw"], "Throw", toSelf: true);
             AnyState(machine, states["Hurt"], "Hurt", toSelf: false);
@@ -291,33 +320,38 @@ namespace Odisea.EditorTools
 
         // ---------- Piezas del nivel 1 ----------
 
-        private static void ImportLevel1()
+        /// <summary>
+        /// Viga, escalera, tablón y dos tablones rotos de una hoja de nivel. Escribe Viga, Escalera, Tablon,
+        /// TablonRoto1 y TablonRoto2 en la carpeta indicada (mismos nombres para cada nivel).
+        /// </summary>
+        private static void ImportLevelPieces(string sheetPath, int whiteThreshold, string folder, string label)
         {
-            Sheet sheet = LoadSheet(Level1Sheet, whiteThreshold: 232);
+            Sheet sheet = LoadSheet(sheetPath, whiteThreshold, warnIfMissing: false);
             if (sheet == null)
                 return;
             // Cada pieza es su propio "cuadro"; los puntitos sueltos (ruido del JPG) se pegan a la más cercana.
             List<Frame> pieces = FindFrames(sheet, coreFraction: 0.02f, attachDistance: 6).SelectMany(r => r).ToList();
             List<Frame> tall = pieces.Where(p => p.Core.Height > p.Core.Width).OrderBy(p => p.Core.MinX).ToList();
             List<Frame> wide = pieces.Where(p => p.Core.Width >= p.Core.Height).OrderByDescending(p => p.Core.Width).ToList();
-            Debug.Log($"[Odisea] Nivel 1: {tall.Count} piezas verticales y {wide.Count} horizontales.");
+            Debug.Log($"[Odisea] {label}: {tall.Count} piezas verticales y {wide.Count} horizontales.");
             if (tall.Count < 2 || wide.Count < 3)
             {
-                Debug.LogError("[Odisea] La hoja del nivel 1 no tiene viga, escalera y 3 tablones; revisa spritesheet_nivel1.jpg.");
+                Debug.LogError($"[Odisea] {label}: la hoja no tiene viga, escalera y 3 tablones; revisa {sheetPath}.");
                 return;
             }
 
-            float ppu = wide[0].Core.Height / PlankHeight;
-            EnsureFolder(Level1Folder);
+            float ppu = wide[0].Body.Height / PlankHeight;
+            EnsureFolder(folder);
             // La viga se repite a lo alto conservando la base (abajo) y el remate (arriba).
             int postFoot = Mathf.RoundToInt(tall[0].Core.Height * 0.12f);
             int postCap = Mathf.RoundToInt(tall[0].Core.Height * 0.04f);
-            WriteSingle(sheet, tall[0], PostPath, ppu, new Vector4(0f, postFoot, 0f, postCap));
+            WriteSingle(sheet, tall[0], $"{folder}/Viga.png", ppu, new Vector4(0f, postFoot, 0f, postCap));
             // La escalera se repite a lo alto: los extremos (bordes) no se repiten.
             int ladderCap = Mathf.RoundToInt(tall[1].Core.Height * 0.06f);
-            WriteSingle(sheet, tall[1], LadderPath, ppu, new Vector4(0f, ladderCap, 0f, ladderCap));
+            WriteSingle(sheet, tall[1], $"{folder}/Escalera.png", ppu, new Vector4(0f, ladderCap, 0f, ladderCap));
             // Los tablones se repiten a lo ancho: las puntas (bordes) se quedan en las orillas.
-            foreach ((Frame piece, string path) in new[] { (wide[0], PlankPath), (wide[1], BrokenPlankPath), (wide[2], BrokenPlank2Path) })
+            foreach ((Frame piece, string path) in new[] { (wide[0], $"{folder}/Tablon.png"), (wide[1], $"{folder}/TablonRoto1.png"),
+                         (wide[2], $"{folder}/TablonRoto2.png") })
             {
                 int cap = Mathf.Min(piece.Core.Width / 6, piece.Core.Height * 2);
                 WriteSingle(sheet, piece, path, ppu, new Vector4(cap, 0f, cap, 0f));

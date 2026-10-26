@@ -7,13 +7,15 @@ namespace Odisea.Player
     /// <summary>
     /// Pasa el estado de Ulises al Animator y hace parpadear el sprite mientras es invulnerable.
     /// Parámetros que puede tener el Animator Controller (los que falten se ignoran):
-    /// Speed (float), VerticalSpeed (float), IsGrounded (bool), IsClimbing (bool),
+    /// Speed (float), VerticalSpeed (float), ClimbSpeed (float: 1 si sube o baja por la escalera, 0 si está quieto),
+    /// IsGrounded (bool), IsClimbing (bool),
     /// Attack, Throw, DoubleJump, Hurt, Die (triggers).
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int VerticalSpeedId = Animator.StringToHash("VerticalSpeed");
+        private static readonly int ClimbSpeedId = Animator.StringToHash("ClimbSpeed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
         private static readonly int IsClimbingId = Animator.StringToHash("IsClimbing");
         private static readonly int AttackId = Animator.StringToHash("Attack");
@@ -78,6 +80,7 @@ namespace Odisea.Player
                 SetFloat(VerticalSpeedId, controller.Velocity.y);
                 SetBool(IsGroundedId, controller.IsGrounded);
                 SetBool(IsClimbingId, controller.IsClimbing);
+                SetFloat(ClimbSpeedId, controller.IsClimbing && Mathf.Abs(controller.Velocity.y) > 0.05f ? 1f : 0f);
             }
 
             if (spriteRenderer != null && health != null)
@@ -91,7 +94,13 @@ namespace Odisea.Player
         private void OnAttacked() => SetTrigger(AttackId);
         private void OnThrown() => SetTrigger(ThrowId);
         private void OnDamaged(DamageInfo _) => SetTrigger(HurtId);
-        private void OnDied() => SetTrigger(DieId);
+        private void OnDied()
+        {
+            // El último golpe también avisa "daño": se cancela para que no interrumpa la muerte.
+            if (availableParameters.Contains(HurtId))
+                animator.ResetTrigger(HurtId);
+            SetTrigger(DieId);
+        }
 
         private void SetFloat(int id, float value)
         {

@@ -56,8 +56,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.017462166}
-  spritePixelsToUnits: 320.51282
+  spritePivot: {x: 0.5, y: 0.011494253}
+  spritePixelsToUnits: 174.35896
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,10 +113,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 424
-        height: 859
+        width: 416
+        height: 348
       alignment: 9
-      pivot: {x: 0.5, y: 0.017462166}
+      pivot: {x: 0.5, y: 0.011494253}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -133,12 +133,12 @@ TextureImporter:
       name: Ulises_Attack_1
       rect:
         serializedVersion: 2
-        x: 424
+        x: 416
         y: 0
-        width: 424
-        height: 859
+        width: 416
+        height: 348
       alignment: 9
-      pivot: {x: 0.5, y: 0.017462166}
+      pivot: {x: 0.5, y: 0.011494253}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -155,12 +155,12 @@ TextureImporter:
       name: Ulises_Attack_2
       rect:
         serializedVersion: 2
-        x: 848
+        x: 832
         y: 0
-        width: 424
-        height: 859
+        width: 416
+        height: 348
       alignment: 9
-      pivot: {x: 0.5, y: 0.017462166}
+      pivot: {x: 0.5, y: 0.011494253}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -177,12 +177,12 @@ TextureImporter:
       name: Ulises_Attack_3
       rect:
         serializedVersion: 2
-        x: 1272
+        x: 1248
         y: 0
-        width: 424
-        height: 859
+        width: 416
+        height: 348
       alignment: 9
-      pivot: {x: 0.5, y: 0.017462166}
+      pivot: {x: 0.5, y: 0.011494253}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -191,6 +191,28 @@ TextureImporter:
       bones: []
       spriteID: 1c9e5e8322b875f42942a0619e0d316e
       internalID: 777090452
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Attack_4
+      rect:
+        serializedVersion: 2
+        x: 1664
+        y: 0
+        width: 416
+        height: 348
+      alignment: 9
+      pivot: {x: 0.5, y: 0.011494253}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a2ded331a381be84cb2023640ef6473e
+      internalID: 768662100
       vertices: []
       indices: 
       edges: []
@@ -213,6 +235,7 @@ TextureImporter:
       Ulises_Attack_1: -3941123598255029873
       Ulises_Attack_2: 6689486598128789848
       Ulises_Attack_3: 777090452
+      Ulises_Attack_4: 768662100
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.016877636}
-  spritePixelsToUnits: 115
+  spritePivot: {x: 0.5, y: 0.0033003301}
+  spritePixelsToUnits: 500.51282
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -105,20 +105,86 @@ TextureImporter:
       name: Ulises_Climb_0
       rect:
         serializedVersion: 2
-        x: 4
-        y: 3
-        width: 104
-        height: 231
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 518
+        height: 1212
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0033003301}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 0f98cf98f5a3cd400800000000000000
+      spriteID: c93866c4a294a4642a43719cb02a4590
       internalID: 350219053039389168
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Climb_1
+      rect:
+        serializedVersion: 2
+        x: 518
+        y: 0
+        width: 518
+        height: 1212
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0033003301}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24dcdce84e0d427458ed6018da28f95e
+      internalID: 1204319210
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Climb_2
+      rect:
+        serializedVersion: 2
+        x: 1036
+        y: 0
+        width: 518
+        height: 1212
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0033003301}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0cf328ffbf102594786eb0f3388ef8d6
+      internalID: 48833051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ulises_Climb_3
+      rect:
+        serializedVersion: 2
+        x: 1554
+        y: 0
+        width: 518
+        height: 1212
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0033003301}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1ae1a2219c9c0e24d8ced70f82c1cbb8
+      internalID: 680067693
       vertices: []
       indices: 
       edges: []
@@ -138,6 +204,9 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Ulises_Climb_0: 350219053039389168
+      Ulises_Climb_1: 1204319210
+      Ulises_Climb_2: 48833051
+      Ulises_Climb_3: 680067693
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
