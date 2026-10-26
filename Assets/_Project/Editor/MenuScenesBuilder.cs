@@ -1381,32 +1381,7 @@ namespace Odisea.EditorTools
         private const string MenuMusicPath = "Assets/_Project/Audio/Music/musica_menu";
 
         /// <summary>Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio).</summary>
-        private static void CreateMenuMusic()
-        {
-            string path = new[] { ".ogg", ".mp3", ".wav" }.Select(ext => MenuMusicPath + ext).FirstOrDefault(File.Exists);
-            if (path == null)
-            {
-                Debug.LogWarning($"[Odisea] No está {MenuMusicPath} (.ogg, .mp3 o .wav); el menú queda sin música.");
-                return;
-            }
-
-            // Música larga: se lee del disco mientras suena (Streaming) para no ocupar memoria, en estéreo.
-            var importer = (AudioImporter)AssetImporter.GetAtPath(path);
-            AudioImporterSampleSettings settings = importer.defaultSampleSettings;
-            if (settings.loadType != AudioClipLoadType.Streaming)
-            {
-                settings.loadType = AudioClipLoadType.Streaming;
-                settings.compressionFormat = AudioCompressionFormat.Vorbis;
-                settings.quality = 0.7f;
-                importer.defaultSampleSettings = settings;
-                importer.forceToMono = false;
-                importer.SaveAndReimport();
-            }
-
-            var go = new GameObject("Música del menú", typeof(AudioSource));
-            go.GetComponent<AudioSource>().clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-            go.AddComponent<MenuMusic>();
-        }
+        private static void CreateMenuMusic() => GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
 
         private static void SetEnum(UnityEngine.Object target, string field, int value)
         {

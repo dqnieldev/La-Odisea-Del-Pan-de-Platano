@@ -129,6 +129,12 @@ namespace Odisea.EditorTools
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", doughBall);
             CreateHud(player.GetComponent<Health>(), fullHeart, emptyHeart);
 
+            // Música de fondo (por ahora la del nivel 1, mientras el Tutorial abre esta escena).
+            // Se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
+            SceneMusic music = GameSoundsBuilder.CreateMusic("Música del nivel", LevelMusicPath);
+            if (music != null)
+                SetSerialized(music, "fadeOnDeath", player.GetComponent<Health>());
+
             var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
             SetSerialized(shortcuts, "playerHealth", player.GetComponent<Health>());
 
@@ -515,6 +521,7 @@ namespace Odisea.EditorTools
         private const float PlatformThickness = 0.4f;
         // Velocidad del cocodrilo; si cambia, ajustar también ArtImportBuilder.CrocodileWalkFps (las patas).
         private const float CrocodileSpeed = 2.6f;
+        private const string LevelMusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
         // Volumen de los impactos de las armas (rodillo que acierta, bolita que choca).
         private const float ImpactVolume = 0.55f;
         // Cuánto se dibuja a Ulises por debajo de su collider (margen de contacto de la física + grosor del contorno).
