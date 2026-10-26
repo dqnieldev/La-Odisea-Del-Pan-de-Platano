@@ -262,7 +262,8 @@ namespace Odisea.EditorTools
             SetSerialized(sounds, "health", health);
             string ulises = GameSoundsBuilder.UlisesFolder;
             GameSoundsBuilder.SetSound(sounds, "attack", GameSoundsBuilder.Load(ulises, "golpe_rodillo"));
-            GameSoundsBuilder.SetSound(sounds, "attackHit", GameSoundsBuilder.Load(ulises, "golpe_acierta"));
+            // Los impactos de las armas suenan en cada acierto: más bajos, para no tapar la queja del enemigo.
+            GameSoundsBuilder.SetSound(sounds, "attackHit", GameSoundsBuilder.Load(ulises, "golpe_acierta"), ImpactVolume);
             GameSoundsBuilder.SetSound(sounds, "throwDough", GameSoundsBuilder.Load(ulises, "lanzar_masa"));
             GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(ulises, "dano"));
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));
@@ -514,6 +515,8 @@ namespace Odisea.EditorTools
         private const float PlatformThickness = 0.4f;
         // Velocidad del cocodrilo; si cambia, ajustar también ArtImportBuilder.CrocodileWalkFps (las patas).
         private const float CrocodileSpeed = 2.6f;
+        // Volumen de los impactos de las armas (rodillo que acierta, bolita que choca).
+        private const float ImpactVolume = 0.55f;
         // Cuánto se dibuja a Ulises por debajo de su collider (margen de contacto de la física + grosor del contorno).
         private const float FeetSink = 0.03f;
 
@@ -680,7 +683,7 @@ namespace Odisea.EditorTools
             SetSerialized(flipbook, "fadeOutDuration", 0.25f);
             SetSerialized(flipbook, "destroyWhenDone", true);
             var sound = root.AddComponent<SoundOnStart>();
-            GameSoundsBuilder.SetSound(sound, "sound", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "masa_impacto"));
+            GameSoundsBuilder.SetSound(sound, "sound", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "masa_impacto"), ImpactVolume);
             PrefabUtility.SaveAsPrefabAsset(root, path);
             UnityEngine.Object.DestroyImmediate(root);
             return LoadRequired<GameObject>(path);

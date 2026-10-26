@@ -31,7 +31,7 @@ namespace Odisea.Player
             if (health != null)
             {
                 health.Damaged += OnDamaged;
-                health.Died += death.Play;
+                health.Died += OnDied;
             }
         }
 
@@ -46,15 +46,17 @@ namespace Odisea.Player
             if (health != null)
             {
                 health.Damaged -= OnDamaged;
-                health.Died -= death.Play;
+                health.Died -= OnDied;
             }
         }
 
-        // El golpe que lo mata suena a muerte, no a daño.
+        // El golpe que lo mata suena a muerte, no a daño (si no hay sonido de muerte, se usa el de daño).
         private void OnDamaged(DamageInfo _)
         {
             if (!health.IsDead)
                 hurt.Play();
         }
+
+        private void OnDied() => (death.HasClips ? death : hurt).Play();
     }
 }

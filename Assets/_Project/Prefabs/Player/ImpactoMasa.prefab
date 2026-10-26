@@ -129,5 +129,5 @@ MonoBehaviour:
   sound:
     clips:
     - {fileID: 8300000, guid: 1310e37be7412b648bafb587e9a8f6f1, type: 3}
-    volume: 1
+    volume: 0.55
     pitchVariation: 0.06

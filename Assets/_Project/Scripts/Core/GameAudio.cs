@@ -21,14 +21,14 @@ namespace Odisea.Core
         private int next;
         private readonly Dictionary<AudioClip, float> startTimes = new();
 
-        public static void Play(SoundEffect effect)
+        public static void Play(SoundEffect effect, float delay = 0f)
         {
             if (effect == null || !effect.HasClips)
                 return;
             AudioClip clip = effect.clips[Random.Range(0, effect.clips.Length)];
             if (clip == null)
                 return;
-            Instance.PlayClip(clip, effect.volume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation));
+            Instance.PlayClip(clip, effect.volume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
         }
 
         private static GameAudio Instance
@@ -52,7 +52,7 @@ namespace Odisea.Core
             }
         }
 
-        private void PlayClip(AudioClip clip, float volume, float pitch)
+        private void PlayClip(AudioClip clip, float volume, float pitch, float delay)
         {
             // Una fuente libre; si todas suenan, se reusa la que lleva más tiempo (la más vieja).
             AudioSource source = null;
@@ -69,7 +69,10 @@ namespace Odisea.Core
             source.volume = volume * GameSettings.EffectsVolume;
             source.pitch = pitch;
             source.time = StartTime(clip);
-            source.Play();
+            if (delay > 0f)
+                source.PlayDelayed(delay);
+            else
+                source.Play();
         }
 
         // Segundo en que el clip deja de ser silencio (se calcula una vez por clip).

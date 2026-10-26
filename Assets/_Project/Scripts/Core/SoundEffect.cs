@@ -18,5 +18,8 @@ namespace Odisea.Core
         public bool HasClips => clips != null && clips.Length > 0;
 
         public void Play() => GameAudio.Play(this);
+
+        /// <summary>Suena dentro de unos segundos (sigue sonando aunque quien lo pidió se destruya).</summary>
+        public void PlayAfter(float delay) => GameAudio.Play(this, delay);
     }
 }
