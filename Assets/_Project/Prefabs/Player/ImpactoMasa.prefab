@@ -127,6 +127,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SoundOnStart
   sound:
-    clips: []
+    clips:
+    - {fileID: 8300000, guid: 1310e37be7412b648bafb587e9a8f6f1, type: 3}
     volume: 1
     pitchVariation: 0.06
