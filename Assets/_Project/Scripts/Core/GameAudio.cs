@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Odisea.Core
@@ -6,14 +7,19 @@ namespace Odisea.Core
     /// Reproduce los efectos de sonido del juego (golpes, mordidas, daño...). Tiene varias fuentes para que los
     /// sonidos se puedan encimar, sigue sonando aunque el objeto que lo pidió se destruya (un enemigo que muere)
     /// y respeta el volumen de Efectos de Opciones (además del general). Se crea solo la primera vez.
+    /// Se salta el silencio con el que empiezan muchos archivos, para que el sonido coincida con la acción.
     /// </summary>
     public class GameAudio : MonoBehaviour
     {
         private const int Voices = 10;
+        // Se empieza a reproducir un poco antes del primer sonido audible, para no cortar su ataque.
+        private const float PreRoll = 0.01f;
+        private const float SilenceThreshold = 0.02f;
 
         private static GameAudio instance;
         private AudioSource[] sources;
         private int next;
+        private readonly Dictionary<AudioClip, float> startTimes = new();
 
         public static void Play(SoundEffect effect)
         {
@@ -62,7 +68,31 @@ namespace Odisea.Core
             source.clip = clip;
             source.volume = volume * GameSettings.EffectsVolume;
             source.pitch = pitch;
+            source.time = StartTime(clip);
             source.Play();
+        }
+
+        // Segundo en que el clip deja de ser silencio (se calcula una vez por clip).
+        private float StartTime(AudioClip clip)
+        {
+            if (startTimes.TryGetValue(clip, out float start))
+                return start;
+            start = 0f;
+            var samples = new float[clip.samples * clip.channels];
+            // Solo funciona con clips descomprimidos al cargar (así los importa el generador); si no, empieza en 0.
+            if (clip.loadType == AudioClipLoadType.DecompressOnLoad && clip.GetData(samples, 0))
+            {
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    if (Mathf.Abs(samples[i]) > SilenceThreshold)
+                    {
+                        start = Mathf.Max(0f, (float)(i / clip.channels) / clip.frequency - PreRoll);
+                        break;
+                    }
+                }
+            }
+            startTimes[clip] = start;
+            return start;
         }
     }
 }
