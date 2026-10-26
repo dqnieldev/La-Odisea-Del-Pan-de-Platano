@@ -23,7 +23,7 @@ namespace Odisea.EditorTools
     {
         private const string BaseScenePath = "Assets/Scenes/SampleScene.unity";
         private const string ScenePath = "Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity";
-        private const string SpritePath = "Assets/_Project/Art/Placeholders/Cuadro.png";
+        internal const string SpritePath = "Assets/_Project/Art/Placeholders/Cuadro.png";
         private const string HeartFullPath = "Assets/_Project/Art/Placeholders/CorazonLleno.png";
         private const string HeartEmptyPath = "Assets/_Project/Art/Placeholders/CorazonVacio.png";
 
@@ -47,8 +47,8 @@ namespace Odisea.EditorTools
 
         // Colores del design system (Docs/Referencias/Paleta).
         private static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
-        private static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
-        private static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
+        internal static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
+        internal static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
         private static readonly Color Manglar = new(0.180f, 0.353f, 0.267f);
         private static readonly Color Chile = new(0.784f, 0.263f, 0.169f);
         private static readonly Color Mar = new(0.184f, 0.561f, 0.627f);
@@ -57,6 +57,62 @@ namespace Odisea.EditorTools
 
         [MenuItem("Odisea/Sandbox/Crear escena de prueba del jugador")]
         public static void Build()
+        {
+            LevelContext level = BeginLevel(ScenePath);
+            Sprite square = level.Square;
+            int groundLayer = level.GroundLayer, playerLayer = level.PlayerLayer, enemyLayer = level.EnemyLayer,
+                ladderLayer = level.LadderLayer;
+
+            CreateBlock("Suelo", level.Root, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
+            CreateBlock("Pared izquierda", level.Root, square, new Vector2(-20.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
+            CreateBlock("Pared derecha", level.Root, square, new Vector2(40.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
+            // Madera = plataformas de un sentido: se suben saltando desde abajo o por escalera, y no se puede bajar de ellas
+            // más que por escalera o cayendo por la orilla. Café = bloques sólidos.
+            var art = LevelArt.Load();
+            // Las vigas se saltan donde hay escalera, para no quedar una encima de la otra.
+            art.LadderXs = new[] { 5.5f, -13f, -15.5f };
+            CreatePlatform("Plataforma baja", level.Root, square, art, new Vector2(4f, 2f), 4f, groundLayer);
+            CreatePlatform("Plataforma media", level.Root, square, art, new Vector2(10f, 4.5f), 3f, groundLayer);
+            CreatePlatform("Plataforma doble salto", level.Root, square, art, new Vector2(16f, 8f), 3f, groundLayer, posts: false);
+            CreatePlatform("Repisa 1", level.Root, square, art, new Vector2(-14f, 2.5f), 4f, groundLayer);
+            CreatePlatform("Repisa 2", level.Root, square, art, new Vector2(-14f, 5f), 4f, groundLayer, posts: false);
+            CreatePlatform("Repisa 3", level.Root, square, art, new Vector2(-16f, 7.5f), 4f, groundLayer, posts: false);
+            CreateBlock("Escalón", level.Root, square, new Vector2(-8f, 0.75f), new Vector2(3f, 1.5f), Cafe, groundLayer);
+
+            // Escaleras: abajo = suelo donde empiezan, arriba = superficie de la plataforma donde terminan.
+            CreateLadder("Escalera a plataforma baja", level.Root, square, art, 5.5f, 0f, 2.2f, ladderLayer);
+            CreateLadder("Escalera de la torre", level.Root, square, art, -13f, 0f, 5.2f, ladderLayer);
+            CreateLadder("Escalera a repisa 3", level.Root, square, art, -15.5f, 5.2f, 7.7f, ladderLayer);
+
+            CreateHazard("Peligro (resta 1 vida)", level, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f));
+            CreateDummy(level.Root, square, enemyLayer, new Vector2(-4f, 0.75f));
+            CreateCrocodile(level.Root, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
+
+            SetUpPlayer(level, new Vector2(0f, 1f), "Escena de prueba", LevelMusicPath, showControls: true);
+            EndLevel(level);
+            Debug.Log($"[Odisea] Escena de prueba creada en {ScenePath}");
+        }
+
+        /// <summary>Lo que comparten los generadores de niveles: capas, assets base y la escena abierta.</summary>
+        internal sealed class LevelContext
+        {
+            public UnityEngine.SceneManagement.Scene Scene;
+            public string ScenePath;
+            public Transform Root;
+            public int GroundLayer, PlayerLayer, EnemyLayer, LadderLayer;
+            public Sprite Square;
+            public PhysicsMaterial2D NoFriction;
+            public PlayerConfig Config;
+            public InputActionAsset InputActions;
+            public Sprite FullHeart, EmptyHeart;
+            public Projectile DoughBall;
+        }
+
+        /// <summary>
+        /// Prepara una escena de nivel: capas, assets base (placeholders, material sin fricción, configuración de
+        /// Ulises, bolita de masa) y la escena vacía (solo cámara y luz), conservando su GUID si ya existía.
+        /// </summary>
+        internal static LevelContext BeginLevel(string scenePath)
         {
             int groundLayer = EnsureLayer("Ground", 6);
             int playerLayer = EnsureLayer("Player", 7);
@@ -75,63 +131,53 @@ namespace Odisea.EditorTools
             // y las referencias a ellos quedarían vacías.
             AssetDatabase.SaveAssets();
 
-            EnsureFolder(Path.GetDirectoryName(ScenePath));
-            if (File.Exists(ScenePath))
+            EnsureFolder(Path.GetDirectoryName(scenePath));
+            if (File.Exists(scenePath))
             {
                 // Se reemplaza solo el contenido para conservar el .meta (y su GUID, al que apunta Build Settings).
-                File.Copy(BaseScenePath, ScenePath, overwrite: true);
-                AssetDatabase.ImportAsset(ScenePath, ImportAssetOptions.ForceSynchronousImport);
+                File.Copy(BaseScenePath, scenePath, overwrite: true);
+                AssetDatabase.ImportAsset(scenePath, ImportAssetOptions.ForceSynchronousImport);
             }
-            else if (!AssetDatabase.CopyAsset(BaseScenePath, ScenePath))
+            else if (!AssetDatabase.CopyAsset(BaseScenePath, scenePath))
                 throw new InvalidOperationException($"No se pudo copiar {BaseScenePath}.");
 
-            var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             ClearSceneExcept(scene, "Main Camera", "Global Light 2D");
 
-            Sprite square = LoadRequired<Sprite>(SpritePath);
-            var noFriction = LoadRequired<PhysicsMaterial2D>(MaterialPath);
-            var config = LoadRequired<PlayerConfig>(ConfigPath);
-            var inputActions = LoadRequired<InputActionAsset>(InputPath);
-            var fullHeart = LoadRequired<Sprite>(HeartFullPath);
-            var emptyHeart = LoadRequired<Sprite>(HeartEmptyPath);
-            Projectile doughBall = EnsureProjectilePrefab(square, playerLayer);
+            var context = new LevelContext
+            {
+                Scene = scene,
+                ScenePath = scenePath,
+                Root = new GameObject("Nivel").transform,
+                GroundLayer = groundLayer,
+                PlayerLayer = playerLayer,
+                EnemyLayer = enemyLayer,
+                LadderLayer = ladderLayer,
+                Square = LoadRequired<Sprite>(SpritePath),
+                NoFriction = LoadRequired<PhysicsMaterial2D>(MaterialPath),
+                Config = LoadRequired<PlayerConfig>(ConfigPath),
+                InputActions = LoadRequired<InputActionAsset>(InputPath),
+                FullHeart = LoadRequired<Sprite>(HeartFullPath),
+                EmptyHeart = LoadRequired<Sprite>(HeartEmptyPath),
+            };
+            context.DoughBall = EnsureProjectilePrefab(context.Square, playerLayer);
+            return context;
+        }
 
-            var level = new GameObject("Nivel").transform;
-            CreateBlock("Suelo", level, square, new Vector2(10f, -1f), new Vector2(60f, 2f), Manglar, groundLayer);
-            CreateBlock("Pared izquierda", level, square, new Vector2(-20.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
-            CreateBlock("Pared derecha", level, square, new Vector2(40.5f, 5f), new Vector2(1f, 14f), Manglar, groundLayer);
-            // Madera = plataformas de un sentido: se suben saltando desde abajo o por escalera, y no se puede bajar de ellas
-            // más que por escalera o cayendo por la orilla. Café = bloques sólidos.
-            var art = LevelArt.Load();
-            // Las vigas se saltan donde hay escalera, para no quedar una encima de la otra.
-            art.LadderXs = new[] { 5.5f, -13f, -15.5f };
-            CreatePlatform("Plataforma baja", level, square, art, new Vector2(4f, 2f), 4f, groundLayer);
-            CreatePlatform("Plataforma media", level, square, art, new Vector2(10f, 4.5f), 3f, groundLayer);
-            CreatePlatform("Plataforma doble salto", level, square, art, new Vector2(16f, 8f), 3f, groundLayer, posts: false);
-            CreatePlatform("Repisa 1", level, square, art, new Vector2(-14f, 2.5f), 4f, groundLayer);
-            CreatePlatform("Repisa 2", level, square, art, new Vector2(-14f, 5f), 4f, groundLayer, posts: false);
-            CreatePlatform("Repisa 3", level, square, art, new Vector2(-16f, 7.5f), 4f, groundLayer, posts: false);
-            CreateBlock("Escalón", level, square, new Vector2(-8f, 0.75f), new Vector2(3f, 1.5f), Cafe, groundLayer);
+        /// <summary>
+        /// Ulises con su bolita de masa, el HUD, la música del nivel (se apaga al morir), el reinicio al morir,
+        /// el menú de pausa y la cámara que lo sigue.
+        /// </summary>
+        internal static GameObject SetUpPlayer(LevelContext level, Vector2 spawn, string levelName, string musicPath,
+            bool showControls, Color? background = null)
+        {
+            GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
+            player.transform.position = spawn;
+            SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
+            CreateHud(player.GetComponent<Health>(), level.FullHeart, level.EmptyHeart, showControls);
 
-            // Escaleras: abajo = suelo donde empiezan, arriba = superficie de la plataforma donde terminan.
-            CreateLadder("Escalera a plataforma baja", level, square, art, 5.5f, 0f, 2.2f, ladderLayer);
-            CreateLadder("Escalera de la torre", level, square, art, -13f, 0f, 5.2f, ladderLayer);
-            CreateLadder("Escalera a repisa 3", level, square, art, -15.5f, 5.2f, 7.7f, ladderLayer);
-
-            var hazard = CreateBlock("Peligro (resta 1 vida)", level, square, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f), Chile, groundLayer);
-            var hazardComponent = hazard.AddComponent<Hazard>();
-            SetSerialized(hazardComponent, "targetLayers", 1 << playerLayer);
-
-            CreateDummy(level, square, enemyLayer);
-            CreateCrocodile(level, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
-
-            GameObject player = CreatePlayer(square, noFriction, config, inputActions, playerLayer);
-            SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", doughBall);
-            CreateHud(player.GetComponent<Health>(), fullHeart, emptyHeart);
-
-            // Música de fondo (por ahora la del nivel 1, mientras el Tutorial abre esta escena).
-            // Se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
-            SceneMusic music = GameSoundsBuilder.CreateMusic("Música del nivel", LevelMusicPath);
+            // Música de fondo; se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
+            SceneMusic music = GameSoundsBuilder.CreateMusic("Música del nivel", musicPath);
             if (music != null)
                 SetSerialized(music, "fadeOnDeath", player.GetComponent<Health>());
 
@@ -144,7 +190,7 @@ namespace Odisea.EditorTools
             {
                 var pause = (GameObject)PrefabUtility.InstantiatePrefab(pausePrefab);
                 var serialized = new SerializedObject(pause.GetComponent<PauseMenu>());
-                serialized.FindProperty("levelName").stringValue = "Escena de prueba";
+                serialized.FindProperty("levelName").stringValue = levelName;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
             }
             else
@@ -153,17 +199,28 @@ namespace Odisea.EditorTools
             }
 
             var camera = GameObject.Find("Main Camera");
-            camera.transform.position = new Vector3(0f, 2f, -10f);
+            camera.transform.position = new Vector3(spawn.x, spawn.y + 1f, -10f);
             var cam = camera.GetComponent<Camera>();
             cam.orthographicSize = 7f;
-            cam.backgroundColor = Crema;
+            cam.backgroundColor = background ?? Crema;
             var follow = camera.AddComponent<CameraFollow2D>();
             follow.Target = player.transform;
+            return player;
+        }
 
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
+        internal static void EndLevel(LevelContext level)
+        {
+            EditorSceneManager.MarkSceneDirty(level.Scene);
+            EditorSceneManager.SaveScene(level.Scene);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Odisea] Escena de prueba creada en {ScenePath}");
+        }
+
+        /// <summary>Bloque rojo que resta una vida al tocarlo.</summary>
+        internal static GameObject CreateHazard(string name, LevelContext level, Vector2 center, Vector2 size)
+        {
+            GameObject hazard = CreateBlock(name, level.Root, level.Square, center, size, Chile, level.GroundLayer);
+            SetSerialized(hazard.AddComponent<Hazard>(), "targetLayers", 1 << level.PlayerLayer);
+            return hazard;
         }
 
         /// <summary>Punto de entrada para Unity en modo batch (-executeMethod).</summary>
@@ -314,11 +371,11 @@ namespace Odisea.EditorTools
             SetSerialized(attackVisual, "trail", trailRenderer);
         }
 
-        private static void CreateDummy(Transform parent, Sprite square, int enemyLayer)
+        internal static void CreateDummy(Transform parent, Sprite square, int enemyLayer, Vector2 center)
         {
             var dummy = new GameObject("Muñeco de práctica") { layer = enemyLayer };
             dummy.transform.SetParent(parent, false);
-            dummy.transform.position = new Vector3(-4f, 0.75f, 0f);
+            dummy.transform.position = center;
             var collider = dummy.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(1f, 1.5f);
             collider.isTrigger = true;
@@ -343,7 +400,7 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
         }
 
-        private static void CreateHud(Health playerHealth, Sprite fullHeart, Sprite emptyHeart)
+        private static void CreateHud(Health playerHealth, Sprite fullHeart, Sprite emptyHeart, bool showControls)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             var canvas = canvasObject.GetComponent<Canvas>();
@@ -366,7 +423,8 @@ namespace Odisea.EditorTools
             SetSerialized(hearts, "fullHeart", fullHeart);
             SetSerialized(hearts, "emptyHeart", emptyHeart);
 
-            CreateControlsPanel(canvasObject.transform);
+            if (showControls)
+                CreateControlsPanel(canvasObject.transform);
         }
 
         private static void CreateControlsPanel(Transform canvas)
@@ -409,7 +467,7 @@ namespace Odisea.EditorTools
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes) · Cocodrilo (2 golpes)</color>";
         }
 
-        private static void CreateLadder(string name, Transform parent, Sprite square, LevelArt art, float x, float bottom, float top, int layer)
+        internal static void CreateLadder(string name, Transform parent, Sprite square, LevelArt art, float x, float bottom, float top, int layer)
         {
             float height = top - bottom;
             var ladder = new GameObject(name) { layer = layer };
@@ -501,7 +559,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Sprites del nivel 1 (los que no existan quedan en null y se usan cuadros de colores).</summary>
-        private sealed class LevelArt
+        internal sealed class LevelArt
         {
             public Sprite Plank;
             public Sprite BrokenPlank;
@@ -509,13 +567,18 @@ namespace Odisea.EditorTools
             public Sprite Ladder;
             public float[] LadderXs = Array.Empty<float>();
 
-            public static LevelArt Load() => new()
+            /// <summary>Piezas de una carpeta de nivel (por defecto la del nivel 1); faltantes = null.</summary>
+            public static LevelArt Load(string folder = null)
             {
-                Plank = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PlankPath),
-                BrokenPlank = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.BrokenPlankPath),
-                Post = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PostPath),
-                Ladder = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.LadderPath),
-            };
+                folder ??= Path.GetDirectoryName(ArtImportBuilder.PlankPath).Replace('\\', '/');
+                return new LevelArt
+                {
+                    Plank = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Tablon.png"),
+                    BrokenPlank = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/TablonRoto1.png"),
+                    Post = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Viga.png"),
+                    Ladder = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Escalera.png"),
+                };
+            }
         }
 
         private const float PlatformThickness = 0.4f;
@@ -531,7 +594,7 @@ namespace Odisea.EditorTools
         /// Plataforma de un sentido. Con arte: tablón repetido a lo ancho (las cortas usan el tablón roto)
         /// y, si se pide, vigas que la sostienen desde el suelo. Sin arte: el cuadro café de siempre.
         /// </summary>
-        private static void CreatePlatform(string name, Transform parent, Sprite square, LevelArt art, Vector2 center,
+        internal static void CreatePlatform(string name, Transform parent, Sprite square, LevelArt art, Vector2 center,
             float width, int layer, bool posts = true)
         {
             Sprite plank = width <= 3f && art.BrokenPlank != null ? art.BrokenPlank : art.Plank;
@@ -591,7 +654,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Cocodrilo que patrulla: 2 golpes, daña a Ulises al tocarlo y da la vuelta en paredes y orillas.</summary>
-        private static void CreateCrocodile(Transform parent, Sprite square, Vector2 feet, int enemyLayer, int groundLayer, int playerLayer)
+        internal static void CreateCrocodile(Transform parent, Sprite square, Vector2 feet, int enemyLayer, int groundLayer, int playerLayer)
         {
             var crocodile = new GameObject("Cocodrilo") { layer = enemyLayer };
             crocodile.transform.SetParent(parent, false);
@@ -704,7 +767,7 @@ namespace Odisea.EditorTools
             platform.GetComponent<BoxCollider2D>().usedByEffector = true;
         }
 
-        private static GameObject CreateBlock(string name, Transform parent, Sprite sprite, Vector2 position,
+        internal static GameObject CreateBlock(string name, Transform parent, Sprite sprite, Vector2 position,
             Vector2 size, Color color, int layer)
         {
             var block = new GameObject(name) { layer = layer };
@@ -728,7 +791,7 @@ namespace Odisea.EditorTools
             }
         }
 
-        private static T LoadRequired<T>(string path) where T : UnityEngine.Object
+        internal static T LoadRequired<T>(string path) where T : UnityEngine.Object
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);
             if (asset == null)
@@ -736,7 +799,7 @@ namespace Odisea.EditorTools
             return asset;
         }
 
-        private static void SetSerialized(UnityEngine.Object target, string field, object value)
+        internal static void SetSerialized(UnityEngine.Object target, string field, object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(field)
@@ -778,6 +841,9 @@ namespace Odisea.EditorTools
                     break;
                 case Color color:
                     property.colorValue = color;
+                    break;
+                case Vector2 vector:
+                    property.vector2Value = vector;
                     break;
                 default:
                     throw new ArgumentException($"Tipo no soportado para '{field}'.");
@@ -966,7 +1032,7 @@ namespace Odisea.EditorTools
             EditorUtility.SetDirty(config);
         }
 
-        private static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             path = path.Replace('\\', '/');
             if (AssetDatabase.IsValidFolder(path))

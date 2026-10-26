@@ -32,7 +32,10 @@ namespace Odisea.Player
         public Vector2? ScriptedMove { get; set; }
 
         public Vector2 Move => ScriptedMove ?? (move != null ? move.ReadValue<Vector2>() : Vector2.zero);
-        public bool JumpHeld => jump != null && jump.IsPressed();
+        /// <summary>Si tiene valor, reemplaza al botón de salto mantenido (pruebas o escenas guiadas), como ScriptedMove.</summary>
+        public bool? ScriptedJumpHeld { get; set; }
+
+        public bool JumpHeld => ScriptedJumpHeld ?? (jump != null && jump.IsPressed());
         public bool CrouchHeld => crouch != null && crouch.IsPressed();
 
         private void Awake()

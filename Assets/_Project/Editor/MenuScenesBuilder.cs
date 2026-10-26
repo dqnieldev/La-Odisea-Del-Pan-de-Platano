@@ -1392,7 +1392,9 @@ namespace Odisea.EditorTools
 
         private static void SetBuildScenes()
         {
-            EditorBuildSettings.scenes = new[] { SplashScenePath, TitleScenePath, MenuScenePath, SandboxScenePath }
+            // Los niveles se agregan si ya se generaron (el tutorial lo crea Odisea > Niveles > Crear tutorial).
+            EditorBuildSettings.scenes = new[] { SplashScenePath, TitleScenePath, MenuScenePath, SandboxScenePath, TutorialBuilder.ScenePath }
+                .Where(File.Exists)
                 .Select(path => new EditorBuildSettingsScene(path, true))
                 .ToArray();
         }
