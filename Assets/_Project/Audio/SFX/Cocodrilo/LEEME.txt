@@ -1,0 +1,6 @@
+Efectos de sonido del cocodrilo. Nombres (wav, ogg o mp3; variantes con _1, _2...):
+  mordida         al cerrar el hocico (justo cuando hace daño)
+  mordida_abre    opcional: al empezar la mordida
+  dano            al recibir daño
+  muerte          al morir
+Después: Odisea > Sandbox > Crear escena de prueba del jugador.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Odisea.Core;
@@ -46,6 +47,11 @@ namespace Odisea.Enemies
         [SerializeField, Min(1)] private int biteDamage = 1;
         [Tooltip("Si le pegan por la espalda se voltea y muerde al instante, aunque esté esperando entre mordidas.")]
         [SerializeField] private bool counterBiteFromBehind = true;
+
+        /// <summary>Empieza a morder (abre el hocico).</summary>
+        public event Action BiteStarted;
+        /// <summary>Cierra el hocico (el momento en que la mordida hace daño).</summary>
+        public event Action BiteSnapped;
 
         private readonly List<Collider2D> hits = new();
         private readonly HashSet<IDamageable> bitten = new();
@@ -133,6 +139,7 @@ namespace Odisea.Enemies
                 contactDamage.enabled = false;
             if (animator != null)
                 animator.SetTrigger(BiteId);
+            BiteStarted?.Invoke();
 
             // Se lanza hacia adelante mientras abre el hocico (sin pasar paredes ni caerse de la orilla).
             float lungeSpeed = biteHitDelay > 0f ? lungeDistance / biteHitDelay : 0f;
@@ -147,6 +154,7 @@ namespace Odisea.Enemies
             }
             if (health == null || !health.IsDead)
             {
+                BiteSnapped?.Invoke();
                 // Si Ulises sigue en la zona al cerrar el hocico, recibe la mordida (una vez por mordida).
                 bitten.Clear();
                 var filter = new ContactFilter2D { useLayerMask = true, layerMask = biteTargets, useTriggers = true };

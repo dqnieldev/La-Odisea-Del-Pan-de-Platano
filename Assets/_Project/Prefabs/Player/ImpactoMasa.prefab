@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2356551164051661538}
   - component: {fileID: 7930455970137635264}
   - component: {fileID: 9218343521395760570}
+  - component: {fileID: 3251212788800827053}
   m_Layer: 7
   m_Name: ImpactoMasa
   m_TagString: Untagged
@@ -113,3 +114,19 @@ MonoBehaviour:
   loop: 0
   fadeOutDuration: 0.25
   destroyWhenDone: 1
+--- !u!114 &3251212788800827053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4499239158263805066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7125fd8ae07fb4c45b90f69dc1554be0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Odisea::Odisea.Core.SoundOnStart
+  sound:
+    clips: []
+    volume: 1
+    pitchVariation: 0.06

@@ -1,3 +1,4 @@
+using Odisea.Core;
 using UnityEngine;
 
 namespace Odisea.UI
@@ -12,7 +13,8 @@ namespace Odisea.UI
 
     /// <summary>
     /// Sonidos de la interfaz (hover, click, volver). Va una vez por escena de menú;
-    /// los botones lo usan con <see cref="Play"/>. Respeta el volumen general porque suena por el AudioListener.
+    /// los botones lo usan con <see cref="Play"/>. Respeta el volumen general (suena por el AudioListener)
+    /// y el de Efectos de Opciones.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public class UiAudio : MonoBehaviour
@@ -79,7 +81,7 @@ namespace Odisea.UI
                 _ => click,
             };
             if (clip != null)
-                source.PlayOneShot(clip, volume);
+                source.PlayOneShot(clip, volume * GameSettings.EffectsVolume);
         }
     }
 }

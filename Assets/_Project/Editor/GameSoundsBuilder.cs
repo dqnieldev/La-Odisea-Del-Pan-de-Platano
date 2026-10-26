@@ -1,0 +1,103 @@
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using UnityEditor;
+using UnityEngine;
+
+namespace Odisea.EditorTools
+{
+    /// <summary>
+    /// Efectos de sonido del juego: carpetas por personaje, nombres esperados y carga de variantes
+    /// (golpe_rodillo, golpe_rodillo_1, golpe_rodillo_2...). Los generadores de escenas los asignan con
+    /// <see cref="SetSound"/>; un sonido que todavía no existe queda vacío y no suena.
+    /// </summary>
+    public static class GameSoundsBuilder
+    {
+        public const string UlisesFolder = "Assets/_Project/Audio/SFX/Ulises";
+        public const string CrocodileFolder = "Assets/_Project/Audio/SFX/Cocodrilo";
+        private static readonly string[] Extensions = { ".wav", ".ogg", ".mp3" };
+
+        private const string UlisesNotes =
+            "Efectos de sonido de Ulises. Nombres (wav, ogg o mp3; variantes con _1, _2...: golpe_rodillo_1.wav):\n" +
+            "  golpe_rodillo   al golpear con el rodillo (el movimiento)\n" +
+            "  golpe_acierta   cuando el rodillo le da a un enemigo\n" +
+            "  lanzar_masa     al lanzar la bolita de masa\n" +
+            "  masa_impacto    cuando la bolita choca\n" +
+            "  dano            al recibir daño\n" +
+            "  muerte          al morir\n" +
+            "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";
+
+        private const string CrocodileNotes =
+            "Efectos de sonido del cocodrilo. Nombres (wav, ogg o mp3; variantes con _1, _2...):\n" +
+            "  mordida         al cerrar el hocico (justo cuando hace daño)\n" +
+            "  mordida_abre    opcional: al empezar la mordida\n" +
+            "  dano            al recibir daño\n" +
+            "  muerte          al morir\n" +
+            "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";
+
+        /// <summary>Crea las carpetas con una nota de los nombres que se esperan.</summary>
+        public static void EnsureFolders()
+        {
+            WriteNotes(UlisesFolder, UlisesNotes);
+            WriteNotes(CrocodileFolder, CrocodileNotes);
+        }
+
+        private static void WriteNotes(string folder, string text)
+        {
+            Directory.CreateDirectory(folder);
+            string path = $"{folder}/LEEME.txt";
+            if (!File.Exists(path) || File.ReadAllText(path) != text)
+            {
+                File.WriteAllText(path, text);
+                AssetDatabase.ImportAsset(path);
+            }
+        }
+
+        /// <summary>El sonido "nombre" y sus variantes "nombre_1", "nombre_2"... de la carpeta (vacío si no hay).</summary>
+        public static AudioClip[] Load(string folder, string name)
+        {
+            if (!Directory.Exists(folder))
+                return new AudioClip[0];
+            var pattern = new Regex($"^{Regex.Escape(name)}(_\\d+)?$", RegexOptions.IgnoreCase);
+            return Directory.GetFiles(folder)
+                .Where(f => Extensions.Contains(Path.GetExtension(f).ToLowerInvariant()) &&
+                            pattern.IsMatch(Path.GetFileNameWithoutExtension(f)))
+                .OrderBy(f => f, System.StringComparer.OrdinalIgnoreCase)
+                .Select(f => LoadClip(f.Replace('\\', '/')))
+                .Where(c => c != null)
+                .ToArray();
+        }
+
+        // Cortos y frecuentes: mono y descomprimidos al cargar, para que suenen sin retraso.
+        private static AudioClip LoadClip(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is AudioImporter importer)
+            {
+                AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+                if (!importer.forceToMono || settings.loadType != AudioClipLoadType.DecompressOnLoad)
+                {
+                    importer.forceToMono = true;
+                    settings.loadType = AudioClipLoadType.DecompressOnLoad;
+                    settings.compressionFormat = AudioCompressionFormat.ADPCM;
+                    settings.preloadAudioData = true;
+                    importer.defaultSampleSettings = settings;
+                    importer.SaveAndReimport();
+                }
+            }
+            return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+        }
+
+        /// <summary>Asigna los clips (y el volumen) a un campo SoundEffect de un componente.</summary>
+        public static void SetSound(Object target, string field, AudioClip[] clips, float volume = 1f)
+        {
+            var serialized = new SerializedObject(target);
+            SerializedProperty list = serialized.FindProperty($"{field}.clips")
+                ?? throw new System.InvalidOperationException($"{target.GetType().Name} no tiene el sonido '{field}'.");
+            list.arraySize = clips.Length;
+            for (int i = 0; i < clips.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = clips[i];
+            serialized.FindProperty($"{field}.volume").floatValue = volume;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+}

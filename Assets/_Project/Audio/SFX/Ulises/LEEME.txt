@@ -1,0 +1,8 @@
+Efectos de sonido de Ulises. Nombres (wav, ogg o mp3; variantes con _1, _2...: golpe_rodillo_1.wav):
+  golpe_rodillo   al golpear con el rodillo (el movimiento)
+  golpe_acierta   cuando el rodillo le da a un enemigo
+  lanzar_masa     al lanzar la bolita de masa
+  masa_impacto    cuando la bolita choca
+  dano            al recibir daño
+  muerte          al morir
+Después: Odisea > Sandbox > Crear escena de prueba del jugador.

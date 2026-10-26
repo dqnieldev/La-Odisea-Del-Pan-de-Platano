@@ -67,6 +67,7 @@ namespace Odisea.EditorTools
             EnsureHeartSprite(HeartFullPath, Chile, Crema);
             EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
             EnsureNoFrictionMaterial();
+            GameSoundsBuilder.EnsureFolders();
             EnsurePlayerConfig(groundLayer, enemyLayer, ladderLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
             // y las referencias a ellos quedarían vacías.
@@ -252,6 +253,17 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "renderers", renderers.ToArray());
             SetSerialized(feedback, "flashColor", Chile);
             SetSerialized(feedback, "rumble", true);
+
+            // Efectos de sonido (Audio/SFX/Ulises); los que falten no suenan.
+            var sounds = player.AddComponent<PlayerSounds>();
+            SetSerialized(sounds, "combat", combat);
+            SetSerialized(sounds, "health", health);
+            string ulises = GameSoundsBuilder.UlisesFolder;
+            GameSoundsBuilder.SetSound(sounds, "attack", GameSoundsBuilder.Load(ulises, "golpe_rodillo"));
+            GameSoundsBuilder.SetSound(sounds, "attackHit", GameSoundsBuilder.Load(ulises, "golpe_acierta"));
+            GameSoundsBuilder.SetSound(sounds, "throwDough", GameSoundsBuilder.Load(ulises, "lanzar_masa"));
+            GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(ulises, "dano"));
+            GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));
 
             CreateAttackVisual(player, combat, square, config, playerLayer, showBar: ulisesController == null);
             return player;
@@ -615,6 +627,16 @@ namespace Odisea.EditorTools
             if (crocodileAnimator != null)
                 SetSerialized(patrol, "animator", crocodileAnimator);
 
+            // Efectos de sonido (Audio/SFX/Cocodrilo); los que falten no suenan.
+            var sounds = crocodile.AddComponent<PatrolEnemySounds>();
+            SetSerialized(sounds, "enemy", patrol);
+            SetSerialized(sounds, "health", health);
+            string folder = GameSoundsBuilder.CrocodileFolder;
+            GameSoundsBuilder.SetSound(sounds, "biteStart", GameSoundsBuilder.Load(folder, "mordida_abre"));
+            GameSoundsBuilder.SetSound(sounds, "biteSnap", GameSoundsBuilder.Load(folder, "mordida"));
+            GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(folder, "dano"));
+            GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(folder, "muerte"));
+
             var feedback = crocodile.AddComponent<DamageFeedback>();
             SetSerialized(feedback, "health", health);
             SetSerialized(feedback, "visual", visual.transform);
@@ -642,6 +664,8 @@ namespace Odisea.EditorTools
             SetSerialized(flipbook, "loop", false);
             SetSerialized(flipbook, "fadeOutDuration", 0.25f);
             SetSerialized(flipbook, "destroyWhenDone", true);
+            var sound = root.AddComponent<SoundOnStart>();
+            GameSoundsBuilder.SetSound(sound, "sound", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "masa_impacto"));
             PrefabUtility.SaveAsPrefabAsset(root, path);
             UnityEngine.Object.DestroyImmediate(root);
             return LoadRequired<GameObject>(path);

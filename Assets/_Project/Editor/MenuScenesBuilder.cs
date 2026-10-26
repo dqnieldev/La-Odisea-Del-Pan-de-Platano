@@ -445,19 +445,21 @@ namespace Odisea.EditorTools
             }
 
             RectTransform audio = CreateSection("Audio", right, titleFont);
-            CreateText("Etiqueta volumen", audio, "Volumen general", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -195f), rectSize: new Vector2(540f, 60f));
-            Slider volume = CreateSlider(audio, rounded, new Vector2(-50f, -265f));
-            TMP_Text volumeValue = CreateText("Valor volumen", audio, "100%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(225f, -265f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
-            CreateText("Etiqueta música", audio, "Música", bodyFont, 40, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(0f, -365f), rectSize: new Vector2(540f, 60f));
-            Slider music = CreateSlider(audio, rounded, new Vector2(-50f, -435f));
-            TMP_Text musicValue = CreateText("Valor música", audio, "80%", bodyFont, 36, Cafe, anchor: new Vector2(0.5f, 1f),
-                position: new Vector2(225f, -435f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
+            // Tres volúmenes (general, música y efectos): etiqueta arriba y barra con su porcentaje abajo.
+            (Slider volume, TMP_Text volumeValue) = CreateVolumeRow(audio, rounded, bodyFont, "Volumen general", "100%", -180f);
+            (Slider music, TMP_Text musicValue) = CreateVolumeRow(audio, rounded, bodyFont, "Música", "80%", -315f);
+            (Slider effects, TMP_Text effectsValue) = CreateVolumeRow(audio, rounded, bodyFont, "Efectos", "100%", -450f);
             // Arriba/abajo cambian de volumen; izquierda/derecha ajustan el valor (no hay vecino a los lados).
-            volume.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = music };
-            music.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = volume };
+            Selectable[] audioRows = { volume, music, effects };
+            for (int i = 0; i < audioRows.Length; i++)
+            {
+                audioRows[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = i > 0 ? audioRows[i - 1] : null,
+                    selectOnDown = i < audioRows.Length - 1 ? audioRows[i + 1] : null,
+                };
+            }
             CreateHint(audio, bodyFont, "Arriba / abajo para elegir   ·   izquierda / derecha para ajustar");
 
             RectTransform screen = CreateSection("Pantalla", right, titleFont);
@@ -535,6 +537,8 @@ namespace Odisea.EditorTools
             SetField(options, "volumeValue", volumeValue);
             SetField(options, "musicSlider", music);
             SetField(options, "musicValue", musicValue);
+            SetField(options, "effectsSlider", effects);
+            SetField(options, "effectsValue", effectsValue);
             SetField(options, "windowModeSelector", windowMode);
             SetField(options, "brightnessSlider", brightness);
             SetField(options, "brightnessValue", brightnessValue);
@@ -1143,6 +1147,18 @@ namespace Odisea.EditorTools
             // El Slider estira la perilla a toda la altura (anclas y de 0 a 1); con alto extra 0 mide 44 × 44 y queda circular.
             handle.rectTransform.sizeDelta = new Vector2(44f, 0f);
             return slider;
+        }
+
+        private static (Slider, TMP_Text) CreateVolumeRow(RectTransform section, Sprite rounded, TMP_FontAsset font, string label,
+            string value, float y)
+        {
+            CreateText($"Etiqueta {label}", section, label, font, 40, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(0f, y), rectSize: new Vector2(540f, 60f));
+            Slider slider = CreateSlider(section, rounded, new Vector2(-50f, y - 65f));
+            slider.gameObject.name = $"Slider {label}";
+            TMP_Text text = CreateText($"Valor {label}", section, value, font, 36, Cafe, anchor: new Vector2(0.5f, 1f),
+                position: new Vector2(225f, y - 65f), rectSize: new Vector2(120f, 60f), alignment: TextAlignmentOptions.Left);
+            return (slider, text);
         }
 
         // ---------- Sección Pantalla ----------
