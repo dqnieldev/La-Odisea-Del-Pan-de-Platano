@@ -581,10 +581,12 @@ namespace Odisea.EditorTools
             var renderer = visual.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = 6;
             var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.CrocodileControllerPath);
+            Animator crocodileAnimator = null;
             if (controller != null)
             {
                 renderer.sprite = FirstSprite("Assets/_Project/Art/Characters/Enemigos/Cocodrilo/Cocodrilo_Walk.png");
-                visual.AddComponent<Animator>().runtimeAnimatorController = controller;
+                crocodileAnimator = visual.AddComponent<Animator>();
+                crocodileAnimator.runtimeAnimatorController = controller;
             }
             else
             {
@@ -605,6 +607,10 @@ namespace Odisea.EditorTools
             var patrol = crocodile.AddComponent<PatrolEnemy>();
             SetSerialized(patrol, "groundLayers", 1 << groundLayer);
             SetSerialized(patrol, "health", health);
+            // Muerde a Ulises cuando lo tiene cerca y enfrente (además del daño al tocarlo).
+            SetSerialized(patrol, "biteTargets", 1 << playerLayer);
+            if (crocodileAnimator != null)
+                SetSerialized(patrol, "animator", crocodileAnimator);
 
             var feedback = crocodile.AddComponent<DamageFeedback>();
             SetSerialized(feedback, "health", health);

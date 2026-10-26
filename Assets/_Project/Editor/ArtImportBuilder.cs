@@ -25,6 +25,8 @@ namespace Odisea.EditorTools
         // Si alguna no existe se usa el sustituto de ulises.png / correrulises.png.
         private const string UlisesFolderSource = "Personajes/sprite en png/ulises/";
         private const string CrocodileSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo.png";
+        private const string CrocodileWalkSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_caminar.png";
+        private const string CrocodileBiteSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_mordida.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
         // Mismas piezas solo con contorno (estilo boceto) para el tutorial.
         private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/spritesheet_nivel1BN.png";
@@ -301,21 +303,59 @@ namespace Odisea.EditorTools
 
         private static void ImportCrocodile()
         {
-            Sheet sheet = LoadSheet(CrocodileSheet);
-            if (sheet == null)
-                return;
-            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 15).SelectMany(r => r).ToList();
-            Debug.Log($"[Odisea] Cocodrilo: {frames.Count} cuadros.");
-            float ppu = MedianCoreHeight(frames) / CrocodileHeight;
-
             EnsureFolder(CrocodileFolder);
-            List<Sprite> sprites = WriteStrip(sheet, frames, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
-            AnimationClip walk = CreateClip($"{CrocodileFolder}/Cocodrilo_Walk.anim", sprites, 10f, loop: true);
+            List<Sprite> walkSprites;
+            float ppu;
+
+            // Caminar nuevo (2 filas de 6): solo la primera fila, que tiene el mismo tamaño en todos los cuadros;
+            // en la segunda el cocodrilo cambia de tamaño entre cuadros y "palpitaría" al caminar.
+            Sheet walkSheet = LoadSheet(CrocodileWalkSheet, warnIfMissing: false);
+            List<List<Frame>> walkRows = walkSheet != null ? FindFrames(walkSheet, coreFraction: 0.3f, attachDistance: 15) : null;
+            if (walkRows != null && walkRows[0].Count >= 4)
+            {
+                List<Frame> walk = walkRows[0];
+                Debug.Log($"[Odisea] cocodrilo_caminar.png: {walk.Count} cuadros (fila de arriba).");
+                ppu = MedianCoreHeight(walk) / CrocodileHeight;
+                walkSprites = WriteStrip(walkSheet, walk, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
+            }
+            else
+            {
+                Sheet sheet = LoadSheet(CrocodileSheet);
+                if (sheet == null)
+                    return;
+                List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 15).SelectMany(r => r).ToList();
+                Debug.Log($"[Odisea] Cocodrilo: {frames.Count} cuadros.");
+                ppu = MedianCoreHeight(frames) / CrocodileHeight;
+                walkSprites = WriteStrip(sheet, frames, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
+            }
+            AnimationClip walkClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Walk.anim", walkSprites, 10f, loop: true);
 
             AnimatorController controller = ResetController(CrocodileControllerPath);
-            AnimatorState state = controller.layers[0].stateMachine.AddState("Walk");
-            state.motion = walk;
-            controller.layers[0].stateMachine.defaultState = state;
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState walkState = machine.AddState("Walk");
+            walkState.motion = walkClip;
+            machine.defaultState = walkState;
+
+            // Mordida (6 cuadros): 0 listo, 1 se levanta con el hocico abierto, 2 se lanza, 3 cierra (aquí daña),
+            // 4-5 se recupera. A 12 fps dura 0.5 s y cierra a los 0.25 s (los tiempos de PatrolEnemy).
+            // Viene en el mismo lienzo y escala que el caminar: usa su escala.
+            Sheet biteSheet = LoadSheet(CrocodileBiteSheet, warnIfMissing: false);
+            if (biteSheet != null)
+            {
+                List<Frame> bite = FindFrames(biteSheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] cocodrilo_mordida.png: {bite.Count} cuadros.");
+                if (bite.Count >= 6)
+                {
+                    List<Sprite> biteSprites = WriteStrip(biteSheet, bite, $"{CrocodileFolder}/Cocodrilo_Bite.png", ppu, "Cocodrilo_Bite");
+                    AnimationClip biteClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Bite.anim", biteSprites, 12f, loop: false);
+                    controller.AddParameter("Bite", AnimatorControllerParameterType.Trigger);
+                    AnimatorState biteState = machine.AddState("Bite");
+                    biteState.motion = biteClip;
+                    AnyState(machine, biteState, "Bite", toSelf: false);
+                    ExitWhenDone(biteState, walkState);
+                }
+            }
             EditorUtility.SetDirty(controller);
         }
 

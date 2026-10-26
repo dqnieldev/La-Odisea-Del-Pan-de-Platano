@@ -71,8 +71,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.033898305}
-  spritePixelsToUnits: 114.73685
+  spritePivot: {x: 0.5, y: 0.011527377}
+  spritePixelsToUnits: 350.5263
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -128,10 +128,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -148,12 +148,12 @@ TextureImporter:
       name: Cocodrilo_Walk_1
       rect:
         serializedVersion: 2
-        x: 170
+        x: 524
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -170,12 +170,12 @@ TextureImporter:
       name: Cocodrilo_Walk_2
       rect:
         serializedVersion: 2
-        x: 340
+        x: 1048
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -192,12 +192,12 @@ TextureImporter:
       name: Cocodrilo_Walk_3
       rect:
         serializedVersion: 2
-        x: 510
+        x: 1572
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -214,12 +214,12 @@ TextureImporter:
       name: Cocodrilo_Walk_4
       rect:
         serializedVersion: 2
-        x: 680
+        x: 2096
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -236,12 +236,12 @@ TextureImporter:
       name: Cocodrilo_Walk_5
       rect:
         serializedVersion: 2
-        x: 850
+        x: 2620
         y: 0
-        width: 170
-        height: 118
+        width: 524
+        height: 347
       alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
+      pivot: {x: 0.5, y: 0.011527377}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -250,50 +250,6 @@ TextureImporter:
       bones: []
       spriteID: f8d536aa269538490800000000000000
       internalID: -7745248653846815345
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Cocodrilo_Walk_6
-      rect:
-        serializedVersion: 2
-        x: 1020
-        y: 0
-        width: 170
-        height: 118
-      alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 839360974a7ef1d90800000000000000
-      internalID: -7124721391885731528
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Cocodrilo_Walk_7
-      rect:
-        serializedVersion: 2
-        x: 1190
-        y: 0
-        width: 170
-        height: 118
-      alignment: 9
-      pivot: {x: 0.5, y: 0.033898305}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: d9d54d2f16b3f3390800000000000000
-      internalID: -7836479534729503331
       vertices: []
       indices: 
       edges: []
@@ -318,8 +274,6 @@ TextureImporter:
       Cocodrilo_Walk_3: -3988026650439431861
       Cocodrilo_Walk_4: 1535469452910117048
       Cocodrilo_Walk_5: -7745248653846815345
-      Cocodrilo_Walk_6: -7124721391885731528
-      Cocodrilo_Walk_7: -7836479534729503331
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
