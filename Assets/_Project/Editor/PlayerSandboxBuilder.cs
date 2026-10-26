@@ -68,6 +68,7 @@ namespace Odisea.EditorTools
             EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
             EnsureNoFrictionMaterial();
             EnsureFlashMaterial();
+            EnsureSwooshSprite();
             GameSoundsBuilder.EnsureFolders();
             EnsurePlayerConfig(groundLayer, enemyLayer, ladderLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
@@ -288,15 +289,16 @@ namespace Odisea.EditorTools
             barRenderer.color = Madera;
             barRenderer.sortingOrder = 12;
 
-            // Estela: ocupa exactamente el área que daña el golpe (PlayerConfig.attackOffset / attackSize).
+            // Estela: media luna del tamaño exacto del área que daña el golpe (PlayerConfig.attackOffset / attackSize).
+            // Su pivote está a la izquierda (lado de Ulises) para que crezca hacia adelante; su orilla de enfrente
+            // marca hasta dónde llega el golpe.
             var trail = new GameObject("Estela") { layer = layer };
             trail.transform.SetParent(player.transform, false);
-            trail.transform.localPosition = config.attackOffset;
+            trail.transform.localPosition = new Vector3(config.attackOffset.x - config.attackSize.x / 2f, config.attackOffset.y, 0f);
             trail.transform.localScale = new Vector3(config.attackSize.x, config.attackSize.y, 1f);
             var trailRenderer = trail.AddComponent<SpriteRenderer>();
-            trailRenderer.sprite = square;
-            // Con arte el rodillo ya se ve en el dibujo: la estela del área de golpe queda invisible.
-            trailRenderer.color = new Color(Platano.r, Platano.g, Platano.b, showBar ? 0.45f : 0f);
+            trailRenderer.sprite = LoadRequired<Sprite>(SwooshPath);
+            trailRenderer.color = Color.white; // Los colores vienen en la textura; el alfa lo anima PlayerAttackVisual.
             trailRenderer.sortingOrder = 9;
 
             var attackVisual = player.AddComponent<PlayerAttackVisual>();
@@ -862,6 +864,57 @@ namespace Odisea.EditorTools
         }
 
         private const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
+        private const string SwooshPath = "Assets/_Project/Art/VFX/EstelaGolpe.png";
+
+        /// <summary>
+        /// Media luna para la estela del golpe (1 × 1 unidad, pivote a la izquierda): relleno amarillo plátano que se
+        /// desvanece hacia Ulises y una línea café en la orilla de enfrente (hasta dónde llega el golpe), para que
+        /// se lea sobre fondos claros y oscuros.
+        /// </summary>
+        private static void EnsureSwooshSprite()
+        {
+            if (File.Exists(SwooshPath))
+                return;
+            EnsureFolder(Path.GetDirectoryName(SwooshPath));
+            const int size = 256;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int py = 0; py < size; py++)
+            {
+                for (int px = 0; px < size; px++)
+                {
+                    float x = (px + 0.5f) / size, y = (py + 0.5f) / size - 0.5f;
+                    // Afuera: media elipse que toca la orilla derecha. Adentro: otra elipse corrida a la izquierda
+                    // y más alta, que "muerde" la primera y deja la media luna.
+                    float outer = 1f - Mathf.Sqrt(x * x + (y / 0.5f) * (y / 0.5f));
+                    float innerX = (x + 0.35f) / 1.05f;
+                    float inner = Mathf.Sqrt(innerX * innerX + (y / 0.62f) * (y / 0.62f)) - 1f;
+                    float mask = Mathf.Clamp01(outer / 0.015f) * Mathf.Clamp01(inner / 0.05f);
+                    // Línea de la orilla: los primeros ~4 % hacia adentro desde el borde de afuera.
+                    float rim = 1f - Mathf.Clamp01((outer - 0.03f) / 0.015f);
+                    float fillAlpha = Mathf.Lerp(0.1f, 0.55f, x * x);
+                    Color pixel = Color.Lerp(Platano, Cafe, rim);
+                    pixel.a = mask * Mathf.Lerp(fillAlpha, 0.9f, rim);
+                    texture.SetPixel(px, py, pixel);
+                }
+            }
+            File.WriteAllBytes(SwooshPath, texture.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(SwooshPath);
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(SwooshPath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = size;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteAlignment = (int)SpriteAlignment.Custom;
+            settings.spritePivot = new Vector2(0f, 0.5f);
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
+        }
 
         // Material de sprite con destello (shader Odisea/Sprites/Flash) para los enemigos.
         private static void EnsureFlashMaterial()
