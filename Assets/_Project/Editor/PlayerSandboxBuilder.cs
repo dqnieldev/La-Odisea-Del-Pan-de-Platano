@@ -497,6 +497,8 @@ namespace Odisea.EditorTools
         }
 
         private const float PlatformThickness = 0.4f;
+        // Velocidad del cocodrilo; si cambia, ajustar también ArtImportBuilder.CrocodileWalkFps (las patas).
+        private const float CrocodileSpeed = 2.6f;
         // Cuánto se dibuja a Ulises por debajo de su collider (margen de contacto de la física + grosor del contorno).
         private const float FeetSink = 0.03f;
 
@@ -606,6 +608,7 @@ namespace Odisea.EditorTools
 
             var patrol = crocodile.AddComponent<PatrolEnemy>();
             SetSerialized(patrol, "groundLayers", 1 << groundLayer);
+            SetSerialized(patrol, "speed", CrocodileSpeed);
             SetSerialized(patrol, "health", health);
             // Muerde a Ulises cuando lo tiene cerca y enfrente (además del daño al tocarlo).
             SetSerialized(patrol, "biteTargets", 1 << playerLayer);

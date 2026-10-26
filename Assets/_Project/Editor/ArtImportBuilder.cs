@@ -55,6 +55,9 @@ namespace Odisea.EditorTools
         // el centro del cuerpo queda a esta altura sobre los pies del collider.
         private const float BodyCenterAboveFeet = 0.95f;
         private const float CrocodileHeight = 0.95f;
+        // Ritmo de las patas: 10 fps se veía bien a velocidad 1.5; a 2.6 (la de la sandbox) va en proporción
+        // para que no parezca que patina.
+        private const float CrocodileWalkFps = 17f;
         // Grosor del tablón = grosor de las plataformas de la sandbox.
         private const float PlankHeight = 0.45f;
         // Diámetro de la bolita de masa (su collider mide 0.4).
@@ -328,7 +331,7 @@ namespace Odisea.EditorTools
                 ppu = MedianCoreHeight(frames) / CrocodileHeight;
                 walkSprites = WriteStrip(sheet, frames, $"{CrocodileFolder}/Cocodrilo_Walk.png", ppu, "Cocodrilo_Walk");
             }
-            AnimationClip walkClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Walk.anim", walkSprites, 10f, loop: true);
+            AnimationClip walkClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Walk.anim", walkSprites, CrocodileWalkFps, loop: true);
 
             AnimatorController controller = ResetController(CrocodileControllerPath);
             AnimatorStateMachine machine = controller.layers[0].stateMachine;

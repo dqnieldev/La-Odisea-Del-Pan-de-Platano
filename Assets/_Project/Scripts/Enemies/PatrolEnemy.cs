@@ -10,7 +10,8 @@ namespace Odisea.Enemies
     /// Da la vuelta al llegar a una pared o a la orilla, así nunca se cae. El dibujo debe mirar a la derecha.
     /// El daño por contacto lo pone un <see cref="Hazard"/> en el mismo objeto.
     /// Opcional: si ve a Ulises cerca y enfrente, se detiene y muerde (trigger "Bite" del Animator);
-    /// el daño de la mordida llega en el cuadro en que cierra el hocico.
+    /// el daño de la mordida llega en el cuadro en que cierra el hocico. Si le pegan por la espalda,
+    /// se voltea y muerde de inmediato (contraataque).
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     public class PatrolEnemy : MonoBehaviour
@@ -43,6 +44,8 @@ namespace Odisea.Enemies
         [Tooltip("Espera entre una mordida y la siguiente.")]
         [SerializeField, Min(0f)] private float biteCooldown = 1.2f;
         [SerializeField, Min(1)] private int biteDamage = 1;
+        [Tooltip("Si le pegan por la espalda se voltea y muerde al instante, aunque esté esperando entre mordidas.")]
+        [SerializeField] private bool counterBiteFromBehind = true;
 
         private readonly List<Collider2D> hits = new();
         private readonly HashSet<IDamageable> bitten = new();
@@ -58,6 +61,31 @@ namespace Odisea.Enemies
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             direction = startDirection >= 0 ? 1 : -1;
             ApplyFacing();
+        }
+
+        private void OnEnable()
+        {
+            if (health != null)
+                health.Damaged += OnDamaged;
+        }
+
+        private void OnDisable()
+        {
+            if (health != null)
+                health.Damaged -= OnDamaged;
+        }
+
+        // Golpe por la espalda (el atacante o la bolita están del lado contrario al que mira): se voltea y muerde.
+        private void OnDamaged(DamageInfo info)
+        {
+            if (!counterBiteFromBehind || biting || biteTargets.value == 0 || health.IsDead)
+                return;
+            float side = info.SourcePosition.x - body.position.x;
+            if (Mathf.Approximately(side, 0f) || Mathf.Sign(side) == direction)
+                return;
+            direction = -direction;
+            ApplyFacing();
+            StartCoroutine(Bite());
         }
 
         private void FixedUpdate()
@@ -99,6 +127,10 @@ namespace Odisea.Enemies
         private IEnumerator Bite()
         {
             biting = true;
+            // Mientras muerde, tocarlo no daña: el daño es solo al cerrar el hocico (así se puede esquivar).
+            var contactDamage = GetComponent<Hazard>();
+            if (contactDamage != null)
+                contactDamage.enabled = false;
             if (animator != null)
                 animator.SetTrigger(BiteId);
 
@@ -128,6 +160,8 @@ namespace Odisea.Enemies
             }
 
             yield return new WaitForSeconds(Mathf.Max(0f, biteDuration - biteHitDelay));
+            if (contactDamage != null)
+                contactDamage.enabled = true;
             biting = false;
             cooldownTimer = biteCooldown;
         }
