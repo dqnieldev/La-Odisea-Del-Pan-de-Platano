@@ -63,7 +63,8 @@ namespace Odisea.EditorTools
         private const int EnclosedHoleMinArea = 120;
         // Orilla suave: píxeles claros junto al fondo se vuelven semitransparentes en vez de dejar un halo blanco.
         private const int FringeLightness = 150;
-        private const int Padding = 4;
+        // Borde vacío alrededor de cada dibujo (en píxeles de la hoja); quien acomode piezas lo puede descontar.
+        public const int Padding = 4;
 
         [MenuItem("Odisea/Arte/Importar arte de la sandbox")]
         public static void ImportAll()

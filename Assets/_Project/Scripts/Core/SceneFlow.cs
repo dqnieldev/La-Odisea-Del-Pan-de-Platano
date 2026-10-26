@@ -58,8 +58,9 @@ namespace Odisea.Core
         }
 
         /// <summary>Vuelve a cargar la escena actual (reiniciar nivel).</summary>
-        public static void ReloadCurrent() =>
-            Load(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        /// <param name="viewportCenter">Punto de la pantalla (0-1) hacia donde se cierra el iris (p. ej. Ulises al morir).</param>
+        public static void ReloadCurrent(Vector2? viewportCenter = null) =>
+            Load(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name, viewportCenter);
 
         public static void Quit()
         {

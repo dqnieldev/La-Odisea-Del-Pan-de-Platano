@@ -193,8 +193,9 @@ namespace Odisea.EditorTools
             Animator spriteAnimator = null;
             if (ulisesController != null)
             {
-                // Arte real: el pivote de cada cuadro está en los pies, así que el visual va en la base del collider.
-                visual.transform.localPosition = new Vector3(0f, -0.8f, 0f);
+                // Arte real: el pivote de cada cuadro está en los pies, así que el visual va en la base del collider,
+                // un poco hundido: la física deja ~1.5 cm entre el collider y el suelo, y así el zapato pisa el contorno.
+                visual.transform.localPosition = new Vector3(0f, -0.8f - FeetSink, 0f);
                 renderer.sprite = FirstSprite("Assets/_Project/Art/Characters/Ulises/Ulises_Idle.png");
                 spriteAnimator = visual.AddComponent<Animator>();
                 spriteAnimator.runtimeAnimatorController = ulisesController;
@@ -496,6 +497,8 @@ namespace Odisea.EditorTools
         }
 
         private const float PlatformThickness = 0.4f;
+        // Cuánto se dibuja a Ulises por debajo de su collider (margen de contacto de la física + grosor del contorno).
+        private const float FeetSink = 0.03f;
 
         /// <summary>
         /// Plataforma de un sentido. Con arte: tablón repetido a lo ancho (las cortas usan el tablón roto)
@@ -522,7 +525,9 @@ namespace Odisea.EditorTools
             float plankHeight = plank.bounds.size.y;
             var drawing = new GameObject("Tablón") { layer = layer };
             drawing.transform.SetParent(platform.transform, false);
-            drawing.transform.localPosition = new Vector3(0f, PlatformThickness / 2f - plankHeight / 2f, 0f);
+            // El PNG trae un borde vacío arriba: se sube eso para que la madera dibujada quede justo donde se pisa.
+            float emptyTop = ArtImportBuilder.Padding / plank.pixelsPerUnit;
+            drawing.transform.localPosition = new Vector3(0f, PlatformThickness / 2f - plankHeight / 2f + emptyTop, 0f);
             var renderer = drawing.AddComponent<SpriteRenderer>();
             renderer.sprite = plank;
             renderer.drawMode = SpriteDrawMode.Tiled;
