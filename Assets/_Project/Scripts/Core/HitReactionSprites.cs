@@ -17,8 +17,12 @@ namespace Odisea.Core
         [SerializeField] private Sprite knockedOut;
         [Tooltip("Segundos que dura el dibujo de golpeado antes de volver a quieto.")]
         [SerializeField, Min(0f)] private float hitDuration = 0.35f;
+        [Tooltip("Quieto, mira a la izquierda (hacia donde llega Ulises) en vez de como está dibujado.")]
+        [SerializeField] private bool faceLeft;
 
         private float hitTimer;
+
+        private void Awake() => target.flipX = faceLeft;
 
         private void OnEnable()
         {
@@ -40,7 +44,7 @@ namespace Odisea.Core
             if (hitTimer <= 0f)
             {
                 target.sprite = idle;
-                target.flipX = false;
+                target.flipX = faceLeft;
             }
         }
 

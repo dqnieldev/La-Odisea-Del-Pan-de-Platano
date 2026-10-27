@@ -492,7 +492,7 @@ namespace Odisea.EditorTools
         // Muñeco de práctica: tira de 3 cuadros (quieto, golpeado, noqueado) con los pies (la arena del palo) en el
         // mismo punto; alto del cuadro quieto. Erizos: franja que hace daño, ancho total del dibujo.
         public const string DummyPath = TutorialFolder + "/Muneco.png";
-        private const float DummyHeight = 1.7f;
+        public const float DummyHeight = UlisesStandHeight; // De la altura de Ulises.
         public const string UrchinsPath = TutorialFolder + "/Erizos.png";
         private const float UrchinsWidth = 5f;
 

@@ -325,21 +325,37 @@ namespace Odisea.EditorTools
         // ---------- Muñeco de práctica y erizos ----------
 
         /// <summary>
-        /// Muñeco de práctica dibujado (si ya se importó): quieto, golpeado al recibir un golpe y noqueado al morir.
-        /// El dibujo se para en la arena (el centro del collider está a medio alto del suelo).
+        /// Muñeco de práctica dibujado (si ya se importó), de la altura de Ulises y mirando hacia donde él llega:
+        /// quieto, golpeado al recibir un golpe y noqueado al morir. Va delante de la orilla de la arena, con una
+        /// sombra a sus pies para que no se pierda con el paisaje.
         /// </summary>
         private static void DressDummy(GameObject dummy)
         {
             Sprite[] frames = ArtImportBuilder.LoadStrip(ArtImportBuilder.DummyPath);
             if (frames.Length == 0)
                 return;
+            // El collider crece con el dibujo, con la base en el suelo (el centro del muñeco está a medio alto).
+            var box = dummy.GetComponent<BoxCollider2D>();
+            float ground = -box.size.y / 2f;
+            box.size = new Vector2(1.1f, ArtImportBuilder.DummyHeight);
+            box.offset = new Vector2(0f, ground + ArtImportBuilder.DummyHeight / 2f);
+
             Transform visual = dummy.transform.Find("Visual");
             visual.localScale = Vector3.one;
-            visual.localPosition = new Vector3(0f, -dummy.GetComponent<BoxCollider2D>().size.y / 2f, 0f);
+            visual.localPosition = new Vector3(0f, ground, 0f);
             var renderer = visual.GetComponent<SpriteRenderer>();
             renderer.sprite = frames[0];
             renderer.color = Color.white;
-            renderer.sortingOrder = BehindSandOrder; // La arena de su palo, tras la orilla.
+            renderer.flipX = true;
+            renderer.sortingOrder = -3; // Delante de la orilla de la arena y de su sombra.
+
+            var shadow = new GameObject("Sombra").AddComponent<SpriteRenderer>();
+            shadow.transform.SetParent(dummy.transform, false);
+            shadow.transform.localPosition = new Vector3(0f, ground + 0.03f, 0f);
+            shadow.transform.localScale = new Vector3(1.5f, 0.28f, 1f);
+            shadow.sprite = PlayerSandboxBuilder.LoadRequired<Sprite>(CirclePath);
+            shadow.color = new Color(0.24f, 0.16f, 0.08f, 0.3f);
+            shadow.sortingOrder = -4;
 
             var reaction = dummy.AddComponent<HitReactionSprites>();
             PlayerSandboxBuilder.SetSerialized(reaction, "health", dummy.GetComponent<Health>());
@@ -347,6 +363,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(reaction, "idle", frames[0]);
             PlayerSandboxBuilder.SetSerialized(reaction, "hit", frames[Mathf.Min(1, frames.Length - 1)]);
             PlayerSandboxBuilder.SetSerialized(reaction, "knockedOut", frames[^1]);
+            PlayerSandboxBuilder.SetSerialized(reaction, "faceLeft", true);
         }
 
         /// <summary>Erizos de mar sobre la franja que hace daño (el bloque rojo deja de pintarse).</summary>
