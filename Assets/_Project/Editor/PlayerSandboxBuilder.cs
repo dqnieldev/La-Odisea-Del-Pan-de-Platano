@@ -371,7 +371,7 @@ namespace Odisea.EditorTools
             SetSerialized(attackVisual, "trail", trailRenderer);
         }
 
-        internal static void CreateDummy(Transform parent, Sprite square, int enemyLayer, Vector2 center)
+        internal static GameObject CreateDummy(Transform parent, Sprite square, int enemyLayer, Vector2 center)
         {
             var dummy = new GameObject("Muñeco de práctica") { layer = enemyLayer };
             dummy.transform.SetParent(parent, false);
@@ -398,6 +398,7 @@ namespace Odisea.EditorTools
             SetSerialized(feedback, "visual", visual.transform);
             SetSerialized(feedback, "renderers", new UnityEngine.Object[] { renderer });
             SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+            return dummy;
         }
 
         private static void CreateHud(Health playerHealth, Sprite fullHeart, Sprite emptyHeart, bool showControls)

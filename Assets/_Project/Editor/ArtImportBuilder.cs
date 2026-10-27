@@ -489,6 +489,12 @@ namespace Odisea.EditorTools
         // como borde del sprite para acomodar encima el título y los botones.
         public const string SignPath = TutorialFolder + "/Letrero.png";
         private const float SignWidth = 4.2f;
+        // Muñeco de práctica: tira de 3 cuadros (quieto, golpeado, noqueado) con los pies (la arena del palo) en el
+        // mismo punto; alto del cuadro quieto. Erizos: franja que hace daño, ancho total del dibujo.
+        public const string DummyPath = TutorialFolder + "/Muneco.png";
+        private const float DummyHeight = 1.7f;
+        public const string UrchinsPath = TutorialFolder + "/Erizos.png";
+        private const float UrchinsWidth = 5f;
 
         // Tamaños en el juego (unidades). El papel cubre la vista (la cámara ve ~25 x 14).
         public const float PaperSize = 26f;
@@ -564,6 +570,14 @@ namespace Odisea.EditorTools
             WriteObstacle("tutorial_torre.png", TowerPath, TowerHeight);
             WriteObstacle("tutorial_bordillo.png", CurbPath, CurbHeight);
             WriteSign();
+            WriteDummy();
+            if (ReadImage("tutorial_erizos.png") is { } urchins)
+            {
+                RectInt bounds = OpaqueBounds(urchins);
+                // Van delante de la arena (tienen que verse bien: hacen daño), apenas hundidos.
+                float ppu = bounds.width / UrchinsWidth;
+                WriteRegion(urchins, bounds, UrchinsPath, ppu, new Vector2(0.5f, 0.04f * ppu / bounds.height));
+            }
 
             WritePiece("tutorial_muelle.png", PierPath, PierHeight);
             WritePiece("tutorial_panga.png", BoatPath, BoatHeight);
@@ -689,6 +703,61 @@ namespace Odisea.EditorTools
             int width = Span(middle, out int middleLeft);
             float centerX = middleLeft + width / 2f - bounds.xMin;
             WriteRegion(image, bounds, path, ppu, new Vector2(centerX / bounds.width, ObstacleSink * ppu / bounds.height));
+        }
+
+        // Cuadros del muñeco separados por columnas vacías; cada uno se ancla en el centro de la arena de su palo
+        // (la fila de más abajo), así el palo no "brinca" al cambiar de cuadro.
+        private static void WriteDummy()
+        {
+            if (ReadImage("tutorial_muneco.png") is not { } sheet)
+                return;
+            List<RectInt> frames = SplitByGaps(sheet, OpaqueBounds(sheet), minGap: 20);
+            if (frames.Count != 3)
+            {
+                Debug.LogWarning($"[Odisea] tutorial_muneco.png: se esperaban 3 cuadros y hay {frames.Count}.");
+                if (frames.Count == 0)
+                    return;
+            }
+
+            var anchors = new List<int>();
+            foreach (RectInt frame in frames)
+            {
+                // Centro de lo que ocupa la franja de abajo (la arena), no del cuadro: los brazos lo descuadran.
+                int band = Mathf.Max(1, frame.height / 30), left = int.MaxValue, right = int.MinValue;
+                for (int y = frame.yMin; y < frame.yMin + band; y++)
+                for (int x = frame.xMin; x < frame.xMax; x++)
+                {
+                    if (sheet.Pixels[y * sheet.Width + x].a <= 128)
+                        continue;
+                    left = Mathf.Min(left, x);
+                    right = Mathf.Max(right, x);
+                }
+                anchors.Add(left <= right ? (left + right) / 2 : frame.xMin + frame.width / 2);
+            }
+
+            int half = frames.Select((f, i) => Mathf.Max(anchors[i] - f.xMin, f.xMax - anchors[i])).Max() + Padding;
+            int cellWidth = half * 2;
+            int cellHeight = frames.Max(f => f.height) + Padding * 2;
+            int stripWidth = cellWidth * frames.Count;
+            var pixels = new Color32[stripWidth * cellHeight];
+            for (int i = 0; i < frames.Count; i++)
+            {
+                RectInt frame = frames[i];
+                for (int y = 0; y < frame.height; y++)
+                for (int x = 0; x < frame.width; x++)
+                {
+                    int tx = i * cellWidth + half + (frame.xMin + x - anchors[i]);
+                    pixels[(Padding + y) * stripWidth + tx] = sheet.Pixels[(frame.yMin + y) * sheet.Width + frame.xMin + x];
+                }
+            }
+
+            float ppu = frames[0].height / (DummyHeight + ObstacleSink);
+            var pivot = new Vector2(0.5f, (Padding + ObstacleSink * ppu) / cellHeight);
+            Dictionary<string, GUID> previousIds = TakeSpriteIds(DummyPath);
+            WritePng(DummyPath, pixels, stripWidth, cellHeight);
+            ConfigureTexture(DummyPath, ppu, pivot, Vector4.zero, frames.Count > 1);
+            if (frames.Count > 1)
+                SliceGrid(DummyPath, frames.Count, cellWidth, cellHeight, pivot, "Muneco", previousIds);
         }
 
         // La tabla son las filas que ocupan casi todo el ancho; su cara, la zona clara que rodea su centro.

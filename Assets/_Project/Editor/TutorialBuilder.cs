@@ -96,13 +96,13 @@ namespace Odisea.EditorTools
             // 6. Golpear con el rodillo.
             CreateSign(root, square, titleFont, bodyFont, 64f, "GOLPEAR",
                 Prompt.Of(new[] { "kb_j", "/", "mouse_left" }, new[] { "xbox_x" }, new[] { "ps_square" }));
-            PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(68.5f, 0.75f));
+            DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(68.5f, 0.75f)));
 
             // 7. Lanzar masa: el muñeco está del otro lado de unas espinas.
             CreateSign(root, square, titleFont, bodyFont, 74f, "LANZAR MASA",
                 Prompt.Of(new[] { "kb_k", "/", "mouse_right" }, new[] { "xbox_y" }, new[] { "ps_triangle" }));
-            PlayerSandboxBuilder.CreateHazard("Espinas", level, new Vector2(80.5f, 0.25f), new Vector2(4f, 0.5f));
-            PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f));
+            DressUrchins(PlayerSandboxBuilder.CreateHazard("Espinas", level, new Vector2(80.5f, 0.25f), new Vector2(4f, 0.5f)));
+            DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f)));
 
             // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
             CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente con el rodillo"));
@@ -320,6 +320,47 @@ namespace Odisea.EditorTools
             var renderer = block.AddComponent<SpriteRenderer>();
             renderer.sprite = art;
             renderer.sortingOrder = BehindSandOrder;
+        }
+
+        // ---------- Muñeco de práctica y erizos ----------
+
+        /// <summary>
+        /// Muñeco de práctica dibujado (si ya se importó): quieto, golpeado al recibir un golpe y noqueado al morir.
+        /// El dibujo se para en la arena (el centro del collider está a medio alto del suelo).
+        /// </summary>
+        private static void DressDummy(GameObject dummy)
+        {
+            Sprite[] frames = ArtImportBuilder.LoadStrip(ArtImportBuilder.DummyPath);
+            if (frames.Length == 0)
+                return;
+            Transform visual = dummy.transform.Find("Visual");
+            visual.localScale = Vector3.one;
+            visual.localPosition = new Vector3(0f, -dummy.GetComponent<BoxCollider2D>().size.y / 2f, 0f);
+            var renderer = visual.GetComponent<SpriteRenderer>();
+            renderer.sprite = frames[0];
+            renderer.color = Color.white;
+            renderer.sortingOrder = BehindSandOrder; // La arena de su palo, tras la orilla.
+
+            var reaction = dummy.AddComponent<HitReactionSprites>();
+            PlayerSandboxBuilder.SetSerialized(reaction, "health", dummy.GetComponent<Health>());
+            PlayerSandboxBuilder.SetSerialized(reaction, "target", renderer);
+            PlayerSandboxBuilder.SetSerialized(reaction, "idle", frames[0]);
+            PlayerSandboxBuilder.SetSerialized(reaction, "hit", frames[Mathf.Min(1, frames.Length - 1)]);
+            PlayerSandboxBuilder.SetSerialized(reaction, "knockedOut", frames[^1]);
+        }
+
+        /// <summary>Erizos de mar sobre la franja que hace daño (el bloque rojo deja de pintarse).</summary>
+        private static void DressUrchins(GameObject hazard)
+        {
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.UrchinsPath);
+            if (art == null)
+                return;
+            hazard.GetComponent<SpriteRenderer>().enabled = false;
+            var urchins = new GameObject("Erizos").AddComponent<SpriteRenderer>();
+            urchins.transform.SetParent(hazard.transform.parent, false);
+            urchins.transform.position = new Vector3(hazard.transform.position.x, 0f, 0f);
+            urchins.sprite = art;
+            urchins.sortingOrder = -4; // Delante de la orilla de la arena: tienen que verse bien porque hacen daño.
         }
 
         // ---------- Meta ----------
