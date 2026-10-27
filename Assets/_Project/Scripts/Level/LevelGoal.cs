@@ -1,11 +1,12 @@
 using Odisea.Core;
+using Odisea.UI;
 using UnityEngine;
 
 namespace Odisea.Level
 {
     /// <summary>
-    /// Meta del nivel: cuando Ulises la toca, el iris se cierra sobre él y se carga la escena siguiente
-    /// (por ahora el menú principal; luego el siguiente nivel o la pantalla de victoria).
+    /// Meta del nivel: cuando Ulises la toca, sale la tarjeta de nivel completado (si hay) y, al aceptar, el iris
+    /// se cierra sobre él y se carga la escena siguiente (por ahora el menú principal; luego el siguiente nivel).
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class LevelGoal : MonoBehaviour
@@ -13,6 +14,8 @@ namespace Odisea.Level
         [Tooltip("Escena a la que lleva (nombre en Build Settings).")]
         [SerializeField] private string nextScene = SceneFlow.MainMenu;
         [SerializeField] private LayerMask playerLayers;
+        [Tooltip("Opcional: tarjeta de \"¡Nivel completado!\" que se muestra antes de irse.")]
+        [SerializeField] private LevelCompleteScreen completeScreen;
 
         private bool reached;
 
@@ -32,7 +35,11 @@ namespace Odisea.Level
                 Vector3 point = view.WorldToViewportPoint(other.bounds.center);
                 center = new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y));
             }
-            SceneFlow.Load(nextScene, center);
+            Checkpoints.Clear();
+            if (completeScreen != null)
+                completeScreen.Show(() => SceneFlow.Load(nextScene, center));
+            else
+                SceneFlow.Load(nextScene, center);
         }
     }
 }

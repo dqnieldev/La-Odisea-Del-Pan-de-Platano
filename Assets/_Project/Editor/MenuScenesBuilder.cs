@@ -364,6 +364,55 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>
+        /// Tarjeta de nivel completado (se crea dentro de la escena del nivel; la abre la meta): el juego oscurecido
+        /// detrás, una tarjeta crema con el título y la frase, y "Continuar" con el botón del dispositivo actual.
+        /// </summary>
+        internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)
+        {
+            var root = new GameObject("Nivel completado", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 600; // Encima del HUD y de la pausa; debajo del iris de transición.
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            var rootRect = (RectTransform)root.transform;
+
+            CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.6f), Vector2.zero, Vector2.zero, stretch: true);
+            RectTransform card = CreateCard("Tarjeta", rootRect, UiAssetsBuilder.EnsureRoundedSprite(), new Vector2(980f, 480f), Crema);
+            CreateText("Título", card, title, UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 88, Cafe,
+                position: new Vector2(0f, 120f), rectSize: new Vector2(900f, 130f));
+            CreateText("Frase", card, message, UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 38, TintaClara,
+                position: new Vector2(0f, -15f), rectSize: new Vector2(920f, 120f));
+
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            var prompt = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var promptRect = (RectTransform)prompt.transform;
+            promptRect.SetParent(card, false);
+            promptRect.anchoredPosition = new Vector2(0f, -160f);
+            promptRect.sizeDelta = new Vector2(500f, 64f);
+            var layout = prompt.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 12f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            Image icon = CreatePromptIcon(promptRect);
+            icon.GetComponent<LayoutElement>().preferredWidth = icon.GetComponent<LayoutElement>().preferredHeight = 60f;
+            CreatePromptLabel(promptRect, font, "Continuar").fontSize = 40;
+            var bar = prompt.AddComponent<ButtonPromptBar>();
+            SetField(bar, "confirmIcon", icon);
+            SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_q", "kb_e");
+            SetPromptSet(bar, "xbox", "xbox_a", "xbox_b", "xbox_lb", "xbox_rb");
+            SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_l1", "ps_r1");
+
+            var screen = root.AddComponent<LevelCompleteScreen>();
+            SetField(screen, "group", root.GetComponent<CanvasGroup>());
+            SetField(screen, "card", card);
+            return screen;
+        }
+
+        /// <summary>
         /// Recetario: el libro (PNG), el índice a la izquierda, la sección a la derecha y encima la hoja que da
         /// vuelta (video con el negro quitado por el shader LumaKey). En modo Pausa es más chico, deja ver el juego
         /// y su índice tiene Continuar, Reiniciar nivel, Ir al título y Salir al menú.

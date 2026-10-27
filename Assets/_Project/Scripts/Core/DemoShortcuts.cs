@@ -32,7 +32,11 @@ namespace Odisea.Core
             // En pausa (tiempo detenido) la R no reinicia.
             bool paused = Time.timeScale == 0f;
             if (!paused && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            {
+                // Reiniciar a mano es desde el principio; morir, desde el último punto de control.
+                Checkpoints.Clear();
                 Restart();
+            }
         }
 
         private void OnPlayerDied() => Invoke(nameof(RestartOnPlayer), restartDelayOnDeath);

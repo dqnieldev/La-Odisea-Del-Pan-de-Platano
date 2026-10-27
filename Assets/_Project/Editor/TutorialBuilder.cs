@@ -71,47 +71,54 @@ namespace Odisea.EditorTools
 
             // 2. Saltar: una caja que se sube con un salto (Ulises salta 3.2).
             CreateSign(root, square, titleFont, bodyFont, 9f, "SALTAR",
-                Prompt.Of(new[] { "kb_space_icon" }, new[] { "xbox_a" }, new[] { "ps_cross" }));
+                Prompt.Of(new[] { "kb_space_icon" }, new[] { "xbox_a" }, new[] { "ps_cross" }),
+                checkpointLayer: level.PlayerLayer);
             // Cubo de arena hecho con cubeta.
             CreateSandBlock("Caja (salto)", root, square, ArtImportBuilder.CubePath, 13.5f, new Vector2(2.1f, ArtImportBuilder.CubeHeight), ground);
 
             // 3. Doble salto: un muro que solo se alcanza saltando otra vez en el aire (3.2 + 2.4).
             CreateSign(root, square, titleFont, bodyFont, 19.5f, "DOBLE SALTO",
-                Prompt.Of(new[] { "kb_space_icon", "x2" }, new[] { "xbox_a", "x2" }, new[] { "ps_cross", "x2" }));
+                Prompt.Of(new[] { "kb_space_icon", "x2" }, new[] { "xbox_a", "x2" }, new[] { "ps_cross", "x2" }),
+                checkpointLayer: level.PlayerLayer);
             // Torre de arena; la banderita de arriba es adorno (no se pisa).
             CreateSandBlock("Muro (doble salto)", root, square, ArtImportBuilder.TowerPath, 25f, new Vector2(2.4f, ArtImportBuilder.TowerHeight), ground);
 
             // 4. Tablas de un sentido: escalera de tablas que se cruzan desde abajo.
-            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Se cruzan saltando desde abajo"));
+            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Se cruzan saltando\ndesde abajo"),
+                checkpointLayer: level.PlayerLayer);
             PlayerSandboxBuilder.CreatePlatform("Tabla 1", root, square, art, new Vector2(35f, 2.4f), 3f, ground);
             PlayerSandboxBuilder.CreatePlatform("Tabla 2", root, square, art, new Vector2(39f, 4.8f), 3f, ground);
             PlayerSandboxBuilder.CreatePlatform("Tabla 3", root, square, art, new Vector2(43.5f, 7.2f), 4f, ground);
 
             // 5. Escaleras: sube a un tablón alto.
             CreateSign(root, square, titleFont, bodyFont, 50f, "ESCALERAS",
-                Prompt.Of(new[] { "kb_w", "kb_s" }, new[] { "xbox_stick_v" }, new[] { "ps_stick_v" }));
+                Prompt.Of(new[] { "kb_w", "kb_s" }, new[] { "xbox_stick_v" }, new[] { "ps_stick_v" }),
+                checkpointLayer: level.PlayerLayer);
             PlayerSandboxBuilder.CreateLadder("Escalera", root, square, art, 54f, 0f, 6.2f, level.LadderLayer);
             PlayerSandboxBuilder.CreatePlatform("Tablón de la escalera", root, square, art, new Vector2(57.5f, 6f), 8f, ground);
 
             // 6. Golpear con el rodillo.
             CreateSign(root, square, titleFont, bodyFont, 64f, "GOLPEAR",
-                Prompt.Of(new[] { "kb_j", "/", "mouse_left" }, new[] { "xbox_x" }, new[] { "ps_square" }));
+                Prompt.Of(new[] { "kb_j", "/", "mouse_left" }, new[] { "xbox_x" }, new[] { "ps_square" }),
+                checkpointLayer: level.PlayerLayer);
             DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(68.5f, 0.75f)));
 
             // 7. Lanzar masa: el muñeco está del otro lado de unas espinas.
             CreateSign(root, square, titleFont, bodyFont, 74f, "LANZAR MASA",
-                Prompt.Of(new[] { "kb_k", "/", "mouse_right" }, new[] { "xbox_y" }, new[] { "ps_triangle" }));
+                Prompt.Of(new[] { "kb_k", "/", "mouse_right" }, new[] { "xbox_y" }, new[] { "ps_triangle" }),
+                checkpointLayer: level.PlayerLayer);
             DressUrchins(PlayerSandboxBuilder.CreateHazard("Espinas", level, new Vector2(80.5f, 0.25f), new Vector2(4f, 0.5f)));
             DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f)));
 
             // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
-            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente con el rodillo"));
+            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente\ncon el rodillo"),
+                checkpointLayer: level.PlayerLayer);
             CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 94f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 110f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(104f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
 
             // 9. Meta.
-            CreateSign(root, square, titleFont, bodyFont, 115f, "¡LISTO!", Prompt.Text("Ya conoces lo básico"));
+            CreateSign(root, square, titleFont, bodyFont, 115f, "¡LISTO!", Prompt.Text("Ya conoces\nlo básico"));
             CreateGoal(root, square, new Vector2(120f, 2f), level.PlayerLayer);
 
             // ----- Fondo por capas: el arte del tutorial, o placeholders de color si aún no se importa -----
@@ -120,8 +127,10 @@ namespace Odisea.EditorTools
             else
                 CreateBackground(square, circle);
 
-            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "Tutorial", MusicPath(),
+            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "Tutorial", MusicPath(),
                 showControls: false, background: Paper);
+            // Al morir reaparece en el último letrero que pasó, no al principio.
+            player.AddComponent<CheckpointSpawn>();
             // La cámara no se asoma más allá de las paredes ni por debajo de la arena.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
@@ -167,9 +176,10 @@ namespace Odisea.EditorTools
         /// <summary>
         /// Letrero de madera clavado en la arena con el nombre de la acción y sus botones. Los botones cambian
         /// solos según se juegue con teclado, mando de Xbox o de PlayStation (igual que en Controles).
+        /// Con checkpointLayer (la capa de Ulises) también es punto de control: al pasarlo, si muere, reaparece ahí.
         /// </summary>
         private static void CreateSign(Transform parent, Sprite square, TMP_FontAsset titleFont, TMP_FontAsset bodyFont,
-            float x, string title, Prompt prompt)
+            float x, string title, Prompt prompt, int checkpointLayer = -1)
         {
             var sign = new GameObject($"Letrero {title}");
             sign.transform.SetParent(parent, false);
@@ -198,6 +208,8 @@ namespace Odisea.EditorTools
                 Quad("Borde", sign.transform, square, face, faceSize + new Vector2(0.16f, 0.16f), PlayerSandboxBuilder.Cafe, 1);
                 Quad("Tabla", sign.transform, square, face, faceSize, PlayerSandboxBuilder.Crema, 2);
             }
+            if (checkpointLayer >= 0)
+                AddCheckpoint(sign, checkpointLayer);
 
             // Título en la mitad de arriba de la cara; botones (o la frase) en la de abajo.
             float lineWidth = faceSize.x * 0.9f;
@@ -206,7 +218,11 @@ namespace Odisea.EditorTools
             Vector2 row = face - new Vector2(0f, faceSize.y * 0.22f);
             if (prompt.Hint != null)
             {
-                Text("Ayuda", sign.transform, prompt.Hint, bodyFont, row, new Vector2(lineWidth, faceSize.y * 0.36f), 3.6f);
+                // Las frases largas van en dos renglones (con \n) para que la letra no quede chiquita.
+                bool twoLines = prompt.Hint.Contains('\n');
+                float hintHeight = faceSize.y * (twoLines ? 0.5f : 0.36f);
+                Text("Ayuda", sign.transform, prompt.Hint, bodyFont, row + new Vector2(0f, twoLines ? faceSize.y * 0.02f : 0f),
+                    new Vector2(lineWidth, hintHeight), 4.6f).lineSpacing = -30f;
                 return;
             }
 
@@ -217,6 +233,23 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(switcher, "xbox", PromptRow("Xbox", sign.transform, prompt.Xbox, bodyFont, row, iconSize));
             PlayerSandboxBuilder.SetSerialized(switcher, "playStation",
                 PromptRow("PlayStation", sign.transform, prompt.PlayStation, bodyFont, row, iconSize));
+        }
+
+        // Brillo del logo: el sonido de "guardado" mientras no haya uno propio.
+        private const string CheckpointSoundPath = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
+
+        /// <summary>Punto de control en el letrero: lo activa Ulises al pasar por enfrente (da un saltito y suena).</summary>
+        private static void AddCheckpoint(GameObject sign, int playerLayer)
+        {
+            var area = sign.AddComponent<BoxCollider2D>();
+            area.size = new Vector2(1.5f, 8f);
+            area.offset = new Vector2(0f, 4f);
+            var checkpoint = sign.AddComponent<Checkpoint>();
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "playerLayers", 1 << playerLayer);
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "bounce", sign.transform);
+            var sound = AssetDatabase.LoadAssetAtPath<AudioClip>(CheckpointSoundPath);
+            if (sound != null)
+                GameSoundsBuilder.SetSound(checkpoint, "sound", new[] { sound }, 0.5f);
         }
 
         // Fila centrada de íconos (teñidos de tinta café, como en Controles) y textos cortos.
@@ -391,6 +424,8 @@ namespace Odisea.EditorTools
             area.size = new Vector2(2f, 4f);
             var component = goal.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
+            PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
+                "¡Tutorial completado!", "Ya sabes moverte, saltar, golpear y lanzar masa.\n¡Ahora sí, a la aventura!"));
             // Banderín placeholder.
             Quad("Asta", goal.transform, square, new Vector2(0f, 0f), new Vector2(0.15f, 4f), PlayerSandboxBuilder.Cafe, 2);
             Quad("Banderín", goal.transform, square, new Vector2(0.65f, 1.5f), new Vector2(1.2f, 0.8f), Sun, 2);

@@ -128,7 +128,12 @@ namespace Odisea.UI
             controlsTab.onClick.AddListener(() => ShowSection(Section.Controls));
             backButton.onClick.AddListener(Close);
             if (restartButton != null)
-                restartButton.onClick.AddListener(() => Leave(() => SceneFlow.ReloadCurrent()));
+                restartButton.onClick.AddListener(() => Leave(() =>
+                {
+                    // Reiniciar es desde el principio del nivel, no desde el último punto de control.
+                    Checkpoints.Clear();
+                    SceneFlow.ReloadCurrent();
+                }));
             if (titleButton != null)
                 titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Splash)));
             if (exitToMenuButton != null)
