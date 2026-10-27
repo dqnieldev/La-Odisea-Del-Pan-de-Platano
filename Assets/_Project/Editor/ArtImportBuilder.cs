@@ -30,8 +30,8 @@ namespace Odisea.EditorTools
         private const string CrocodileHurtSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_dano.png";
         private const string CrocodileDeathSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_muerte.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
-        // Mismas piezas solo con contorno (estilo boceto) para el tutorial.
-        private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/spritesheet_nivel1BN.png";
+        // Tablas, escalera y vigas del tutorial (por ahora, copia de la hoja del nivel 1, con fondo blanco).
+        private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/tutorial_tablas.jpg";
         public const string TutorialFolder = "Assets/_Project/Art/Environment/Tutorial";
 
         private const string UlisesFolder = "Assets/_Project/Art/Characters/Ulises";
@@ -82,7 +82,7 @@ namespace Odisea.EditorTools
             ImportDough();
             ImportCrocodile();
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
-            ImportLevelPieces(TutorialSheet, whiteThreshold: -1, TutorialFolder, "Tutorial");
+            ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");

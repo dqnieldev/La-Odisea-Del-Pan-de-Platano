@@ -61,8 +61,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
 
-            // Tablas, escalera y vigas: las del nivel 1 (las de solo contorno se perdían con el paisaje).
-            var art = PlayerSandboxBuilder.LevelArt.Load();
+            // Tablas, escalera y vigas (de tutorial_tablas.jpg; las de solo contorno se perdían con el paisaje).
+            var art = PlayerSandboxBuilder.LevelArt.Load(ArtImportBuilder.TutorialFolder);
             art.LadderXs = new[] { 54f };
 
             // 1. Moverse.
