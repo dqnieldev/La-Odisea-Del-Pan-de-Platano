@@ -1,11 +1,10 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Odisea.Core
 {
     /// <summary>
-    /// Atajos para escenas de prueba: reiniciar con R y reinicio automático cuando el jugador pierde
-    /// todas sus vidas. Esc y Start son del menú de pausa. En los niveles finales esto lo hará el Game Over.
+    /// Reinicio automático cuando el jugador pierde todas sus vidas (desde el último punto de control, si hay).
+    /// Reiniciar a mano es desde el menú de pausa (Esc / Start). En los niveles finales esto lo hará el Game Over.
     /// </summary>
     public class DemoShortcuts : MonoBehaviour
     {
@@ -25,14 +24,6 @@ namespace Odisea.Core
         {
             if (playerHealth != null)
                 playerHealth.Died -= OnPlayerDied;
-        }
-
-        private void Update()
-        {
-            // En pausa (tiempo detenido) la R no reinicia.
-            bool paused = Time.timeScale == 0f;
-            if (!paused && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
-                Restart();
         }
 
         private void OnPlayerDied() => Invoke(nameof(RestartOnPlayer), restartDelayOnDeath);

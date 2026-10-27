@@ -33,7 +33,8 @@ namespace Odisea.UI
 
         private void Update()
         {
-            if (IsPaused || SceneFlow.IsLoading)
+            // Con el tiempo ya detenido por otra pantalla (nivel completado) no se abre encima.
+            if (IsPaused || SceneFlow.IsLoading || Time.timeScale == 0f)
                 return;
 
             bool pausePressed = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||

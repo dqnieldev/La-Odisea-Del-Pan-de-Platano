@@ -14,9 +14,9 @@ namespace Odisea.Core
         public const string Splash = "Splash";
         public const string Title = "Title";
         public const string MainMenu = "MainMenu";
-        // Mientras no existan los niveles, Jugar y Tutorial abren la escena de prueba del jugador.
+        // Mientras no exista el nivel 1, Jugar abre la escena de prueba del jugador.
         public const string Play = "PlayerSandbox";
-        public const string Tutorial = "PlayerSandbox";
+        public const string Tutorial = "Tutorial";
 
         public static bool IsLoading => ScreenFader.Instance.IsBusy;
 

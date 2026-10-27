@@ -23,11 +23,22 @@ namespace Odisea.Core
             set => target = value;
         }
 
+        // Empieza ya encima del objetivo: si Ulises reaparece en un punto de control, no recorre todo el nivel.
+        private void Start()
+        {
+            if (target != null)
+                transform.position = Desired();
+        }
+
         private void LateUpdate()
         {
             if (target == null)
                 return;
+            transform.position = Vector3.SmoothDamp(transform.position, Desired(), ref velocity, smoothTime);
+        }
 
+        private Vector3 Desired()
+        {
             Vector3 desired = target.position + (Vector3)offset;
             desired.z = transform.position.z;
 
@@ -36,8 +47,7 @@ namespace Odisea.Core
                 desired.x = Mathf.Clamp(desired.x, minPosition.x, maxPosition.x);
                 desired.y = Mathf.Clamp(desired.y, minPosition.y, maxPosition.y);
             }
-
-            transform.position = Vector3.SmoothDamp(transform.position, desired, ref velocity, smoothTime);
+            return desired;
         }
     }
 }

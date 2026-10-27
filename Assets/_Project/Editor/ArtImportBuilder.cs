@@ -30,8 +30,8 @@ namespace Odisea.EditorTools
         private const string CrocodileHurtSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_dano.png";
         private const string CrocodileDeathSheet = "Personajes/sprite en png/enemigos/cocodrilo/cocodrilo_muerte.png";
         private const string Level1Sheet = "Sprites-por-revisar/Niveles/Nivel 1/spritesheets/spritesheet_nivel1.jpg";
-        // Mismas piezas solo con contorno (estilo boceto) para el tutorial.
-        private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/spritesheet_nivel1BN.png";
+        // Tablas, escalera y vigas del tutorial (por ahora, copia de la hoja del nivel 1, con fondo blanco).
+        private const string TutorialSheet = "Sprites-por-revisar/Niveles/Tutorial/tutorial_tablas.jpg";
         public const string TutorialFolder = "Assets/_Project/Art/Environment/Tutorial";
 
         private const string UlisesFolder = "Assets/_Project/Art/Characters/Ulises";
@@ -82,7 +82,8 @@ namespace Odisea.EditorTools
             ImportDough();
             ImportCrocodile();
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
-            ImportLevelPieces(TutorialSheet, whiteThreshold: -1, TutorialFolder, "Tutorial");
+            ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
+            ImportTutorialBackground();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
         }
@@ -454,6 +455,519 @@ namespace Odisea.EditorTools
                 int cap = Mathf.Min(piece.Core.Width / 6, piece.Core.Height * 2);
                 WriteSingle(sheet, piece, path, ppu, new Vector4(cap, 0f, cap, 0f));
             }
+        }
+
+        // ---------- Fondo del tutorial ----------
+
+        private const string TutorialArtSource = "Sprites-por-revisar/Niveles/Tutorial/";
+        public const string TutorialBackgroundFolder = TutorialFolder + "/Fondo";
+        public const string PaperPath = TutorialBackgroundFolder + "/Papel.png";
+        public const string HorizonPath = TutorialBackgroundFolder + "/Horizonte.png";
+        public const string SunPath = TutorialBackgroundFolder + "/Sol.png";
+        public const string SunControllerPath = TutorialBackgroundFolder + "/Sol.controller";
+        public const string SandPath = TutorialBackgroundFolder + "/Arena.png";
+        public const string Sand2Path = TutorialBackgroundFolder + "/Arena2.png";
+        public const string PierPath = TutorialBackgroundFolder + "/Muelle.png";
+        public const string Palm1Path = TutorialBackgroundFolder + "/Palmera1.png";
+        public const string Palm2Path = TutorialBackgroundFolder + "/Palmera2.png";
+        public const string BoatPath = TutorialBackgroundFolder + "/Panga.png";
+        public const string MooringPostPath = TutorialBackgroundFolder + "/Poste.png";
+        public const string RocksPath = TutorialBackgroundFolder + "/Rocas.png";
+        public const string GrassPath = TutorialBackgroundFolder + "/Pasto.png";
+        // Obstáculos de arena (cubo de la caja de salto, torre del doble salto y bordillo del cocodrilo).
+        public const string CubePath = TutorialFolder + "/Cubo.png";
+        public const string TowerPath = TutorialFolder + "/Torre.png";
+        public const string CurbPath = TutorialFolder + "/Bordillo.png";
+        // Alto de cada uno hasta su parte de arriba plana (= alto de su collider en el tutorial).
+        public const float CubeHeight = 1.8f;
+        public const float TowerHeight = 4.5f;
+        public const float CurbHeight = 0.9f;
+        // Lo que la base (la arena amontonada) se hunde bajo el suelo; la orilla de la arena, dibujada delante,
+        // la tapa un poco para que se vea enterrada y no pegada encima.
+        public const float ObstacleSink = 0.12f;
+        // Letrero de madera: ancho de la tabla. El pivote queda en el centro de su cara clara, y la cara se guarda
+        // como borde del sprite para acomodar encima el título y los botones.
+        public const string SignPath = TutorialFolder + "/Letrero.png";
+        private const float SignWidth = 4.2f;
+        // Muñeco de práctica: tira de 3 cuadros (quieto, golpeado, noqueado) con los pies (la arena del palo) en el
+        // mismo punto; alto del cuadro quieto. Erizos: franja que hace daño, ancho total del dibujo.
+        public const string DummyPath = TutorialFolder + "/Muneco.png";
+        public const float DummyHeight = UlisesStandHeight; // De la altura de Ulises.
+        public const string UrchinsPath = TutorialFolder + "/Erizos.png";
+        private const float UrchinsWidth = 5f;
+        // Meta: el carrito de pan de plátano con el letrero "¡META!", alto total (hasta la punta del banderín);
+        // su montón de arena se hunde un poco más que los obstáculos para que asome detrás de la orilla.
+        public const string GoalPath = TutorialFolder + "/Meta.png";
+        private const float GoalHeight = 4.2f;
+        public const float GoalSink = 0.3f;
+
+        // Tamaños en el juego (unidades). El papel cubre la vista (la cámara ve ~25 x 14).
+        public const float PaperSize = 26f;
+        public const float HorizonHeight = 16f;
+        // Altura de la línea del mar en la imagen del horizonte (fracción desde abajo): ahí va el pivote.
+        private const float HorizonSeaLine = 0.193f;
+        // Parte de arriba del horizonte que se desvanece para fundirse con el papel.
+        private const float HorizonFade = 0.15f;
+        private const float SunHeight = 2.6f;
+        private const float SunFps = 3f;
+        // La arena llega hasta abajo de la vista (la cámara no baja de y = 2.5 con tamaño 7).
+        public const float SandHeight = 4.6f;
+        private const float PierHeight = 5f;
+        private const float PalmHeight = 6.5f;
+        private const float BoatHeight = 2.6f;
+        private const float MooringPostHeight = 1.6f;
+        private const float RocksHeight = 1.2f;
+        private const float GrassHeight = 1.6f;
+
+        /// <summary>
+        /// Fondo por capas del tutorial (tutorial_*.png, ya con transparencia): papel, horizonte, sol animado,
+        /// arena (con el pivote en la línea donde se camina) y piezas sueltas con el pivote abajo al centro.
+        /// </summary>
+        private static void ImportTutorialBackground()
+        {
+            if (ReadImage("tutorial_papel.png") is not { } paper)
+                return;
+            EnsureFolder(TutorialBackgroundFolder);
+            WriteRegion(paper, OpaqueBounds(paper), PaperPath, paper.Width / PaperSize, new Vector2(0.5f, 0.5f));
+
+            if (ReadImage("tutorial_horizonte.png") is { } horizon)
+            {
+                int fadeRows = Mathf.RoundToInt(horizon.Height * HorizonFade);
+                for (int y = horizon.Height - fadeRows; y < horizon.Height; y++)
+                {
+                    byte alpha = (byte)Mathf.RoundToInt(255f * Mathf.SmoothStep(1f, 0f, (y - (horizon.Height - fadeRows)) / (float)fadeRows));
+                    for (int x = 0; x < horizon.Width; x++)
+                        horizon.Pixels[y * horizon.Width + x].a = alpha;
+                }
+                WriteRegion(horizon, new RectInt(0, 0, horizon.Width, horizon.Height), HorizonPath,
+                    horizon.Height / HorizonHeight, new Vector2(0.5f, HorizonSeaLine), padding: 0);
+            }
+
+            if (ReadImage("tutorial_sol.png") is { } sun)
+                ImportSun(sun);
+
+            Sheet baseSand = null;
+            float baseWalk = 0f;
+            foreach ((string file, string path) in new[] { ("tutorial_arena.png", SandPath), ("tutorial_arena2.png", Sand2Path) })
+            {
+                if (ReadImage(file) is not { } sand)
+                    continue;
+                float walk = WalkLine(sand, OpaqueBounds(sand));
+                if (baseSand == null)
+                {
+                    baseSand = sand;
+                    baseWalk = walk;
+                }
+                else
+                {
+                    // Las variantes toman el tono de la primera y sus orillas se funden con las de ella:
+                    // así quedan pegadas a una tira normal sin que se note la costura.
+                    MatchColors(sand, baseSand);
+                    BlendEdges(sand, baseSand, Mathf.RoundToInt(walk - baseWalk));
+                }
+                RectInt bounds = OpaqueBounds(sand);
+                // Sin borde vacío a los lados: las tiras van una junto a otra sin costura.
+                WriteRegion(sand, bounds, path, bounds.height / SandHeight,
+                    new Vector2(0.5f, (walk - bounds.yMin) / bounds.height), padding: 0);
+            }
+
+            WriteObstacle("tutorial_cubo.png", CubePath, CubeHeight);
+            WriteObstacle("tutorial_torre.png", TowerPath, TowerHeight);
+            WriteObstacle("tutorial_bordillo.png", CurbPath, CurbHeight);
+            WriteSign();
+            WriteDummy();
+            if (ReadImage("tutorial_erizos.png") is { } urchins)
+            {
+                RectInt bounds = OpaqueBounds(urchins);
+                // Van delante de la arena (tienen que verse bien: hacen daño), apenas hundidos.
+                float ppu = bounds.width / UrchinsWidth;
+                WriteRegion(urchins, bounds, UrchinsPath, ppu, new Vector2(0.5f, 0.04f * ppu / bounds.height));
+            }
+
+            if (ReadImage("tutorial_meta.png") is { } goal)
+            {
+                RectInt bounds = OpaqueBounds(goal);
+                float ppu = bounds.height / GoalHeight;
+                WriteRegion(goal, bounds, GoalPath, ppu, new Vector2(0.5f, GoalSink * ppu / bounds.height));
+            }
+
+            WritePiece("tutorial_muelle.png", PierPath, PierHeight);
+            WritePiece("tutorial_panga.png", BoatPath, BoatHeight);
+            WritePiece("tutorial_poste.png", MooringPostPath, MooringPostHeight);
+            WritePiece("tutorial_rocas.png", RocksPath, RocksHeight);
+            WritePiece("tutorial_pasto.png", GrassPath, GrassHeight);
+            // Las dos palmeras vienen en la misma imagen: se separan por la columna vacía entre ellas.
+            if (ReadImage("tutorial_palmeras.png") is { } palms)
+            {
+                List<RectInt> parts = SplitByGaps(palms, OpaqueBounds(palms));
+                float ppu = parts.Max(p => p.height) / PalmHeight;
+                foreach ((RectInt part, string path) in parts.Take(2).Zip(new[] { Palm1Path, Palm2Path }, (p, n) => (p, n)))
+                    WriteRegion(palms, part, path, ppu, new Vector2(0.5f, 0f));
+            }
+        }
+
+        // Línea donde se camina: la mediana del borde de arriba (las olitas suben y bajan alrededor).
+        private static float WalkLine(Sheet sand, RectInt bounds)
+        {
+            var tops = new List<float>();
+            for (int x = bounds.xMin; x < bounds.xMax; x += 8)
+            {
+                for (int y = bounds.yMax - 1; y >= bounds.yMin; y--)
+                {
+                    if (sand.Pixels[y * sand.Width + x].a > 128)
+                    {
+                        tops.Add(y);
+                        break;
+                    }
+                }
+            }
+            return Median(tops);
+        }
+
+        // Funde los extremos de image (una quinta parte de cada lado) con los de reference, desplazada offsetY
+        // para que coincidan sus líneas de suelo. Ambas deben medir lo mismo de ancho.
+        private static void BlendEdges(Sheet image, Sheet reference, int offsetY)
+        {
+            if (image.Width != reference.Width)
+            {
+                Debug.LogWarning("[Odisea] Las tiras de arena no miden lo mismo de ancho; no se funden sus orillas.");
+                return;
+            }
+            int fade = image.Width / 5;
+            for (int x = 0; x < image.Width; x++)
+            {
+                int distance = Mathf.Min(x, image.Width - 1 - x);
+                if (distance >= fade)
+                    continue;
+                float own = Mathf.SmoothStep(0f, 1f, distance / (float)fade);
+                for (int y = 0; y < image.Height; y++)
+                {
+                    int ry = y - offsetY;
+                    Color32 other = ry >= 0 && ry < reference.Height ? reference.Pixels[ry * reference.Width + x] : default;
+                    int i = y * image.Width + x;
+                    image.Pixels[i] = Color32.Lerp(other, image.Pixels[i], own);
+                }
+            }
+        }
+
+        // Ajusta cada canal (media y desviación) de lo visible de image al de reference.
+        private static void MatchColors(Sheet image, Sheet reference)
+        {
+            (Vector3 mean, Vector3 deviation) Stats(Sheet sheet)
+            {
+                Vector3 sum = Vector3.zero, squares = Vector3.zero;
+                int count = 0;
+                foreach (Color32 c in sheet.Pixels)
+                {
+                    if (c.a < 200)
+                        continue;
+                    var v = new Vector3(c.r, c.g, c.b);
+                    sum += v;
+                    squares += Vector3.Scale(v, v);
+                    count++;
+                }
+                Vector3 mean = sum / Mathf.Max(1, count);
+                Vector3 variance = squares / Mathf.Max(1, count) - Vector3.Scale(mean, mean);
+                return (mean, new Vector3(Mathf.Sqrt(variance.x), Mathf.Sqrt(variance.y), Mathf.Sqrt(variance.z)));
+            }
+
+            (Vector3 from, Vector3 fromDeviation) = Stats(image);
+            (Vector3 to, Vector3 toDeviation) = Stats(reference);
+            byte Map(byte value, int channel) => (byte)Mathf.Clamp(Mathf.RoundToInt(
+                (value - from[channel]) * toDeviation[channel] / Mathf.Max(1f, fromDeviation[channel]) + to[channel]), 0, 255);
+            for (int i = 0; i < image.Pixels.Length; i++)
+            {
+                Color32 c = image.Pixels[i];
+                image.Pixels[i] = new Color32(Map(c.r, 0), Map(c.g, 1), Map(c.b, 2), c.a);
+            }
+        }
+
+        /// <summary>
+        /// Obstáculo que se pisa: la parte de arriba plana (la primera fila que ocupa casi todo el ancho, sin la
+        /// banderita) queda a height sobre el suelo, la base un poco hundida, y el pivote en el centro del cuerpo.
+        /// </summary>
+        private static void WriteObstacle(string file, string path, float height)
+        {
+            if (ReadImage(file) is not { } image)
+                return;
+            RectInt bounds = OpaqueBounds(image);
+            int Span(int y, out int left)
+            {
+                left = -1;
+                int right = -1;
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    if (image.Pixels[y * image.Width + x].a <= 128)
+                        continue;
+                    if (left < 0)
+                        left = x;
+                    right = x;
+                }
+                return left < 0 ? 0 : right - left + 1;
+            }
+
+            int top = bounds.yMax - 1;
+            while (top > bounds.yMin && Span(top, out _) < bounds.width * 0.4f)
+                top--;
+            float ppu = (top - bounds.yMin + 1) / (height + ObstacleSink);
+            // Centro del cuerpo a media altura (la arena de la base puede estar más de un lado).
+            int middle = (top + bounds.yMin) / 2;
+            int width = Span(middle, out int middleLeft);
+            float centerX = middleLeft + width / 2f - bounds.xMin;
+            WriteRegion(image, bounds, path, ppu, new Vector2(centerX / bounds.width, ObstacleSink * ppu / bounds.height));
+        }
+
+        // Cuadros del muñeco separados por columnas vacías; cada uno se ancla en el centro de la arena de su palo
+        // (la fila de más abajo), así el palo no "brinca" al cambiar de cuadro.
+        private static void WriteDummy()
+        {
+            if (ReadImage("tutorial_muneco.png") is not { } sheet)
+                return;
+            List<RectInt> frames = SplitByGaps(sheet, OpaqueBounds(sheet), minGap: 20);
+            if (frames.Count != 3)
+            {
+                Debug.LogWarning($"[Odisea] tutorial_muneco.png: se esperaban 3 cuadros y hay {frames.Count}.");
+                if (frames.Count == 0)
+                    return;
+            }
+
+            var anchors = new List<int>();
+            foreach (RectInt frame in frames)
+            {
+                // Centro de lo que ocupa la franja de abajo (la arena), no del cuadro: los brazos lo descuadran.
+                int band = Mathf.Max(1, frame.height / 30), left = int.MaxValue, right = int.MinValue;
+                for (int y = frame.yMin; y < frame.yMin + band; y++)
+                for (int x = frame.xMin; x < frame.xMax; x++)
+                {
+                    if (sheet.Pixels[y * sheet.Width + x].a <= 128)
+                        continue;
+                    left = Mathf.Min(left, x);
+                    right = Mathf.Max(right, x);
+                }
+                anchors.Add(left <= right ? (left + right) / 2 : frame.xMin + frame.width / 2);
+            }
+
+            int half = frames.Select((f, i) => Mathf.Max(anchors[i] - f.xMin, f.xMax - anchors[i])).Max() + Padding;
+            int cellWidth = half * 2;
+            int cellHeight = frames.Max(f => f.height) + Padding * 2;
+            int stripWidth = cellWidth * frames.Count;
+            var pixels = new Color32[stripWidth * cellHeight];
+            for (int i = 0; i < frames.Count; i++)
+            {
+                RectInt frame = frames[i];
+                for (int y = 0; y < frame.height; y++)
+                for (int x = 0; x < frame.width; x++)
+                {
+                    int tx = i * cellWidth + half + (frame.xMin + x - anchors[i]);
+                    pixels[(Padding + y) * stripWidth + tx] = sheet.Pixels[(frame.yMin + y) * sheet.Width + frame.xMin + x];
+                }
+            }
+
+            float ppu = frames[0].height / (DummyHeight + ObstacleSink);
+            var pivot = new Vector2(0.5f, (Padding + ObstacleSink * ppu) / cellHeight);
+            Dictionary<string, GUID> previousIds = TakeSpriteIds(DummyPath);
+            WritePng(DummyPath, pixels, stripWidth, cellHeight);
+            ConfigureTexture(DummyPath, ppu, pivot, Vector4.zero, frames.Count > 1);
+            if (frames.Count > 1)
+                SliceGrid(DummyPath, frames.Count, cellWidth, cellHeight, pivot, "Muneco", previousIds);
+        }
+
+        // La tabla son las filas que ocupan casi todo el ancho; su cara, la zona clara que rodea su centro.
+        private static void WriteSign()
+        {
+            if (ReadImage("tutorial_letrero.png") is not { } image)
+                return;
+            RectInt bounds = OpaqueBounds(image);
+            int boardBottom = -1, boardTop = -1, boardLeft = bounds.xMax, boardRight = bounds.xMin;
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            {
+                // Se cuentan los píxeles (no de punta a punta) para que las migajas de la base no parezcan tabla.
+                int left = -1, right = -1, filled = 0;
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    if (image.Pixels[y * image.Width + x].a <= 128)
+                        continue;
+                    if (left < 0)
+                        left = x;
+                    right = x;
+                    filled++;
+                }
+                if (filled < bounds.width * 0.6f)
+                    continue;
+                if (boardBottom < 0)
+                    boardBottom = y;
+                boardTop = y;
+                boardLeft = Mathf.Min(boardLeft, left);
+                boardRight = Mathf.Max(boardRight, right);
+            }
+            if (boardBottom < 0)
+            {
+                Debug.LogWarning("[Odisea] tutorial_letrero.png: no se encontró la tabla.");
+                return;
+            }
+
+            RectInt face = LightArea(image, new Vector2Int((boardLeft + boardRight) / 2, (boardBottom + boardTop) / 2));
+            float ppu = (boardRight - boardLeft + 1) / SignWidth;
+            var pivot = new Vector2((face.center.x - bounds.xMin) / bounds.width, (face.center.y - bounds.yMin) / bounds.height);
+            WriteRegion(image, bounds, SignPath, ppu, pivot, inner: face);
+        }
+
+        // Rectángulo de la zona clara (parecida en luz al punto de partida) conectada con seed.
+        private static RectInt LightArea(Sheet image, Vector2Int seed)
+        {
+            static float Light(Color32 c) => (c.r + c.g + c.b) / 3f;
+            float threshold = Light(image.Pixels[seed.y * image.Width + seed.x]) - 35f;
+            var visited = new bool[image.Pixels.Length];
+            var pending = new Stack<Vector2Int>();
+            pending.Push(seed);
+            visited[seed.y * image.Width + seed.x] = true;
+            int minX = seed.x, maxX = seed.x, minY = seed.y, maxY = seed.y;
+            while (pending.Count > 0)
+            {
+                Vector2Int p = pending.Pop();
+                minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+                minY = Mathf.Min(minY, p.y); maxY = Mathf.Max(maxY, p.y);
+                foreach (Vector2Int step in new[] { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down })
+                {
+                    Vector2Int n = p + step;
+                    if (n.x < 0 || n.y < 0 || n.x >= image.Width || n.y >= image.Height)
+                        continue;
+                    int i = n.y * image.Width + n.x;
+                    Color32 c = image.Pixels[i];
+                    if (visited[i] || c.a <= 128 || Light(c) < threshold)
+                        continue;
+                    visited[i] = true;
+                    pending.Push(n);
+                }
+            }
+            return new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+
+        private static void WritePiece(string file, string path, float height)
+        {
+            if (ReadImage(file) is not { } image)
+                return;
+            RectInt bounds = OpaqueBounds(image);
+            WriteRegion(image, bounds, path, bounds.height / height, new Vector2(0.5f, 0f));
+        }
+
+        // Cuadros del sol en una fila: misma celda para todos, centrados, y un clip en bucle con su Animator.
+        private static void ImportSun(Sheet sheet)
+        {
+            List<RectInt> frames = SplitByGaps(sheet, OpaqueBounds(sheet));
+            int cellWidth = frames.Max(f => f.width) + Padding * 2;
+            int cellHeight = frames.Max(f => f.height) + Padding * 2;
+            int stripWidth = cellWidth * frames.Count;
+            var pixels = new Color32[stripWidth * cellHeight];
+            for (int i = 0; i < frames.Count; i++)
+            {
+                RectInt frame = frames[i];
+                int offsetX = i * cellWidth + (cellWidth - frame.width) / 2;
+                int offsetY = (cellHeight - frame.height) / 2;
+                for (int y = 0; y < frame.height; y++)
+                for (int x = 0; x < frame.width; x++)
+                    pixels[(offsetY + y) * stripWidth + offsetX + x] = sheet.Pixels[(frame.yMin + y) * sheet.Width + frame.xMin + x];
+            }
+
+            Dictionary<string, GUID> previousIds = TakeSpriteIds(SunPath);
+            WritePng(SunPath, pixels, stripWidth, cellHeight);
+            var pivot = new Vector2(0.5f, 0.5f);
+            ConfigureTexture(SunPath, (cellHeight - Padding * 2) / SunHeight, pivot, Vector4.zero, frames.Count > 1);
+            if (frames.Count > 1)
+                SliceGrid(SunPath, frames.Count, cellWidth, cellHeight, pivot, "Sol", previousIds);
+
+            AnimationClip clip = CreateClip(TutorialBackgroundFolder + "/Sol.anim", LoadStrip(SunPath), SunFps, loop: true);
+            AnimatorController controller = ResetController(SunControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState state = machine.AddState("Sol");
+            state.motion = clip;
+            machine.defaultState = state;
+            EditorUtility.SetDirty(controller);
+        }
+
+        /// <summary>Imagen ya recortada con transparencia (sin quitar fondo ni buscar manchas). null si no existe.</summary>
+        private static Sheet ReadImage(string fileName)
+        {
+            string path = Path.Combine(SourceFolder, TutorialArtSource + fileName);
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[Odisea] No se encontró {path}.");
+                return null;
+            }
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            texture.LoadImage(File.ReadAllBytes(path));
+            var sheet = new Sheet { Width = texture.width, Height = texture.height, Pixels = texture.GetPixels32() };
+            UnityEngine.Object.DestroyImmediate(texture);
+            return sheet;
+        }
+
+        // Rectángulo que encierra lo que no es transparente (dentro de area, o de toda la imagen).
+        private static RectInt OpaqueBounds(Sheet sheet, RectInt? area = null)
+        {
+            RectInt region = area ?? new RectInt(0, 0, sheet.Width, sheet.Height);
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
+            for (int y = region.yMin; y < region.yMax; y++)
+            {
+                for (int x = region.xMin; x < region.xMax; x++)
+                {
+                    if (sheet.Pixels[y * sheet.Width + x].a <= 24)
+                        continue;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+            return maxX < 0 ? region : new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+
+        // Separa dibujos puestos uno junto a otro por las columnas vacías entre ellos (cada uno, recortado).
+        private static List<RectInt> SplitByGaps(Sheet sheet, RectInt bounds, int minGap = 8)
+        {
+            var parts = new List<RectInt>();
+            int start = -1, empty = 0;
+            for (int x = bounds.xMin; x <= bounds.xMax; x++)
+            {
+                bool filled = false;
+                if (x < bounds.xMax)
+                {
+                    for (int y = bounds.yMin; y < bounds.yMax && !filled; y++)
+                        filled = sheet.Pixels[y * sheet.Width + x].a > 24;
+                }
+                if (filled)
+                {
+                    if (start < 0)
+                        start = x;
+                    empty = 0;
+                }
+                else if (start >= 0 && (++empty >= minGap || x == bounds.xMax))
+                {
+                    int end = x - empty + 1;
+                    parts.Add(OpaqueBounds(sheet, new RectInt(start, bounds.yMin, end - start, bounds.height)));
+                    start = -1;
+                }
+            }
+            return parts;
+        }
+
+        // Copia un rectángulo de la imagen a su propio sprite (con borde vacío); pivot relativo al rectángulo.
+        // inner (opcional): rectángulo de la imagen que se guarda como borde del sprite (p. ej. la cara del letrero).
+        private static void WriteRegion(Sheet sheet, RectInt region, string path, float ppu, Vector2 pivot, int padding = Padding,
+            RectInt? inner = null)
+        {
+            int width = region.width + padding * 2;
+            int height = region.height + padding * 2;
+            var pixels = new Color32[width * height];
+            for (int y = 0; y < region.height; y++)
+            for (int x = 0; x < region.width; x++)
+                pixels[(y + padding) * width + x + padding] = sheet.Pixels[(region.yMin + y) * sheet.Width + region.xMin + x];
+            WritePng(path, pixels, width, height);
+            var spritePivot = new Vector2((padding + pivot.x * region.width) / width, (padding + pivot.y * region.height) / height);
+            Vector4 border = inner is { } face
+                ? new Vector4(padding + face.xMin - region.xMin, padding + face.yMin - region.yMin,
+                    padding + region.xMax - face.xMax, padding + region.yMax - face.yMax)
+                : Vector4.zero;
+            ConfigureTexture(path, ppu, spritePivot, border, multiple: false);
         }
 
         // ---------- Lectura y limpieza ----------
