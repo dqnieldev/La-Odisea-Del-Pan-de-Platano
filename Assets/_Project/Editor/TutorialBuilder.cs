@@ -11,7 +11,7 @@ namespace Odisea.EditorTools
     /// <summary>
     /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (piezas solo con
     /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo, sol que acompaña a Ulises,
-    /// mar, muelle y palmeras, arena y primer plano) con el arte de Art/Environment/Tutorial/Fondo
+    /// mar, muelle y palmeras y arena) con el arte de Art/Environment/Tutorial/Fondo
     /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
     /// lanzar masa y el cocodrilo; al final, la meta.
@@ -239,7 +239,7 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// Fondo con el arte (Art/Environment/Tutorial/Fondo): papel y sol pegados a la cámara, el horizonte casi
-        /// quieto, muelle y palmeras a media velocidad, la arena como suelo (con postes) y pasto y rocas al frente.
+        /// quieto, muelle y palmeras a media velocidad y la arena como suelo (con postes).
         /// </summary>
         private static void CreateArtBackground(Transform root, SpriteRenderer sandBlock)
         {
@@ -305,16 +305,6 @@ namespace Odisea.EditorTools
             // Postes con cuerda clavados en la arena, detrás de Ulises (fuera de las espinas y la caja).
             foreach (float x in new[] { -5f, 17f, 48f, 62f, 98f, 113f })
                 Piece("Poste", root, ArtImportBuilder.MooringPostPath, new Vector2(x, -0.3f), -4);
-
-            // Primer plano: pasto y rocas que pasan delante de Ulises, hundidos para que solo asome la punta.
-            Transform front = Layer(background, "Capa primer plano", -0.3f, 0f);
-            float[] fronts = { 6f, 27f, 47f, 71f, 88f, 101f, 117f };
-            for (int i = 0; i < fronts.Length; i++)
-            {
-                bool grass = i % 2 == 0;
-                Piece(grass ? "Pasto" : "Rocas", front, grass ? ArtImportBuilder.GrassPath : ArtImportBuilder.RocksPath,
-                    new Vector2(fronts[i], grass ? -0.9f : -0.7f), 20);
-            }
         }
 
         private static SpriteRenderer Piece(string name, Transform parent, string path, Vector2 position, int order)
