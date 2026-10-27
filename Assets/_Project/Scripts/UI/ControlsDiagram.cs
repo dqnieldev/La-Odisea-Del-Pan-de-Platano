@@ -6,6 +6,7 @@ namespace Odisea.UI
     /// Sección Controles del recetario: muestra el dibujo del mando que se está usando (Xbox o PlayStation)
     /// con líneas de cada botón a su acción, o la tabla de teclas si se juega con teclado y mouse.
     /// Cambia sola si la persona agarra otro dispositivo con la página abierta.
+    /// También la usan los letreros del tutorial para mostrar la fila de botones del dispositivo actual.
     /// </summary>
     public class ControlsDiagram : MonoBehaviour
     {

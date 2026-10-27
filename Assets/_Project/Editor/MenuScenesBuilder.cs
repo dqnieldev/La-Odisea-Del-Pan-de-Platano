@@ -548,7 +548,7 @@ namespace Odisea.EditorTools
             return options;
         }
 
-        private const string UiFolder = "Assets/_Project/Art/UI";
+        internal const string UiFolder = "Assets/_Project/Art/UI";
 
         /// <summary>
         /// Listón que cuelga del borde de arriba del libro, junto al margen izquierdo, y baja hasta la sección abierta.
@@ -724,7 +724,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Carga un PNG del proyecto como sprite de UI, configurando su importación la primera vez.</summary>
-        private static Sprite LoadUiSprite(string path, Vector4? border = null)
+        internal static Sprite LoadUiSprite(string path, Vector4? border = null)
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer == null)
