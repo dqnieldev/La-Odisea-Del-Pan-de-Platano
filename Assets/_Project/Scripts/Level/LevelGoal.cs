@@ -20,7 +20,8 @@ namespace Odisea.Level
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (reached || (playerLayers.value & (1 << other.gameObject.layer)) == 0)
+            // La bolita de masa vive en la capa del jugador: solo cuenta Ulises (lo que tiene vida), no sus proyectiles.
+            if (reached || (playerLayers.value & (1 << other.gameObject.layer)) == 0 || other.GetComponentInParent<Health>() == null)
                 return;
             reached = true;
 

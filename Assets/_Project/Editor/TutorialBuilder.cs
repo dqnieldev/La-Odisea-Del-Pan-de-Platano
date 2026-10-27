@@ -11,8 +11,8 @@ using UnityEngine;
 namespace Odisea.EditorTools
 {
     /// <summary>
-    /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (piezas solo con
-    /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo,
+    /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (tablas y escalera
+    /// del nivel 1, obstáculos de arena) y fondo por capas con paralaje (cielo,
     /// mar y arena) con el arte de Art/Environment/Tutorial/Fondo
     /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
@@ -61,7 +61,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
 
-            var art = PlayerSandboxBuilder.LevelArt.Load(ArtImportBuilder.TutorialFolder);
+            // Tablas, escalera y vigas: las del nivel 1 (las de solo contorno se perdían con el paisaje).
+            var art = PlayerSandboxBuilder.LevelArt.Load();
             art.LadderXs = new[] { 54f };
 
             // 1. Moverse.
@@ -104,7 +105,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f));
 
             // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
-            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente o lánzale masa"));
+            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente con el rodillo"));
             CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 94f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 110f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(104f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
