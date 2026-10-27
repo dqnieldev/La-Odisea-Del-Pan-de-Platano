@@ -463,8 +463,7 @@ namespace Odisea.EditorTools
                 "Escaleras:  arriba / abajo  (saltar para soltarte)\n" +
                 "Golpear:  J  ·  clic  ·  X / Cuadrado\n" +
                 "Lanzar masa:  K  ·  clic derecho  ·  Y / Triángulo\n" +
-                "Pausa:  Esc  ·  Start\n" +
-                "Reiniciar:  R\n" +
+                "Pausa y reiniciar:  Esc  ·  Start\n" +
                 "<color=#E8E0D2>Rojo = peligro · Azul = muñeco (3 golpes) · Cocodrilo (2 golpes)</color>";
         }
 

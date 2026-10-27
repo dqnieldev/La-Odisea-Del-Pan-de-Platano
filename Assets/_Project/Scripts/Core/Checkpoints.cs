@@ -6,7 +6,7 @@ namespace Odisea.Core
     /// <summary>
     /// Recuerda el último punto de control que tocó Ulises en el nivel actual. Al morir la escena se recarga
     /// completa (enemigos y muñecos vuelven) y Ulises aparece ahí en vez de en el inicio.
-    /// Se olvida al ir a otra escena o al reiniciar a mano (R o Reiniciar en la pausa).
+    /// Se olvida al ir a otra escena o al reiniciar a mano (Reiniciar en la pausa).
     /// </summary>
     public static class Checkpoints
     {

@@ -111,7 +111,7 @@ namespace Odisea.EditorTools
             DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f)));
 
             // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
-            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente\ncon el rodillo"),
+            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente:\n¡por la espalda, muerde!"),
                 checkpointLayer: level.PlayerLayer);
             CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 94f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 110f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
@@ -426,7 +426,17 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Tutorial completado!", "Ya sabes moverte, saltar, golpear y lanzar masa.\n¡Ahora sí, a la aventura!"));
-            // Banderín placeholder.
+            // El carrito de pan de plátano con su letrero "¡META!"; sin el arte importado, un banderín de color.
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.GoalPath);
+            if (art != null)
+            {
+                var cart = new GameObject("Carrito").AddComponent<SpriteRenderer>();
+                cart.transform.SetParent(goal.transform, false);
+                cart.transform.position = new Vector3(center.x, 0f, 0f);
+                cart.sprite = art;
+                cart.sortingOrder = BehindSandOrder; // Su montón de arena queda tras la orilla, como enterrado.
+                return;
+            }
             Quad("Asta", goal.transform, square, new Vector2(0f, 0f), new Vector2(0.15f, 4f), PlayerSandboxBuilder.Cafe, 2);
             Quad("Banderín", goal.transform, square, new Vector2(0.65f, 1.5f), new Vector2(1.2f, 0.8f), Sun, 2);
         }

@@ -495,6 +495,11 @@ namespace Odisea.EditorTools
         public const float DummyHeight = UlisesStandHeight; // De la altura de Ulises.
         public const string UrchinsPath = TutorialFolder + "/Erizos.png";
         private const float UrchinsWidth = 5f;
+        // Meta: el carrito de pan de plátano con el letrero "¡META!", alto total (hasta la punta del banderín);
+        // su montón de arena se hunde un poco más que los obstáculos para que asome detrás de la orilla.
+        public const string GoalPath = TutorialFolder + "/Meta.png";
+        private const float GoalHeight = 4.2f;
+        public const float GoalSink = 0.3f;
 
         // Tamaños en el juego (unidades). El papel cubre la vista (la cámara ve ~25 x 14).
         public const float PaperSize = 26f;
@@ -577,6 +582,13 @@ namespace Odisea.EditorTools
                 // Van delante de la arena (tienen que verse bien: hacen daño), apenas hundidos.
                 float ppu = bounds.width / UrchinsWidth;
                 WriteRegion(urchins, bounds, UrchinsPath, ppu, new Vector2(0.5f, 0.04f * ppu / bounds.height));
+            }
+
+            if (ReadImage("tutorial_meta.png") is { } goal)
+            {
+                RectInt bounds = OpaqueBounds(goal);
+                float ppu = bounds.height / GoalHeight;
+                WriteRegion(goal, bounds, GoalPath, ppu, new Vector2(0.5f, GoalSink * ppu / bounds.height));
             }
 
             WritePiece("tutorial_muelle.png", PierPath, PierHeight);
