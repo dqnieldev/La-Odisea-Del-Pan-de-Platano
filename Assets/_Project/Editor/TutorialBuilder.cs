@@ -12,7 +12,7 @@ namespace Odisea.EditorTools
 {
     /// <summary>
     /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (piezas solo con
-    /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo, sol que acompaña a Ulises,
+    /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo,
     /// mar y arena) con el arte de Art/Environment/Tutorial/Fondo
     /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
@@ -321,7 +321,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>
-        /// Fondo con el arte (Art/Environment/Tutorial/Fondo): papel y sol pegados a la cámara, el horizonte casi
+        /// Fondo con el arte (Art/Environment/Tutorial/Fondo): el papel pegado a la cámara, el horizonte casi
         /// quieto y la arena como suelo.
         /// </summary>
         private static void CreateArtBackground(Transform root, SpriteRenderer sandBlock)
@@ -331,16 +331,6 @@ namespace Odisea.EditorTools
             // Papel: cubre toda la vista y va con la cámara.
             Transform paper = Layer(background, "Capa papel", 1f, 1f);
             Piece("Papel", paper, ArtImportBuilder.PaperPath, new Vector2(2.5f, 2.5f), -60);
-
-            // Sol: acompaña a Ulises, arriba a la derecha, parpadeando; delante del cielo del horizonte.
-            Transform sunLayer = Layer(background, "Capa sol", 1f, 1f);
-            SpriteRenderer sun = Piece("Sol", sunLayer, ArtImportBuilder.SunPath, new Vector2(9.5f, 7.5f), -35);
-            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.SunControllerPath);
-            if (sun != null && controller != null)
-            {
-                sun.sprite = ArtImportBuilder.LoadStrip(ArtImportBuilder.SunPath).FirstOrDefault() ?? sun.sprite;
-                sun.gameObject.AddComponent<Animator>().runtimeAnimatorController = controller;
-            }
 
             // Horizonte: el mar, la isla del faro y el cerro con el fuerte; la línea del mar queda sobre la arena.
             Transform horizon = Layer(background, "Capa horizonte", 0.9f, 0.7f);
