@@ -71,12 +71,14 @@ namespace Odisea.EditorTools
             // 2. Saltar: una caja que se sube con un salto (Ulises salta 3.2).
             CreateSign(root, square, titleFont, bodyFont, 9f, "SALTAR",
                 Prompt.Of(new[] { "kb_space_icon" }, new[] { "xbox_a" }, new[] { "ps_cross" }));
-            PlayerSandboxBuilder.CreateBlock("Caja (salto)", root, square, new Vector2(13.5f, 0.9f), new Vector2(2.5f, 1.8f), SandDark, ground);
+            // Cubo de arena hecho con cubeta.
+            CreateSandBlock("Caja (salto)", root, square, ArtImportBuilder.CubePath, 13.5f, new Vector2(2.1f, ArtImportBuilder.CubeHeight), ground);
 
             // 3. Doble salto: un muro que solo se alcanza saltando otra vez en el aire (3.2 + 2.4).
             CreateSign(root, square, titleFont, bodyFont, 19.5f, "DOBLE SALTO",
                 Prompt.Of(new[] { "kb_space_icon", "x2" }, new[] { "xbox_a", "x2" }, new[] { "ps_cross", "x2" }));
-            PlayerSandboxBuilder.CreateBlock("Muro (doble salto)", root, square, new Vector2(25f, 2.25f), new Vector2(3f, 4.5f), SandDark, ground);
+            // Torre de arena; la banderita de arriba es adorno (no se pisa).
+            CreateSandBlock("Muro (doble salto)", root, square, ArtImportBuilder.TowerPath, 25f, new Vector2(2.4f, ArtImportBuilder.TowerHeight), ground);
 
             // 4. Tablas de un sentido: escalera de tablas que se cruzan desde abajo.
             CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Se cruzan saltando desde abajo"));
@@ -103,8 +105,8 @@ namespace Odisea.EditorTools
 
             // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
             CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente o lánzale masa"));
-            PlayerSandboxBuilder.CreateBlock("Bordillo 1", root, square, new Vector2(94f, 0.3f), new Vector2(1f, 0.6f), SandDark, ground);
-            PlayerSandboxBuilder.CreateBlock("Bordillo 2", root, square, new Vector2(110f, 0.3f), new Vector2(1f, 0.6f), SandDark, ground);
+            CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 94f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
+            CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 110f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(104f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
 
             // 9. Meta.
@@ -263,6 +265,32 @@ namespace Odisea.EditorTools
             renderer.color = color;
             renderer.sortingOrder = order;
             return renderer;
+        }
+
+        // ---------- Obstáculos de arena ----------
+
+        /// <summary>
+        /// Bloque de arena dibujado sobre el suelo en x: el collider (del ancho del cuerpo del dibujo, sin la arena
+        /// de la base) llega justo a su parte de arriba plana. Sin el arte importado, el bloque de color.
+        /// </summary>
+        private static void CreateSandBlock(string name, Transform parent, Sprite square, string artPath, float x,
+            Vector2 size, int ground)
+        {
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+            if (art == null)
+            {
+                PlayerSandboxBuilder.CreateBlock(name, parent, square, new Vector2(x, size.y / 2f), size, SandDark, ground);
+                return;
+            }
+            var block = new GameObject(name) { layer = ground };
+            block.transform.SetParent(parent, false);
+            block.transform.position = new Vector3(x, 0f, 0f);
+            var box = block.AddComponent<BoxCollider2D>();
+            box.size = size;
+            box.offset = new Vector2(0f, size.y / 2f);
+            var renderer = block.AddComponent<SpriteRenderer>();
+            renderer.sprite = art;
+            renderer.sortingOrder = 0; // Delante de la arena, detrás de Ulises.
         }
 
         // ---------- Meta ----------

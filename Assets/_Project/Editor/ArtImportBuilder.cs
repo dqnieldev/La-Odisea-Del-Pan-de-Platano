@@ -474,6 +474,16 @@ namespace Odisea.EditorTools
         public const string MooringPostPath = TutorialBackgroundFolder + "/Poste.png";
         public const string RocksPath = TutorialBackgroundFolder + "/Rocas.png";
         public const string GrassPath = TutorialBackgroundFolder + "/Pasto.png";
+        // Obstáculos de arena (cubo de la caja de salto, torre del doble salto y bordillo del cocodrilo).
+        public const string CubePath = TutorialFolder + "/Cubo.png";
+        public const string TowerPath = TutorialFolder + "/Torre.png";
+        public const string CurbPath = TutorialFolder + "/Bordillo.png";
+        // Alto de cada uno hasta su parte de arriba plana (= alto de su collider en el tutorial).
+        public const float CubeHeight = 1.8f;
+        public const float TowerHeight = 4.5f;
+        public const float CurbHeight = 0.9f;
+        // Lo que la base (la arena amontonada) se hunde bajo el suelo.
+        private const float ObstacleSink = 0.05f;
 
         // Tamaños en el juego (unidades). El papel cubre la vista (la cámara ve ~25 x 14).
         public const float PaperSize = 26f;
@@ -544,6 +554,10 @@ namespace Odisea.EditorTools
                 WriteRegion(sand, bounds, path, bounds.height / SandHeight,
                     new Vector2(0.5f, (walk - bounds.yMin) / bounds.height), padding: 0);
             }
+
+            WriteObstacle("tutorial_cubo.png", CubePath, CubeHeight);
+            WriteObstacle("tutorial_torre.png", TowerPath, TowerHeight);
+            WriteObstacle("tutorial_bordillo.png", CurbPath, CurbHeight);
 
             WritePiece("tutorial_muelle.png", PierPath, PierHeight);
             WritePiece("tutorial_panga.png", BoatPath, BoatHeight);
@@ -634,6 +648,41 @@ namespace Odisea.EditorTools
                 Color32 c = image.Pixels[i];
                 image.Pixels[i] = new Color32(Map(c.r, 0), Map(c.g, 1), Map(c.b, 2), c.a);
             }
+        }
+
+        /// <summary>
+        /// Obstáculo que se pisa: la parte de arriba plana (la primera fila que ocupa casi todo el ancho, sin la
+        /// banderita) queda a height sobre el suelo, la base un poco hundida, y el pivote en el centro del cuerpo.
+        /// </summary>
+        private static void WriteObstacle(string file, string path, float height)
+        {
+            if (ReadImage(file) is not { } image)
+                return;
+            RectInt bounds = OpaqueBounds(image);
+            int Span(int y, out int left)
+            {
+                left = -1;
+                int right = -1;
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    if (image.Pixels[y * image.Width + x].a <= 128)
+                        continue;
+                    if (left < 0)
+                        left = x;
+                    right = x;
+                }
+                return left < 0 ? 0 : right - left + 1;
+            }
+
+            int top = bounds.yMax - 1;
+            while (top > bounds.yMin && Span(top, out _) < bounds.width * 0.4f)
+                top--;
+            float ppu = (top - bounds.yMin + 1) / (height + ObstacleSink);
+            // Centro del cuerpo a media altura (la arena de la base puede estar más de un lado).
+            int middle = (top + bounds.yMin) / 2;
+            int width = Span(middle, out int middleLeft);
+            float centerX = middleLeft + width / 2f - bounds.xMin;
+            WriteRegion(image, bounds, path, ppu, new Vector2(centerX / bounds.width, ObstacleSink * ppu / bounds.height));
         }
 
         private static void WritePiece(string file, string path, float height)
