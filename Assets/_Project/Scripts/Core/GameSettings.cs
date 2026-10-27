@@ -12,13 +12,14 @@ namespace Odisea.Core
     }
 
     /// <summary>
-    /// Ajustes del jugador (volúmenes, pantalla, brillo, FPS y vibración), guardados en PlayerPrefs
+    /// Ajustes del jugador (volúmenes general, música y efectos, pantalla, brillo, FPS y vibración), guardados en PlayerPrefs
     /// y aplicados automáticamente al arrancar el juego.
     /// </summary>
     public static class GameSettings
     {
         private const string VolumeKey = "odisea.volumenGeneral";
         private const string MusicKey = "odisea.volumenMusica";
+        private const string EffectsKey = "odisea.volumenEfectos";
         private const string WindowModeKey = "odisea.modoVentana";
         // Ajuste viejo (sí/no); solo se lee para respetar lo que ya eligió quien jugó antes.
         private const string LegacyFullscreenKey = "odisea.pantallaCompleta";
@@ -57,6 +58,13 @@ namespace Odisea.Core
                 PlayerPrefs.SetFloat(MusicKey, volume);
                 MusicVolumeChanged?.Invoke(volume);
             }
+        }
+
+        /// <summary>Volumen de los efectos (golpes, mordidas, sonidos de los menús) de 0 a 1. Se multiplica por el general.</summary>
+        public static float EffectsVolume
+        {
+            get => PlayerPrefs.GetFloat(EffectsKey, 1f);
+            set => PlayerPrefs.SetFloat(EffectsKey, Mathf.Clamp01(value));
         }
 
         public static WindowMode WindowMode

@@ -1,0 +1,305 @@
+fileFormatVersion: 2
+guid: c7f1a24368a424640b78d2a55b41c770
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6135484067395706205
+    second: Cocodrilo_Die_0
+  - first:
+      213: -7173704529145325233
+    second: Cocodrilo_Die_1
+  - first:
+      213: 8841400771249227351
+    second: Cocodrilo_Die_2
+  - first:
+      213: -5906238072883194201
+    second: Cocodrilo_Die_3
+  - first:
+      213: 3803131597245518241
+    second: Cocodrilo_Die_4
+  - first:
+      213: 1447026418942768463
+    second: Cocodrilo_Die_5
+  - first:
+      213: 7258510754445959658
+    second: Cocodrilo_Die_6
+  - first:
+      213: -4855280969434564348
+    second: Cocodrilo_Die_7
+  - first:
+      213: -2213748786421397650
+    second: Cocodrilo_Die_8
+  - first:
+      213: 3191994494518297216
+    second: Cocodrilo_Die_9
+  - first:
+      213: 5232290822787978771
+    second: Cocodrilo_Die_10
+  - first:
+      213: 6307142704885158298
+    second: Cocodrilo_Die_11
+  - first:
+      213: 1641751960436676976
+    second: Cocodrilo_Die_12
+  - first:
+      213: -2812136187022859586
+    second: Cocodrilo_Die_13
+  - first:
+      213: -8153220588320792047
+    second: Cocodrilo_Die_14
+  - first:
+      213: 721744911496804582
+    second: Cocodrilo_Die_15
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.038659792}
+  spritePixelsToUnits: 350.5263
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Cocodrilo_Die_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6cb5f40d5ea2bf84d87800e5f1d073c2
+      internalID: 6135484067395706205
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Cocodrilo_Die_1
+      rect:
+        serializedVersion: 2
+        x: 554
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 771c049054d74964f96e7ca94d6a6db6
+      internalID: -7173704529145325233
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Cocodrilo_Die_2
+      rect:
+        serializedVersion: 2
+        x: 1108
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 41e288e6d02191a4aa310c38d9e99acf
+      internalID: 8841400771249227351
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Cocodrilo_Die_3
+      rect:
+        serializedVersion: 2
+        x: 1662
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 40d54cffe63eb1e44bdc303d07ab034f
+      internalID: -5906238072883194201
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Cocodrilo_Die_4
+      rect:
+        serializedVersion: 2
+        x: 2216
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 63f1af071c7c85644bfe042e1322adea
+      internalID: 3803131597245518241
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Cocodrilo_Die_5
+      rect:
+        serializedVersion: 2
+        x: 2770
+        y: 0
+        width: 554
+        height: 776
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038659792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d45c2961a8fd7124b8c920abe58a7f9b
+      internalID: 1447026418942768463
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 32a57f6c32d1ff24792d2a8cdbce2cec
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Cocodrilo_Die_0: 6135484067395706205
+      Cocodrilo_Die_1: -7173704529145325233
+      Cocodrilo_Die_2: 8841400771249227351
+      Cocodrilo_Die_3: -5906238072883194201
+      Cocodrilo_Die_4: 3803131597245518241
+      Cocodrilo_Die_5: 1447026418942768463
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

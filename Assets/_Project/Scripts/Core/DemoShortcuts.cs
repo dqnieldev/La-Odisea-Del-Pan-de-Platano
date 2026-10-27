@@ -35,14 +35,32 @@ namespace Odisea.Core
                 Restart();
         }
 
-        private void OnPlayerDied() => Invoke(nameof(Restart), restartDelayOnDeath);
+        private void OnPlayerDied() => Invoke(nameof(RestartOnPlayer), restartDelayOnDeath);
 
-        private void Restart()
+        // Al morir, el iris se cierra sobre Ulises (el centro de su dibujo: tirado en el suelo, ahí queda),
+        // esté donde esté en la pantalla.
+        private void RestartOnPlayer()
+        {
+            Camera view = Camera.main;
+            if (view == null || playerHealth == null)
+            {
+                Restart();
+                return;
+            }
+            var drawing = playerHealth.GetComponentInChildren<SpriteRenderer>();
+            Vector3 target = drawing != null ? drawing.bounds.center : playerHealth.transform.position;
+            Vector3 point = view.WorldToViewportPoint(target);
+            Restart(new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y)));
+        }
+
+        private void Restart() => Restart(null);
+
+        private void Restart(Vector2? irisCenter)
         {
             if (restarting)
                 return;
             restarting = true;
-            SceneFlow.ReloadCurrent();
+            SceneFlow.ReloadCurrent(irisCenter);
         }
     }
 }

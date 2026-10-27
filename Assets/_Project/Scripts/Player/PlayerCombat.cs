@@ -23,6 +23,8 @@ namespace Odisea.Player
         private readonly HashSet<IDamageable> alreadyHit = new();
 
         public event Action Attacked;
+        /// <summary>El golpe le dio a algo (para el sonido del impacto).</summary>
+        public event Action AttackHit;
         public event Action Thrown;
 
         private void Awake()
@@ -59,6 +61,7 @@ namespace Odisea.Player
             Attacked?.Invoke();
 
             alreadyHit.Clear();
+            bool landed = false;
             Collider2D[] hits = Physics2D.OverlapBoxAll(AttackCenter(config), config.attackSize, 0f, config.attackLayers);
             foreach (Collider2D hit in hits)
             {
@@ -67,8 +70,11 @@ namespace Odisea.Player
                 if (target == null || ReferenceEquals(target, self) || !alreadyHit.Add(target))
                     continue;
 
-                target.TakeDamage(new DamageInfo(config.attackDamage, transform.position, gameObject));
+                if (target.TakeDamage(new DamageInfo(config.attackDamage, transform.position, gameObject)))
+                    landed = true;
             }
+            if (landed)
+                AttackHit?.Invoke();
         }
 
         private void Throw()

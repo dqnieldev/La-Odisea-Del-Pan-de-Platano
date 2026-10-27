@@ -33,8 +33,15 @@ namespace Odisea.Core
         [Tooltip("Al morir se encoge, se desvanece y se destruye el objeto.")]
         [SerializeField] private bool shrinkAndDestroyOnDeath;
         [SerializeField, Min(0.01f)] private float deathDuration = 0.3f;
+        [Tooltip("Si tiene animación de muerte: segundos que se deja ver antes de desvanecerse, sin encogerse ni girar. " +
+                 "0 = se encoge y gira (sin animación).")]
+        [SerializeField, Min(0f)] private float deathAnimationTime;
+
+        private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
+        private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
 
         private Color[] originalColors;
+        private MaterialPropertyBlock block;
         private Vector3 baseScale;
         private Vector3 basePosition;
         private Coroutine hitRoutine;
@@ -96,10 +103,50 @@ namespace Odisea.Core
 
         private IEnumerator Flash()
         {
+            if (UsesFlashShader())
+            {
+                // Con el material de destello (Odisea/Sprites/Flash) el dibujo se enciende de flashColor
+                // y se apaga suave; teñir con blanco no se notaría.
+                for (float t = 0f; t < flashDuration; t += Time.deltaTime)
+                {
+                    float progress = t / flashDuration;
+                    SetFlash(progress < 0.5f ? 1f : 1f - (progress - 0.5f) * 2f);
+                    yield return null;
+                }
+                SetFlash(0f);
+                flashRoutine = null;
+                yield break;
+            }
+
             SetColors(_ => flashColor);
             yield return new WaitForSeconds(flashDuration);
             SetColors(i => originalColors[i]);
             flashRoutine = null;
+        }
+
+        private bool UsesFlashShader()
+        {
+            foreach (SpriteRenderer r in renderers)
+            {
+                if (r != null && r.sharedMaterial != null && r.sharedMaterial.HasProperty(FlashAmountId))
+                    return true;
+            }
+            return false;
+        }
+
+        private void SetFlash(float amount)
+        {
+            block ??= new MaterialPropertyBlock();
+            foreach (SpriteRenderer r in renderers)
+            {
+                if (r == null || r.sharedMaterial == null || !r.sharedMaterial.HasProperty(FlashAmountId))
+                    continue;
+                // Se lee primero: el SpriteRenderer guarda ahí su textura.
+                r.GetPropertyBlock(block);
+                block.SetFloat(FlashAmountId, amount);
+                block.SetColor(FlashColorId, flashColor);
+                r.SetPropertyBlock(block);
+            }
         }
 
         private IEnumerator PunchAndShake()
@@ -119,12 +166,22 @@ namespace Odisea.Core
 
         private IEnumerator ShrinkAndDestroy()
         {
-            yield return new WaitForSeconds(flashDuration);
+            bool animated = deathAnimationTime > 0f;
+            if (animated)
+            {
+                // La animación de muerte se ve completa, sin el aplastón del golpe encima.
+                visual.localScale = baseScale;
+                visual.localPosition = basePosition;
+            }
+            yield return new WaitForSeconds(animated ? deathAnimationTime : flashDuration);
             for (float t = 0f; t < deathDuration; t += Time.deltaTime)
             {
                 float progress = t / deathDuration;
-                visual.localScale = baseScale * (1f - progress);
-                visual.localRotation = Quaternion.Euler(0f, 0f, 90f * progress);
+                if (!animated)
+                {
+                    visual.localScale = baseScale * (1f - progress);
+                    visual.localRotation = Quaternion.Euler(0f, 0f, 90f * progress);
+                }
                 SetColors(i =>
                 {
                     Color c = originalColors[i];

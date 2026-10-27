@@ -64,6 +64,9 @@ namespace Odisea.UI
         [Tooltip("Opcional: volumen de la música.")]
         [SerializeField] private Slider musicSlider;
         [SerializeField] private TMP_Text musicValue;
+        [Tooltip("Opcional: volumen de los efectos (golpes, mordidas, sonidos de los menús).")]
+        [SerializeField] private Slider effectsSlider;
+        [SerializeField] private TMP_Text effectsValue;
 
         [Header("Pantalla")]
         [SerializeField] private OptionSelector windowModeSelector;
@@ -100,6 +103,13 @@ namespace Odisea.UI
                 musicSlider.wholeNumbers = false;
                 musicSlider.onValueChanged.AddListener(OnMusicChanged);
             }
+            if (effectsSlider != null)
+            {
+                effectsSlider.minValue = 0f;
+                effectsSlider.maxValue = 100f;
+                effectsSlider.wholeNumbers = false;
+                effectsSlider.onValueChanged.AddListener(OnEffectsChanged);
+            }
 
             // Mismo orden que el enum WindowMode.
             windowModeSelector.SetOptions(new[] { "Completa", "Sin bordes", "Ventana" });
@@ -118,7 +128,7 @@ namespace Odisea.UI
             controlsTab.onClick.AddListener(() => ShowSection(Section.Controls));
             backButton.onClick.AddListener(Close);
             if (restartButton != null)
-                restartButton.onClick.AddListener(() => Leave(SceneFlow.ReloadCurrent));
+                restartButton.onClick.AddListener(() => Leave(() => SceneFlow.ReloadCurrent()));
             if (titleButton != null)
                 titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Splash)));
             if (exitToMenuButton != null)
@@ -137,6 +147,11 @@ namespace Odisea.UI
             {
                 musicSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.MusicVolume * 100f));
                 musicValue.text = $"{musicSlider.value:0}%";
+            }
+            if (effectsSlider != null)
+            {
+                effectsSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.EffectsVolume * 100f));
+                effectsValue.text = $"{effectsSlider.value:0}%";
             }
             windowModeSelector.SetIndexWithoutNotify((int)GameSettings.WindowMode);
             brightnessSlider.SetValueWithoutNotify(Mathf.Round(GameSettings.Brightness * 100f));
@@ -383,6 +398,14 @@ namespace Odisea.UI
                 GamepadRumble.Play(0.25f, 0.6f, 0.15f);
             else
                 GamepadRumble.Stop();
+        }
+
+        private void OnEffectsChanged(float value)
+        {
+            GameSettings.EffectsVolume = value / 100f;
+            effectsValue.text = $"{value:0}%";
+            // Suena ya con el volumen nuevo de efectos, para que se escuche el nivel elegido.
+            UiAudio.Play(UiSound.Hover);
         }
 
         private void OnMusicChanged(float value)

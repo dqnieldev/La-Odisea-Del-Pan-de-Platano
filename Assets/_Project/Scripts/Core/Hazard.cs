@@ -20,7 +20,9 @@ namespace Odisea.Core
 
         private void TryDamage(Collider2D other)
         {
-            if ((targetLayers.value & (1 << other.gameObject.layer)) == 0)
+            // Unity avisa de los choques aunque el componente esté apagado: apagado = no hace daño
+            // (p. ej. el cocodrilo lo apaga mientras muerde, para que solo dañe el cierre del hocico).
+            if (!isActiveAndEnabled || (targetLayers.value & (1 << other.gameObject.layer)) == 0)
                 return;
 
             var target = other.GetComponentInParent<IDamageable>();
