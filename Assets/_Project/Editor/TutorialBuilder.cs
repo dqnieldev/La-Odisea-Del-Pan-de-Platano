@@ -11,7 +11,7 @@ namespace Odisea.EditorTools
     /// <summary>
     /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (piezas solo con
     /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo, sol que acompaña a Ulises,
-    /// mar, muelle y palmeras y arena) con el arte de Art/Environment/Tutorial/Fondo
+    /// mar, panga y arena) con el arte de Art/Environment/Tutorial/Fondo
     /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
     /// lanzar masa y el cocodrilo; al final, la meta.
@@ -239,7 +239,7 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// Fondo con el arte (Art/Environment/Tutorial/Fondo): papel y sol pegados a la cámara, el horizonte casi
-        /// quieto, muelle y palmeras a media velocidad y la arena como suelo (con postes).
+        /// quieto, la panga a media velocidad y la arena como suelo.
         /// </summary>
         private static void CreateArtBackground(Transform root, SpriteRenderer sandBlock)
         {
@@ -263,17 +263,9 @@ namespace Odisea.EditorTools
             Transform horizon = Layer(background, "Capa horizonte", 0.9f, 0.7f);
             Piece("Horizonte", horizon, ArtImportBuilder.HorizonPath, new Vector2(8f, 1f), -40);
 
-            // Orilla: muelle, panga y palmeras a media velocidad, con la base escondida tras la arena.
-            Transform shore = Layer(background, "Capa muelle y palmeras", 0.5f, 0.35f);
-            Piece("Muelle", shore, ArtImportBuilder.PierPath, new Vector2(24f, -0.6f), -31);
+            // Orilla: solo la panga a media velocidad (fondo minimalista), con la base escondida tras la arena.
+            Transform shore = Layer(background, "Capa orilla", 0.5f, 0.35f);
             Piece("Panga", shore, ArtImportBuilder.BoatPath, new Vector2(37f, -0.5f), -30);
-            (float x, string path)[] palms =
-            {
-                (-6f, ArtImportBuilder.Palm1Path), (5f, ArtImportBuilder.Palm2Path), (13f, ArtImportBuilder.Palm1Path),
-                (44f, ArtImportBuilder.Palm2Path), (52f, ArtImportBuilder.Palm1Path), (63f, ArtImportBuilder.Palm2Path),
-            };
-            foreach ((float x, string path) in palms)
-                Piece("Palmera", shore, path, new Vector2(x, -0.4f), -30);
 
             // Arena: tiras una junto a otra (con conchas de vez en cuando) sobre el bloque del suelo.
             Sprite[] sands =
@@ -301,10 +293,6 @@ namespace Odisea.EditorTools
                 // Lo que quede bajo la arena dibujada, del color de su parte de abajo.
                 sandBlock.color = SandBottom;
             }
-
-            // Postes con cuerda clavados en la arena, detrás de Ulises (fuera de las espinas y la caja).
-            foreach (float x in new[] { -5f, 17f, 48f, 62f, 98f, 113f })
-                Piece("Poste", root, ArtImportBuilder.MooringPostPath, new Vector2(x, -0.3f), -4);
         }
 
         private static SpriteRenderer Piece(string name, Transform parent, string path, Vector2 position, int order)
