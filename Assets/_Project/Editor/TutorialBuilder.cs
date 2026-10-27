@@ -57,7 +57,7 @@ namespace Odisea.EditorTools
             float width = RightEdge - LeftEdge;
             GameObject sand = PlayerSandboxBuilder.CreateBlock("Arena", root, square,
                 new Vector2((LeftEdge + RightEdge) / 2f, -3f), new Vector2(width, 6f), Sand, ground);
-            sand.GetComponent<SpriteRenderer>().sortingOrder = -6;
+            sand.GetComponent<SpriteRenderer>().sortingOrder = -8; // Debajo de todo: solo se ve si falta el dibujo de la arena.
             PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
 
@@ -142,8 +142,10 @@ namespace Odisea.EditorTools
 
         // ---------- Letreros ----------
 
-        // Alto de los íconos de botones en el letrero y separación entre piezas de la fila.
-        private const float IconSize = 0.8f;
+        // Alto máximo de los íconos de botones en el letrero y separación entre piezas de la fila.
+        private const float MaxIconSize = 0.8f;
+        // Lo que va detrás de la orilla de la arena (su base queda tapada, como enterrada): obstáculos y letreros.
+        private const int BehindSandOrder = -6;
         private const float RowGap = 0.08f;
 
         /// <summary>
@@ -172,27 +174,53 @@ namespace Odisea.EditorTools
             sign.transform.SetParent(parent, false);
             sign.transform.position = new Vector3(x, 0f, 0f);
 
-            Quad("Poste", sign.transform, square, new Vector2(0f, 0.9f), new Vector2(0.18f, 1.8f), PlayerSandboxBuilder.Cafe, 1);
-            Quad("Borde", sign.transform, square, new Vector2(0f, 2.55f), new Vector2(3.6f, 1.5f), PlayerSandboxBuilder.Cafe, 1);
-            Quad("Tabla", sign.transform, square, new Vector2(0f, 2.55f), new Vector2(3.44f, 1.34f), PlayerSandboxBuilder.Crema, 2);
+            // Cara del letrero (donde va lo escrito): la del dibujo, o la tabla de color si aún no se importa.
+            Vector2 face, faceSize;
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.SignPath);
+            if (art != null)
+            {
+                // El pivote del dibujo es el centro de su cara; su base de arena, hundida tras la orilla.
+                float ppu = art.pixelsPerUnit;
+                face = new Vector2(0f, art.pivot.y / ppu - ArtImportBuilder.ObstacleSink);
+                faceSize = new Vector2(art.rect.width - art.border.x - art.border.z, art.rect.height - art.border.y - art.border.w) / ppu;
+                var board = new GameObject("Tabla").AddComponent<SpriteRenderer>();
+                board.transform.SetParent(sign.transform, false);
+                board.transform.localPosition = face;
+                board.sprite = art;
+                board.sortingOrder = BehindSandOrder;
+            }
+            else
+            {
+                face = new Vector2(0f, 2.55f);
+                faceSize = new Vector2(3.44f, 1.34f);
+                Quad("Poste", sign.transform, square, new Vector2(0f, 0.9f), new Vector2(0.18f, 1.8f), PlayerSandboxBuilder.Cafe, 1);
+                Quad("Borde", sign.transform, square, face, faceSize + new Vector2(0.16f, 0.16f), PlayerSandboxBuilder.Cafe, 1);
+                Quad("Tabla", sign.transform, square, face, faceSize, PlayerSandboxBuilder.Crema, 2);
+            }
 
-            Text("Título", sign.transform, title, titleFont, new Vector2(0f, 2.9f), new Vector2(3.2f, 0.6f), 6f);
-            var row = new Vector2(0f, 2.2f);
+            // Título en la mitad de arriba de la cara; botones (o la frase) en la de abajo.
+            float lineWidth = faceSize.x * 0.9f;
+            Text("Título", sign.transform, title, titleFont, face + new Vector2(0f, faceSize.y * 0.22f),
+                new Vector2(lineWidth, faceSize.y * 0.42f), 6f);
+            Vector2 row = face - new Vector2(0f, faceSize.y * 0.22f);
             if (prompt.Hint != null)
             {
-                Text("Ayuda", sign.transform, prompt.Hint, bodyFont, row, new Vector2(3.2f, 0.5f), 3.6f);
+                Text("Ayuda", sign.transform, prompt.Hint, bodyFont, row, new Vector2(lineWidth, faceSize.y * 0.36f), 3.6f);
                 return;
             }
 
+            float iconSize = Mathf.Min(MaxIconSize, faceSize.y * 0.52f);
             var switcher = sign.AddComponent<ControlsDiagram>();
-            PlayerSandboxBuilder.SetSerialized(switcher, "keyboard", PromptRow("Teclado", sign.transform, prompt.Keyboard, bodyFont, row));
-            PlayerSandboxBuilder.SetSerialized(switcher, "xbox", PromptRow("Xbox", sign.transform, prompt.Xbox, bodyFont, row));
+            PlayerSandboxBuilder.SetSerialized(switcher, "keyboard",
+                PromptRow("Teclado", sign.transform, prompt.Keyboard, bodyFont, row, iconSize));
+            PlayerSandboxBuilder.SetSerialized(switcher, "xbox", PromptRow("Xbox", sign.transform, prompt.Xbox, bodyFont, row, iconSize));
             PlayerSandboxBuilder.SetSerialized(switcher, "playStation",
-                PromptRow("PlayStation", sign.transform, prompt.PlayStation, bodyFont, row));
+                PromptRow("PlayStation", sign.transform, prompt.PlayStation, bodyFont, row, iconSize));
         }
 
         // Fila centrada de íconos (teñidos de tinta café, como en Controles) y textos cortos.
-        private static GameObject PromptRow(string name, Transform parent, string[] tokens, TMP_FontAsset font, Vector2 center)
+        private static GameObject PromptRow(string name, Transform parent, string[] tokens, TMP_FontAsset font, Vector2 center,
+            float iconSize)
         {
             var row = new GameObject(name);
             row.transform.SetParent(parent, false);
@@ -210,14 +238,14 @@ namespace Odisea.EditorTools
                     renderer.sprite = icon;
                     renderer.color = PlayerSandboxBuilder.Cafe;
                     renderer.sortingOrder = 3;
-                    float scale = IconSize / icon.bounds.size.y;
+                    float scale = iconSize / icon.bounds.size.y;
                     renderer.transform.localScale = new Vector3(scale, scale, 1f);
                     pieces.Add((renderer.transform, icon.bounds.size.x * scale));
                 }
                 else
                 {
                     float width = 0.18f + 0.2f * token.Length;
-                    TextMeshPro text = Text(token, row.transform, token, font, Vector2.zero, new Vector2(width, IconSize), 4f);
+                    TextMeshPro text = Text(token, row.transform, token, font, Vector2.zero, new Vector2(width, iconSize), 4f);
                     pieces.Add((text.transform, width));
                 }
             }
@@ -290,7 +318,7 @@ namespace Odisea.EditorTools
             box.offset = new Vector2(0f, size.y / 2f);
             var renderer = block.AddComponent<SpriteRenderer>();
             renderer.sprite = art;
-            renderer.sortingOrder = 0; // Delante de la arena, detrás de Ulises.
+            renderer.sortingOrder = BehindSandOrder;
         }
 
         // ---------- Meta ----------
@@ -387,8 +415,12 @@ namespace Odisea.EditorTools
                     tile.sprite = sprite;
                     tile.sortingOrder = -5;
                 }
-                // Lo que quede bajo la arena dibujada, del color de su parte de abajo.
-                sandBlock.color = SandBottom;
+                // El bloque del suelo (solo collider) no se pinta: asomaba como una raya café por las ondas de la
+                // orilla. Debajo de la arena dibujada va un relleno de su color, lejos de la orilla.
+                sandBlock.enabled = false;
+                Transform block = sandBlock.transform;
+                Quad("Relleno de arena", root, sandBlock.sprite, new Vector2(block.position.x, -3.6f),
+                    new Vector2(block.localScale.x, 4.8f), SandBottom, -8);
             }
         }
 

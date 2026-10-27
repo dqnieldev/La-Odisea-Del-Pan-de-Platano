@@ -482,8 +482,13 @@ namespace Odisea.EditorTools
         public const float CubeHeight = 1.8f;
         public const float TowerHeight = 4.5f;
         public const float CurbHeight = 0.9f;
-        // Lo que la base (la arena amontonada) se hunde bajo el suelo.
-        private const float ObstacleSink = 0.05f;
+        // Lo que la base (la arena amontonada) se hunde bajo el suelo; la orilla de la arena, dibujada delante,
+        // la tapa un poco para que se vea enterrada y no pegada encima.
+        public const float ObstacleSink = 0.12f;
+        // Letrero de madera: ancho de la tabla. El pivote queda en el centro de su cara clara, y la cara se guarda
+        // como borde del sprite para acomodar encima el título y los botones.
+        public const string SignPath = TutorialFolder + "/Letrero.png";
+        private const float SignWidth = 4.2f;
 
         // Tamaños en el juego (unidades). El papel cubre la vista (la cámara ve ~25 x 14).
         public const float PaperSize = 26f;
@@ -558,6 +563,7 @@ namespace Odisea.EditorTools
             WriteObstacle("tutorial_cubo.png", CubePath, CubeHeight);
             WriteObstacle("tutorial_torre.png", TowerPath, TowerHeight);
             WriteObstacle("tutorial_bordillo.png", CurbPath, CurbHeight);
+            WriteSign();
 
             WritePiece("tutorial_muelle.png", PierPath, PierHeight);
             WritePiece("tutorial_panga.png", BoatPath, BoatHeight);
@@ -685,6 +691,77 @@ namespace Odisea.EditorTools
             WriteRegion(image, bounds, path, ppu, new Vector2(centerX / bounds.width, ObstacleSink * ppu / bounds.height));
         }
 
+        // La tabla son las filas que ocupan casi todo el ancho; su cara, la zona clara que rodea su centro.
+        private static void WriteSign()
+        {
+            if (ReadImage("tutorial_letrero.png") is not { } image)
+                return;
+            RectInt bounds = OpaqueBounds(image);
+            int boardBottom = -1, boardTop = -1, boardLeft = bounds.xMax, boardRight = bounds.xMin;
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            {
+                // Se cuentan los píxeles (no de punta a punta) para que las migajas de la base no parezcan tabla.
+                int left = -1, right = -1, filled = 0;
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    if (image.Pixels[y * image.Width + x].a <= 128)
+                        continue;
+                    if (left < 0)
+                        left = x;
+                    right = x;
+                    filled++;
+                }
+                if (filled < bounds.width * 0.6f)
+                    continue;
+                if (boardBottom < 0)
+                    boardBottom = y;
+                boardTop = y;
+                boardLeft = Mathf.Min(boardLeft, left);
+                boardRight = Mathf.Max(boardRight, right);
+            }
+            if (boardBottom < 0)
+            {
+                Debug.LogWarning("[Odisea] tutorial_letrero.png: no se encontró la tabla.");
+                return;
+            }
+
+            RectInt face = LightArea(image, new Vector2Int((boardLeft + boardRight) / 2, (boardBottom + boardTop) / 2));
+            float ppu = (boardRight - boardLeft + 1) / SignWidth;
+            var pivot = new Vector2((face.center.x - bounds.xMin) / bounds.width, (face.center.y - bounds.yMin) / bounds.height);
+            WriteRegion(image, bounds, SignPath, ppu, pivot, inner: face);
+        }
+
+        // Rectángulo de la zona clara (parecida en luz al punto de partida) conectada con seed.
+        private static RectInt LightArea(Sheet image, Vector2Int seed)
+        {
+            static float Light(Color32 c) => (c.r + c.g + c.b) / 3f;
+            float threshold = Light(image.Pixels[seed.y * image.Width + seed.x]) - 35f;
+            var visited = new bool[image.Pixels.Length];
+            var pending = new Stack<Vector2Int>();
+            pending.Push(seed);
+            visited[seed.y * image.Width + seed.x] = true;
+            int minX = seed.x, maxX = seed.x, minY = seed.y, maxY = seed.y;
+            while (pending.Count > 0)
+            {
+                Vector2Int p = pending.Pop();
+                minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+                minY = Mathf.Min(minY, p.y); maxY = Mathf.Max(maxY, p.y);
+                foreach (Vector2Int step in new[] { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down })
+                {
+                    Vector2Int n = p + step;
+                    if (n.x < 0 || n.y < 0 || n.x >= image.Width || n.y >= image.Height)
+                        continue;
+                    int i = n.y * image.Width + n.x;
+                    Color32 c = image.Pixels[i];
+                    if (visited[i] || c.a <= 128 || Light(c) < threshold)
+                        continue;
+                    visited[i] = true;
+                    pending.Push(n);
+                }
+            }
+            return new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+
         private static void WritePiece(string file, string path, float height)
         {
             if (ReadImage(file) is not { } image)
@@ -793,7 +870,9 @@ namespace Odisea.EditorTools
         }
 
         // Copia un rectángulo de la imagen a su propio sprite (con borde vacío); pivot relativo al rectángulo.
-        private static void WriteRegion(Sheet sheet, RectInt region, string path, float ppu, Vector2 pivot, int padding = Padding)
+        // inner (opcional): rectángulo de la imagen que se guarda como borde del sprite (p. ej. la cara del letrero).
+        private static void WriteRegion(Sheet sheet, RectInt region, string path, float ppu, Vector2 pivot, int padding = Padding,
+            RectInt? inner = null)
         {
             int width = region.width + padding * 2;
             int height = region.height + padding * 2;
@@ -803,7 +882,11 @@ namespace Odisea.EditorTools
                 pixels[(y + padding) * width + x + padding] = sheet.Pixels[(region.yMin + y) * sheet.Width + region.xMin + x];
             WritePng(path, pixels, width, height);
             var spritePivot = new Vector2((padding + pivot.x * region.width) / width, (padding + pivot.y * region.height) / height);
-            ConfigureTexture(path, ppu, spritePivot, Vector4.zero, multiple: false);
+            Vector4 border = inner is { } face
+                ? new Vector4(padding + face.xMin - region.xMin, padding + face.yMin - region.yMin,
+                    padding + region.xMax - face.xMax, padding + region.yMax - face.yMax)
+                : Vector4.zero;
+            ConfigureTexture(path, ppu, spritePivot, border, multiple: false);
         }
 
         // ---------- Lectura y limpieza ----------
