@@ -11,7 +11,8 @@ namespace Odisea.EditorTools
     /// <summary>
     /// Crea la escena del Tutorial en graybox: la playa del muelle de San Blas en estilo boceto (piezas solo con
     /// contorno de Art/Environment/Tutorial) y fondo por capas con paralaje (cielo, sol que acompaña a Ulises,
-    /// mar, muelle y palmeras, arena y primer plano), todavía con placeholders de color.
+    /// mar, muelle y palmeras, arena y primer plano) con el arte de Art/Environment/Tutorial/Fondo
+    /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
     /// lanzar masa y el cocodrilo; al final, la meta.
     /// Menú: Odisea > Niveles > Crear tutorial.
@@ -31,6 +32,8 @@ namespace Odisea.EditorTools
         private static readonly Color Far = new(0.690f, 0.729f, 0.698f);
         private static readonly Color Shore = new(0.741f, 0.706f, 0.627f);
         private static readonly Color Grass = new(0.420f, 0.396f, 0.310f);
+        // Color de la parte de abajo de la arena dibujada (lo que asome debajo de ella).
+        private static readonly Color SandBottom = new(0.638f, 0.537f, 0.401f);
 
         // Límites del nivel (x) y alto de la arena.
         private const float LeftEdge = -10f;
@@ -52,7 +55,7 @@ namespace Odisea.EditorTools
             float width = RightEdge - LeftEdge;
             GameObject sand = PlayerSandboxBuilder.CreateBlock("Arena", root, square,
                 new Vector2((LeftEdge + RightEdge) / 2f, -3f), new Vector2(width, 6f), Sand, ground);
-            sand.GetComponent<SpriteRenderer>().sortingOrder = -5;
+            sand.GetComponent<SpriteRenderer>().sortingOrder = -6;
             PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 7f), new Vector2(1f, 20f), SandDark, ground);
 
@@ -100,8 +103,11 @@ namespace Odisea.EditorTools
             CreateSign(root, square, titleFont, bodyFont, 115f, "¡LISTO!", "Ya conoces lo básico");
             CreateGoal(root, square, new Vector2(120f, 2f), level.PlayerLayer);
 
-            // ----- Fondo por capas (placeholders) -----
-            CreateBackground(square, circle);
+            // ----- Fondo por capas: el arte del tutorial, o placeholders de color si aún no se importa -----
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath) != null)
+                CreateArtBackground(root, sand.GetComponent<SpriteRenderer>());
+            else
+                CreateBackground(square, circle);
 
             PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "Tutorial", MusicPath(),
                 showControls: false, background: Paper);
@@ -229,6 +235,102 @@ namespace Odisea.EditorTools
             foreach (float x in new[] { 6f, 27f, 47f, 71f, 88f, 101f, 117f })
                 // Hundido en la arena: solo se asoma la punta (centrado más abajo se veía como un hoyo).
                 Quad("Pasto", front, circle, new Vector2(x, -0.55f), new Vector2(1.6f, 0.9f), Grass, 20);
+        }
+
+        /// <summary>
+        /// Fondo con el arte (Art/Environment/Tutorial/Fondo): papel y sol pegados a la cámara, el horizonte casi
+        /// quieto, muelle y palmeras a media velocidad, la arena como suelo (con postes) y pasto y rocas al frente.
+        /// </summary>
+        private static void CreateArtBackground(Transform root, SpriteRenderer sandBlock)
+        {
+            var background = new GameObject("Fondo").transform;
+
+            // Papel: cubre toda la vista y va con la cámara.
+            Transform paper = Layer(background, "Capa papel", 1f, 1f);
+            Piece("Papel", paper, ArtImportBuilder.PaperPath, new Vector2(2.5f, 2.5f), -60);
+
+            // Sol: acompaña a Ulises, arriba a la derecha, parpadeando; delante del cielo del horizonte.
+            Transform sunLayer = Layer(background, "Capa sol", 1f, 1f);
+            SpriteRenderer sun = Piece("Sol", sunLayer, ArtImportBuilder.SunPath, new Vector2(9.5f, 7.5f), -35);
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.SunControllerPath);
+            if (sun != null && controller != null)
+            {
+                sun.sprite = ArtImportBuilder.LoadStrip(ArtImportBuilder.SunPath).FirstOrDefault() ?? sun.sprite;
+                sun.gameObject.AddComponent<Animator>().runtimeAnimatorController = controller;
+            }
+
+            // Horizonte: el mar, la isla del faro y el cerro con el fuerte; la línea del mar queda sobre la arena.
+            Transform horizon = Layer(background, "Capa horizonte", 0.9f, 0.7f);
+            Piece("Horizonte", horizon, ArtImportBuilder.HorizonPath, new Vector2(8f, 1f), -40);
+
+            // Orilla: muelle, panga y palmeras a media velocidad, con la base escondida tras la arena.
+            Transform shore = Layer(background, "Capa muelle y palmeras", 0.5f, 0.35f);
+            Piece("Muelle", shore, ArtImportBuilder.PierPath, new Vector2(24f, -0.6f), -31);
+            Piece("Panga", shore, ArtImportBuilder.BoatPath, new Vector2(37f, -0.5f), -30);
+            (float x, string path)[] palms =
+            {
+                (-6f, ArtImportBuilder.Palm1Path), (5f, ArtImportBuilder.Palm2Path), (13f, ArtImportBuilder.Palm1Path),
+                (44f, ArtImportBuilder.Palm2Path), (52f, ArtImportBuilder.Palm1Path), (63f, ArtImportBuilder.Palm2Path),
+            };
+            foreach ((float x, string path) in palms)
+                Piece("Palmera", shore, path, new Vector2(x, -0.4f), -30);
+
+            // Arena: tiras una junto a otra (con conchas de vez en cuando) sobre el bloque del suelo.
+            Sprite[] sands =
+            {
+                AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.SandPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.Sand2Path),
+            };
+            if (sands[0] != null)
+            {
+                var ground = new GameObject("Arena (dibujo)").transform;
+                ground.SetParent(root, false);
+                float step = sands[0].bounds.size.x;
+                int index = 0;
+                for (float x = LeftEdge - 2f; x - step / 2f < RightEdge + 2f; x += step, index++)
+                {
+                    Sprite sprite = index % 3 == 1 && sands[1] != null ? sands[1] : sands[0];
+                    var tile = new GameObject($"Arena {index}").AddComponent<SpriteRenderer>();
+                    tile.transform.SetParent(ground, false);
+                    // Un pelito encimadas para que no se vea la costura.
+                    tile.transform.localPosition = new Vector3(x, 0f, 0f);
+                    tile.transform.localScale = new Vector3((step + 0.02f) / sprite.bounds.size.x, 1f, 1f);
+                    tile.sprite = sprite;
+                    tile.sortingOrder = -5;
+                }
+                // Lo que quede bajo la arena dibujada, del color de su parte de abajo.
+                sandBlock.color = SandBottom;
+            }
+
+            // Postes con cuerda clavados en la arena, detrás de Ulises (fuera de las espinas y la caja).
+            foreach (float x in new[] { -5f, 17f, 48f, 62f, 98f, 113f })
+                Piece("Poste", root, ArtImportBuilder.MooringPostPath, new Vector2(x, -0.3f), -4);
+
+            // Primer plano: pasto y rocas que pasan delante de Ulises, hundidos para que solo asome la punta.
+            Transform front = Layer(background, "Capa primer plano", -0.3f, 0f);
+            float[] fronts = { 6f, 27f, 47f, 71f, 88f, 101f, 117f };
+            for (int i = 0; i < fronts.Length; i++)
+            {
+                bool grass = i % 2 == 0;
+                Piece(grass ? "Pasto" : "Rocas", front, grass ? ArtImportBuilder.GrassPath : ArtImportBuilder.RocksPath,
+                    new Vector2(fronts[i], grass ? -0.9f : -0.7f), 20);
+            }
+        }
+
+        private static SpriteRenderer Piece(string name, Transform parent, string path, Vector2 position, int order)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Odisea] Falta {path}; corre Odisea > Arte > Importar arte de la sandbox.");
+                return null;
+            }
+            var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
+            renderer.transform.SetParent(parent, false);
+            renderer.transform.localPosition = position;
+            renderer.sprite = sprite;
+            renderer.sortingOrder = order;
+            return renderer;
         }
 
         private static Transform Layer(Transform parent, string name, float followX, float followY)
