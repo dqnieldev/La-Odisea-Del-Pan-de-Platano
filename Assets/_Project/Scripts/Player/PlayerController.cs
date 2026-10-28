@@ -39,6 +39,8 @@ namespace Odisea.Player
 
         public PlayerConfig Config => config;
         public bool IsGrounded { get; private set; }
+        /// <summary>Lo que pisa (null en el aire): de ahí sale el sonido de los pasos.</summary>
+        public Collider2D Ground { get; private set; }
         public bool IsClimbing => currentLadder != null;
         /// <summary>1 = mirando a la derecha, -1 = a la izquierda.</summary>
         public int FacingDirection { get; private set; } = 1;
@@ -310,8 +312,12 @@ namespace Odisea.Player
             {
                 // Una plataforma que se está atravesando no cuenta como suelo.
                 if (!ignoredPlatforms.Contains(hit))
+                {
+                    Ground = hit;
                     return true;
+                }
             }
+            Ground = null;
             return false;
         }
 

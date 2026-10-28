@@ -29,7 +29,8 @@ namespace Odisea.EditorTools
             "  salto           al saltar\n" +
             "  doble_salto     la vuelta en el aire (si no está, suena salto)\n" +
             "  aterrizar       al caer de un salto (no en escalones)\n" +
-            "  paso            cada pisada al correr (bajito; pon 2 o 3: paso_1, paso_2...)\n" +
+            "  paso_arena      cada pisada al correr en la arena (bajito; pon 2 o 3: paso_arena_1, _2...)\n" +
+            "  paso_madera     cada pisada en las tablas de madera (si no está, suena paso_arena)\n" +
             "  dano            al recibir daño\n" +
             "  muerte          al morir\n" +
             "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";

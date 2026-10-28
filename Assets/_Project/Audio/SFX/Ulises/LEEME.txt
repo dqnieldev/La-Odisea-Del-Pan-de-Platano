@@ -7,7 +7,8 @@ Efectos de sonido de Ulises. Nombres (wav, ogg o mp3; variantes con _1, _2...: g
   salto           al saltar
   doble_salto     la vuelta en el aire (si no está, suena salto)
   aterrizar       al caer de un salto (no en escalones)
-  paso            cada pisada al correr (bajito; pon 2 o 3: paso_1, paso_2...)
+  paso_arena      cada pisada al correr en la arena (bajito; pon 2 o 3: paso_arena_1, _2...)
+  paso_madera     cada pisada en las tablas de madera (si no está, suena paso_arena)
   dano            al recibir daño
   muerte          al morir
 Después: Odisea > Sandbox > Crear escena de prueba del jugador.
