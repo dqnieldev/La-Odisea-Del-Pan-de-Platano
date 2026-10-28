@@ -201,7 +201,8 @@ namespace Odisea.EditorTools
             // Tomar café (opcional, ulises_cafe.png con fondo transparente): sin la hoja, el juego dibuja un jarrito
             // que Ulises se empina (PlayerBuffs).
             if (TryLoadRow("ulises_cafe.png", attachDistance: 20, minFrames: 2, out Sheet drinkSheet, out List<Frame> drink))
-                clips["Drink"] = StripClip(drinkSheet, drink, idlePpu, "Drink", 10f, loop: false);
+                // Lo sube, trago largo (se repite el cuadro) y sonríe: ~0.45 s, lo que dura PlayerBuffs.drinkTime.
+                clips["Drink"] = StripClip(drinkSheet, PickFrames(drink, 0, 1, 1, 2), idlePpu, "Drink", 9f, loop: false);
 
             // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
             // Se queda en el último cuadro; la escena se reinicia aparte.

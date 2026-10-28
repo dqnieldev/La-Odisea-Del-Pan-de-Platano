@@ -468,7 +468,7 @@ namespace Odisea.EditorTools
                 mug.enabled = false;
                 SetSerialized(buffs, "drinkProp", mug);
             }
-            GameSoundsBuilder.SetSound(buffs, "shieldBreak", GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "escudo_roto"));
+            GameSoundsBuilder.SetSound(buffs, "shieldBreak", GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "romper_escudo"));
         }
 
         /// <summary>Debajo de los corazones: una casilla por ventaja activa (escudo, café), con un anillo que se vacía.</summary>
