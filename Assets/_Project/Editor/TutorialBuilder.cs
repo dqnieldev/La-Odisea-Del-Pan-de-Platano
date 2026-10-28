@@ -16,14 +16,14 @@ namespace Odisea.EditorTools
     /// mar y arena) con el arte de Art/Environment/Tutorial/Fondo
     /// (o placeholders de color si todavía no se importa).
     /// Cada zona enseña una cosa con su letrero: moverse, saltar, doble salto, tablas, escaleras, golpear,
-    /// lanzar masa y el cocodrilo; al final, la meta.
+    /// lanzar masa, los ítems (curan o dan ventaja) y el cocodrilo; al final, la meta.
     /// Menú: Odisea > Niveles > Crear tutorial.
     /// </summary>
     public static class TutorialBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Tutorial.unity";
         private const string MusicFolder = "Assets/_Project/Audio/Music/";
-        private const string CirclePath = "Assets/_Project/Art/Placeholders/Circulo.png";
+        internal const string CirclePath = "Assets/_Project/Art/Placeholders/Circulo.png";
 
         // Paleta de boceto (placeholders): papel, arena, tinta y fondos lavados.
         private static readonly Color Paper = new(0.937f, 0.898f, 0.800f);
@@ -39,7 +39,7 @@ namespace Odisea.EditorTools
 
         // Límites del nivel (x) y alto de la arena.
         private const float LeftEdge = -10f;
-        private const float RightEdge = 124f;
+        private const float RightEdge = 136f;
 
         [MenuItem("Odisea/Niveles/Crear tutorial")]
         public static void Build()
@@ -110,16 +110,24 @@ namespace Odisea.EditorTools
             DressUrchins(PlayerSandboxBuilder.CreateHazard("Espinas", level, new Vector2(80.5f, 0.25f), new Vector2(4f, 0.5f)));
             DressDummy(PlayerSandboxBuilder.CreateDummy(root, square, level.EnemyLayer, new Vector2(85f, 0.75f)));
 
-            // 8. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
-            CreateSign(root, square, titleFont, bodyFont, 90.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente:\n¡por la espalda, muerde!"),
+            // 8. Ítems: el pescado zarandeado justo después de los erizos (donde es fácil haber perdido una vida);
+            // la hoja de plátano y el café, para llegar al cocodrilo con ventaja.
+            CreateSign(root, square, titleFont, bodyFont, 90.5f, "ÍTEMS", Prompt.Text("Recógelos: curan\no te dan ventaja"),
                 checkpointLayer: level.PlayerLayer);
-            CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 94f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
-            CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 110f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
-            PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(104f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
+            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(93f, 1f));
+            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Shield, new Vector2(96f, 1f));
+            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Speed, new Vector2(99f, 1f));
 
-            // 9. Meta.
-            CreateSign(root, square, titleFont, bodyFont, 115f, "¡LISTO!", Prompt.Text("Ya conoces\nlo básico"));
-            CreateGoal(root, square, new Vector2(120f, 2f), level.PlayerLayer);
+            // 9. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
+            CreateSign(root, square, titleFont, bodyFont, 102.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente:\n¡por la espalda, muerde!"),
+                checkpointLayer: level.PlayerLayer);
+            CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 106f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
+            CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 122f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
+            PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(116f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
+
+            // 10. Meta.
+            CreateSign(root, square, titleFont, bodyFont, 127f, "¡LISTO!", Prompt.Text("Ya conoces\nlo básico"));
+            CreateGoal(root, square, new Vector2(132f, 2f), level.PlayerLayer);
 
             // ----- Fondo por capas: el arte del tutorial, o placeholders de color si aún no se importa -----
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath) != null)
@@ -557,7 +565,7 @@ namespace Odisea.EditorTools
         // ---------- Utilidades ----------
 
         // Círculo blanco de placeholder (sol, islas, copas de palmera).
-        private static void EnsureCircleSprite()
+        internal static void EnsureCircleSprite()
         {
             if (File.Exists(CirclePath))
                 return;

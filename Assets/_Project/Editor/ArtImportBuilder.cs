@@ -84,8 +84,38 @@ namespace Odisea.EditorTools
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
+            ImportItems();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
+        }
+
+        // ---------- Ítems ----------
+
+        // Pescado zarandeado (cura), hoja de plátano (escudo) y café de olla (velocidad). Cada uno en su imagen de
+        // Docs/Referencias/Sprites-por-revisar/Items, con fondo blanco o transparente; caben en un cuadro de ItemSize.
+        public const string ItemsFolder = "Assets/_Project/Art/Items";
+        public const string FishPath = ItemsFolder + "/Pescado.png";
+        public const string LeafPath = ItemsFolder + "/Hoja.png";
+        public const string CoffeePath = ItemsFolder + "/Cafe.png";
+        private const string ItemsSource = "Sprites-por-revisar/Items/";
+        private const float ItemSize = 0.9f;
+
+        private static void ImportItems()
+        {
+            EnsureFolder(ItemsFolder);
+            WriteItem("item_pescado.png", FishPath);
+            WriteItem("item_hoja.png", LeafPath);
+            WriteItem("item_cafe.png", CoffeePath);
+        }
+
+        // Sin la imagen no pasa nada: el juego usa un círculo de color mientras llega el arte.
+        private static void WriteItem(string file, string path)
+        {
+            Sheet sheet = LoadSheet(ItemsSource + file, whiteThreshold: 235, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            WriteRegion(sheet, bounds, path, Mathf.Max(bounds.width, bounds.height) / ItemSize, new Vector2(0.5f, 0.5f));
         }
 
         // ---------- Ulises ----------

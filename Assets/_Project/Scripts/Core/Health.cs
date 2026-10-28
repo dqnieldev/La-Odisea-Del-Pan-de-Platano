@@ -16,6 +16,7 @@ namespace Odisea.Core
         [SerializeField] private bool destroyOnDeath;
 
         private float invulnerabilityTimer;
+        private IDamageBlocker blocker;
 
         public int Max => maxHealth;
         public int Current { get; private set; }
@@ -26,10 +27,13 @@ namespace Odisea.Core
         public event Action<int, int> HealthChanged;
         public event Action<DamageInfo> Damaged;
         public event Action Died;
+        /// <summary>Un escudo detuvo el golpe: no se perdió vida.</summary>
+        public event Action<DamageInfo> Blocked;
 
         private void Awake()
         {
             Current = maxHealth;
+            blocker = GetComponent<IDamageBlocker>();
         }
 
         private void Update()
@@ -42,6 +46,14 @@ namespace Odisea.Core
         {
             if (IsDead || IsInvulnerable || info.Amount <= 0)
                 return false;
+
+            // El escudo se gasta en este golpe; la invulnerabilidad breve evita que el siguiente toque llegue enseguida.
+            if (blocker != null && blocker.TryBlock(info))
+            {
+                invulnerabilityTimer = invulnerabilityTime;
+                Blocked?.Invoke(info);
+                return false;
+            }
 
             Current = Mathf.Max(0, Current - info.Amount);
             invulnerabilityTimer = invulnerabilityTime;

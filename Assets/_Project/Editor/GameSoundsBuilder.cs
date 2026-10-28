@@ -16,6 +16,7 @@ namespace Odisea.EditorTools
     {
         public const string UlisesFolder = "Assets/_Project/Audio/SFX/Ulises";
         public const string CrocodileFolder = "Assets/_Project/Audio/SFX/Cocodrilo";
+        public const string ItemsFolder = "Assets/_Project/Audio/SFX/Items";
         private static readonly string[] Extensions = { ".wav", ".ogg", ".mp3" };
 
         private const string UlisesNotes =
@@ -36,11 +37,18 @@ namespace Odisea.EditorTools
             "  muerte          al morir\n" +
             "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";
 
+        private const string ItemsNotes =
+            "Efectos de sonido de los ítems. Nombres (wav, ogg o mp3; variantes con _1, _2...):\n" +
+            "  recoger         al tomar un ítem (mientras no esté, suena el brillo del logo)\n" +
+            "  escudo_roto     cuando el escudo de hoja de plátano detiene un golpe\n" +
+            "Después: Odisea > Niveles > Crear tutorial y Odisea > Sandbox > Crear escena de prueba del jugador.\n";
+
         /// <summary>Crea las carpetas con una nota de los nombres que se esperan.</summary>
         public static void EnsureFolders()
         {
             WriteNotes(UlisesFolder, UlisesNotes);
             WriteNotes(CrocodileFolder, CrocodileNotes);
+            WriteNotes(ItemsFolder, ItemsNotes);
         }
 
         private static void WriteNotes(string folder, string text)

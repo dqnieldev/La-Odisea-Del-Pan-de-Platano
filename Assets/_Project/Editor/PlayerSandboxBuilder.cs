@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Odisea.Core;
 using Odisea.Enemies;
+using Odisea.Level;
 using Odisea.Player;
 using Odisea.UI;
 using UnityEditor;
@@ -85,6 +86,10 @@ namespace Odisea.EditorTools
             CreateLadder("Escalera a repisa 3", level.Root, square, art, -15.5f, 5.2f, 7.7f, ladderLayer);
 
             CreateHazard("Peligro (resta 1 vida)", level, new Vector2(24f, 0.25f), new Vector2(3f, 0.5f));
+            // Ítems en fila antes del peligro, para probarlos con calma.
+            CreatePickup(level, PickupKind.Heal, new Vector2(14f, 1f));
+            CreatePickup(level, PickupKind.Shield, new Vector2(16.5f, 1f));
+            CreatePickup(level, PickupKind.Speed, new Vector2(19f, 1f));
             CreateDummy(level.Root, square, enemyLayer, new Vector2(-4f, 0.75f));
             CreateCrocodile(level.Root, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
 
@@ -125,6 +130,7 @@ namespace Odisea.EditorTools
             EnsureNoFrictionMaterial();
             EnsureFlashMaterial();
             EnsureSwooshSprite();
+            TutorialBuilder.EnsureCircleSprite();
             GameSoundsBuilder.EnsureFolders();
             EnsurePlayerConfig(groundLayer, enemyLayer, ladderLayer);
             // Guardar antes de abrir la escena: OpenScene descarga los assets nuevos que no están en disco
@@ -174,7 +180,8 @@ namespace Odisea.EditorTools
             GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
             player.transform.position = spawn;
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
-            CreateHud(player.GetComponent<Health>(), level.FullHeart, level.EmptyHeart, showControls);
+            CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart, level.EmptyHeart,
+                showControls);
 
             // Música de fondo; se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
             SceneMusic music = GameSoundsBuilder.CreateMusic("Música del nivel", musicPath);
@@ -332,7 +339,170 @@ namespace Odisea.EditorTools
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));
 
             CreateAttackVisual(player, combat, square, config, playerLayer, showBar: ulisesController == null);
+            CreateBuffs(player, controller, playerLayer);
             return player;
+        }
+
+        // ---------- Ítems ----------
+
+        // Lo que dan los ítems (se ajusta aquí y se vuelve a generar la escena).
+        private const float ShieldSeconds = 10f;
+        private const float SpeedMultiplier = 1.5f;
+        private const float SpeedSeconds = 6f;
+        // Mientras no exista Audio/SFX/Items/recoger, al tomar un ítem suena el brillo del logo.
+        private const string PickupFallbackSound = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
+
+        private static readonly Color FishColor = new(0.902f, 0.494f, 0.180f);
+        private static readonly Color LeafColor = new(0.353f, 0.604f, 0.259f);
+        private static readonly Color CoffeeColor = new(0.420f, 0.259f, 0.141f);
+
+        private static (string name, string artPath, Color color, string label) ItemInfo(PickupKind kind) => kind switch
+        {
+            PickupKind.Heal => ("Pescado zarandeado", ArtImportBuilder.FishPath, FishColor, "+1 vida"),
+            PickupKind.Shield => ("Hoja de plátano", ArtImportBuilder.LeafPath, LeafColor, "¡Escudo!"),
+            _ => ("Café de olla", ArtImportBuilder.CoffeePath, CoffeeColor, "¡Rápido!"),
+        };
+
+        // El arte del ítem (Art/Items) o, mientras no exista, un círculo de su color.
+        private static (Sprite sprite, Color color, bool isArt) ItemSprite(PickupKind kind)
+        {
+            (_, string artPath, Color color, _) = ItemInfo(kind);
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+            return art != null ? (art, Color.white, true) : (LoadRequired<Sprite>(TutorialBuilder.CirclePath), color, false);
+        }
+
+        /// <summary>
+        /// Ítem que flota sobre el suelo con un brillo detrás: pescado zarandeado (cura 1 vida), hoja de plátano
+        /// (escudo) o café de olla (velocidad). Lo recoge Ulises al tocarlo.
+        /// </summary>
+        internal static GameObject CreatePickup(LevelContext level, PickupKind kind, Vector2 center)
+        {
+            (string name, _, _, string label) = ItemInfo(kind);
+            var item = new GameObject(name);
+            item.transform.SetParent(level.Root, false);
+            item.transform.position = center;
+            item.AddComponent<CircleCollider2D>().radius = 0.55f;
+
+            var visual = new GameObject("Dibujo").transform;
+            visual.SetParent(item.transform, false);
+            var glow = new GameObject("Brillo").AddComponent<SpriteRenderer>();
+            glow.transform.SetParent(visual, false);
+            glow.transform.localScale = new Vector3(1.35f, 1.35f, 1f);
+            glow.sprite = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            glow.color = new Color(1f, 0.93f, 0.6f, 0.55f);
+            glow.sortingOrder = 4;
+            var drawing = new GameObject("Ítem").AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(visual, false);
+            (Sprite sprite, Color color, bool isArt) = ItemSprite(kind);
+            drawing.sprite = sprite;
+            drawing.color = color;
+            drawing.sortingOrder = 5;
+            if (!isArt)
+                drawing.transform.localScale = new Vector3(0.75f, 0.75f, 1f);
+
+            var pickup = item.AddComponent<Pickup>();
+            SetSerialized(pickup, "kind", (int)kind);
+            SetSerialized(pickup, "amount", kind == PickupKind.Speed ? SpeedMultiplier : 1f);
+            SetSerialized(pickup, "duration", kind == PickupKind.Shield ? ShieldSeconds : SpeedSeconds);
+            SetSerialized(pickup, "playerLayers", 1 << level.PlayerLayer);
+            SetSerialized(pickup, "visual", visual);
+            SetSerialized(pickup, "label", label);
+            SetSerialized(pickup, "font", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold));
+            AudioClip[] sound = GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "recoger");
+            if (sound.Length == 0 && AssetDatabase.LoadAssetAtPath<AudioClip>(PickupFallbackSound) is { } fallback)
+                sound = new[] { fallback };
+            GameSoundsBuilder.SetSound(pickup, "sound", sound, 0.6f);
+            return item;
+        }
+
+        // Escudo: burbuja verde alrededor de Ulises. Café: estela amarilla a sus pies mientras corre.
+        private static void CreateBuffs(GameObject player, PlayerController controller, int layer)
+        {
+            Sprite circle = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            var shield = new GameObject("Escudo") { layer = layer }.AddComponent<SpriteRenderer>();
+            shield.transform.SetParent(player.transform, false);
+            shield.transform.localPosition = new Vector3(0f, 0.15f, 0f);
+            shield.transform.localScale = new Vector3(2.3f, 2.5f, 1f);
+            shield.sprite = circle;
+            shield.color = new Color(LeafColor.r, LeafColor.g, LeafColor.b, 0.32f);
+            shield.sortingOrder = 9; // Detrás de Ulises: la burbuja no lo tiñe.
+            shield.enabled = false;
+
+            var trail = new GameObject("Estela") { layer = layer }.AddComponent<SpriteRenderer>();
+            trail.transform.SetParent(player.transform, false);
+            trail.transform.localPosition = new Vector3(0f, -0.35f, 0f);
+            trail.transform.localScale = new Vector3(1.8f, 0.7f, 1f);
+            trail.sprite = circle;
+            trail.color = new Color(Platano.r, Platano.g, Platano.b, 0.4f);
+            trail.sortingOrder = 8;
+            trail.enabled = false;
+
+            var buffs = player.AddComponent<PlayerBuffs>();
+            SetSerialized(buffs, "controller", controller);
+            SetSerialized(buffs, "shieldVisual", shield);
+            SetSerialized(buffs, "speedVisual", trail);
+            GameSoundsBuilder.SetSound(buffs, "shieldBreak", GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "escudo_roto"));
+        }
+
+        /// <summary>Debajo de los corazones: una casilla por ventaja activa (escudo, café), con un anillo que se vacía.</summary>
+        private static void CreateBuffsDisplay(Transform canvas, PlayerBuffs buffs)
+        {
+            var row = new GameObject("Ventajas", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var rect = (RectTransform)row.transform;
+            rect.SetParent(canvas, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(48f, -130f);
+            rect.sizeDelta = new Vector2(300f, 72f);
+            var layout = row.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 12f;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+
+            var display = row.AddComponent<BuffsDisplay>();
+            SetSerialized(display, "buffs", buffs);
+            (GameObject shieldSlot, Image shieldTime) = CreateBuffSlot(rect, PickupKind.Shield);
+            (GameObject speedSlot, Image speedTime) = CreateBuffSlot(rect, PickupKind.Speed);
+            SetSerialized(display, "shieldSlot", shieldSlot);
+            SetSerialized(display, "shieldTime", shieldTime);
+            SetSerialized(display, "speedSlot", speedSlot);
+            SetSerialized(display, "speedTime", speedTime);
+        }
+
+        private static (GameObject slot, Image time) CreateBuffSlot(RectTransform row, PickupKind kind)
+        {
+            Sprite circle = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            var slot = new GameObject(ItemInfo(kind).name, typeof(RectTransform));
+            var rect = (RectTransform)slot.transform;
+            rect.SetParent(row, false);
+            rect.sizeDelta = new Vector2(72f, 72f);
+
+            UiCircle("Fondo", rect, circle, new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f), 72f);
+            Image time = UiCircle("Tiempo", rect, circle, Platano, 72f);
+            time.type = Image.Type.Filled;
+            time.fillMethod = Image.FillMethod.Radial360;
+            time.fillOrigin = (int)Image.Origin360.Top;
+            time.fillClockwise = false;
+            UiCircle("Centro", rect, circle, Cafe, 58f);
+            (Sprite sprite, Color color, bool isArt) = ItemSprite(kind);
+            Image icon = UiCircle("Ícono", rect, sprite, color, isArt ? 44f : 32f);
+            icon.preserveAspect = true;
+
+            slot.SetActive(false);
+            return (slot, time);
+        }
+
+        private static Image UiCircle(string name, RectTransform parent, Sprite sprite, Color color, float size)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, false);
+            rect.sizeDelta = new Vector2(size, size);
+            var image = go.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
         }
 
         private static void CreateAttackVisual(GameObject player, PlayerCombat combat, Sprite square, PlayerConfig config, int layer,
@@ -401,7 +571,7 @@ namespace Odisea.EditorTools
             return dummy;
         }
 
-        private static void CreateHud(Health playerHealth, Sprite fullHeart, Sprite emptyHeart, bool showControls)
+        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, Sprite emptyHeart, bool showControls)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             var canvas = canvasObject.GetComponent<Canvas>();
@@ -423,6 +593,7 @@ namespace Odisea.EditorTools
             SetSerialized(hearts, "health", playerHealth);
             SetSerialized(hearts, "fullHeart", fullHeart);
             SetSerialized(hearts, "emptyHeart", emptyHeart);
+            CreateBuffsDisplay(canvasObject.transform, buffs);
 
             if (showControls)
                 CreateControlsPanel(canvasObject.transform);
@@ -844,6 +1015,9 @@ namespace Odisea.EditorTools
                     break;
                 case Vector2 vector:
                     property.vector2Value = vector;
+                    break;
+                case string text:
+                    property.stringValue = text;
                     break;
                 default:
                     throw new ArgumentException($"Tipo no soportado para '{field}'.");

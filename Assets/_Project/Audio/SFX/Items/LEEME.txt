@@ -1,0 +1,4 @@
+Efectos de sonido de los ítems. Nombres (wav, ogg o mp3; variantes con _1, _2...):
+  recoger         al tomar un ítem (mientras no esté, suena el brillo del logo)
+  escudo_roto     cuando el escudo de hoja de plátano detiene un golpe
+Después: Odisea > Niveles > Crear tutorial y Odisea > Sandbox > Crear escena de prueba del jugador.
