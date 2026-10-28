@@ -79,6 +79,18 @@ namespace Odisea.Core
             HealthChanged?.Invoke(Current, maxHealth);
         }
 
+        /// <summary>Un corazón más (el nuevo ya lleno), sin pasar de <paramref name="limit"/>. Devuelve si se pudo.</summary>
+        public bool IncreaseMax(int amount, int limit)
+        {
+            if (IsDead || amount <= 0 || maxHealth >= limit)
+                return false;
+            int added = Mathf.Min(amount, limit - maxHealth);
+            maxHealth += added;
+            Current += added;
+            HealthChanged?.Invoke(Current, maxHealth);
+            return true;
+        }
+
         public void ResetHealth()
         {
             Current = maxHealth;

@@ -349,6 +349,7 @@ namespace Odisea.EditorTools
         private const float ShieldSeconds = 10f;
         private const float SpeedMultiplier = 1.5f;
         private const float SpeedSeconds = 6f;
+        private const string UlisesArtFolder = "Assets/_Project/Art/Characters/Ulises";
         // Mientras no exista Audio/SFX/Items/recoger, al tomar un ítem suena el brillo del logo.
         private const string PickupFallbackSound = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
 
@@ -361,6 +362,13 @@ namespace Odisea.EditorTools
             PickupKind.Heal => ("Pescado zarandeado", ArtImportBuilder.FishPath, FishColor, "+1 vida"),
             PickupKind.Shield => ("Hoja de plátano", ArtImportBuilder.LeafPath, LeafColor, "¡Escudo!"),
             _ => ("Café de olla", ArtImportBuilder.CoffeePath, CoffeeColor, "¡Rápido!"),
+        };
+
+        private static string ItemSoundName(PickupKind kind) => kind switch
+        {
+            PickupKind.Heal => "pescado",
+            PickupKind.Shield => "hoja",
+            _ => "cafe",
         };
 
         // El arte del ítem (Art/Items) o, mientras no exista, un círculo de su color.
@@ -408,7 +416,10 @@ namespace Odisea.EditorTools
             SetSerialized(pickup, "visual", visual);
             SetSerialized(pickup, "label", label);
             SetSerialized(pickup, "font", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold));
-            AudioClip[] sound = GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "recoger");
+            // Cada ítem con su sonido (recoger_pescado, recoger_hoja, recoger_cafe); si falta, "recoger" y luego el brillo.
+            AudioClip[] sound = GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, $"recoger_{ItemSoundName(kind)}");
+            if (sound.Length == 0)
+                sound = GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "recoger");
             if (sound.Length == 0 && AssetDatabase.LoadAssetAtPath<AudioClip>(PickupFallbackSound) is { } fallback)
                 sound = new[] { fallback };
             GameSoundsBuilder.SetSound(pickup, "sound", sound, 0.6f);
@@ -441,6 +452,22 @@ namespace Odisea.EditorTools
             SetSerialized(buffs, "controller", controller);
             SetSerialized(buffs, "shieldVisual", shield);
             SetSerialized(buffs, "speedVisual", trail);
+            SetSerialized(player.GetComponent<PlayerAnimator>(), "buffs", buffs);
+
+            // Tomar café: si Ulises no tiene su animación dibujada (Ulises_Drink), un jarrito que se empina frente a él.
+            if (!File.Exists($"{UlisesArtFolder}/Ulises_Drink.anim"))
+            {
+                var mug = new GameObject("Jarrito") { layer = layer }.AddComponent<SpriteRenderer>();
+                mug.transform.SetParent(player.transform, false);
+                (Sprite sprite, Color color, bool isArt) = ItemSprite(PickupKind.Speed);
+                mug.sprite = sprite;
+                mug.color = color;
+                // Sin el dibujo del café, un óvalo café (alargado, para que se note cuando se empina).
+                mug.transform.localScale = isArt ? new Vector3(0.6f, 0.6f, 1f) : new Vector3(0.28f, 0.4f, 1f);
+                mug.sortingOrder = 12;
+                mug.enabled = false;
+                SetSerialized(buffs, "drinkProp", mug);
+            }
             GameSoundsBuilder.SetSound(buffs, "shieldBreak", GameSoundsBuilder.Load(GameSoundsBuilder.ItemsFolder, "escudo_roto"));
         }
 

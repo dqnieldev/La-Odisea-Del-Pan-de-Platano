@@ -17,8 +17,8 @@ namespace Odisea.Level
 
     /// <summary>
     /// Ítem que flota en el nivel y Ulises recoge al tocarlo: cura o da una ventaja (<see cref="PlayerBuffs"/>).
-    /// Al recogerlo suena, sale su nombre flotando y desaparece. La curación no se gasta con la vida llena:
-    /// se queda ahí para cuando haga falta. Al morir, la escena se recarga y los ítems vuelven.
+    /// Al recogerlo suena (cada ítem con su sonido), sale su nombre flotando y desaparece. La curación con la vida
+    /// llena da un corazón extra (hasta <see cref="maxHearts"/>). Al morir, la escena se recarga y los ítems vuelven.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class Pickup : MonoBehaviour
@@ -28,6 +28,8 @@ namespace Odisea.Level
         [SerializeField, Min(0f)] private float amount = 1f;
         [Tooltip("Segundos que dura el escudo o la velocidad.")]
         [SerializeField, Min(0f)] private float duration = 8f;
+        [Tooltip("Curación con la vida llena: suma un corazón hasta este máximo; ya en el máximo, no se recoge.")]
+        [SerializeField, Min(1)] private int maxHearts = 5;
         [SerializeField] private LayerMask playerLayers;
         [Tooltip("El dibujo (hijo): flota arriba y abajo.")]
         [SerializeField] private Transform visual;
@@ -35,6 +37,8 @@ namespace Odisea.Level
 
         [Header("Texto al recogerlo")]
         [SerializeField] private string label = "+1 vida";
+        [Tooltip("Curación con la vida llena (corazón nuevo).")]
+        [SerializeField] private string extraHeartLabel = "¡Corazón extra!";
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private Color labelColor = new(0.169f, 0.118f, 0.086f);
 
@@ -63,29 +67,35 @@ namespace Odisea.Level
             visual.localPosition = visualRest + Vector3.up * (Mathf.Sin(phase) * bobHeight);
         }
 
-        // Stay y no Enter: la curación que no se pudo tomar con vida llena se toma al perder una sin salir de ahí.
+        // Stay y no Enter: la curación que no se pudo tomar (ya con todos los corazones) se toma al perder una vida
+        // sin salir de ahí.
         private void OnTriggerStay2D(Collider2D other)
         {
             if (taken || (playerLayers.value & (1 << other.gameObject.layer)) == 0)
                 return;
             var health = other.GetComponentInParent<Health>();
-            if (health == null || health.IsDead || !Apply(health))
+            if (health == null || health.IsDead || !Apply(health, out string shown))
                 return;
 
             taken = true;
             sound.Play();
-            ShowLabel();
+            ShowLabel(shown);
             Destroy(gameObject);
         }
 
-        private bool Apply(Health health)
+        private bool Apply(Health health, out string shown)
         {
+            shown = label;
             if (kind == PickupKind.Heal)
             {
-                if (health.Current >= health.Max)
-                    return false;
-                health.Heal(Mathf.Max(1, Mathf.RoundToInt(amount)));
-                return true;
+                int hearts = Mathf.Max(1, Mathf.RoundToInt(amount));
+                if (health.Current < health.Max)
+                {
+                    health.Heal(hearts);
+                    return true;
+                }
+                shown = extraHeartLabel;
+                return health.IncreaseMax(hearts, maxHearts);
             }
 
             var buffs = health.GetComponent<PlayerBuffs>();
@@ -94,18 +104,18 @@ namespace Odisea.Level
             if (kind == PickupKind.Shield)
                 buffs.ApplyShield(duration);
             else
-                buffs.ApplySpeed(amount, duration);
+                buffs.DrinkCoffee(amount, duration);
             return true;
         }
 
-        private void ShowLabel()
+        private void ShowLabel(string shown)
         {
-            if (string.IsNullOrEmpty(label) || font == null)
+            if (string.IsNullOrEmpty(shown) || font == null)
                 return;
-            var go = new GameObject($"Texto {label}", typeof(RectTransform), typeof(TextMeshPro));
+            var go = new GameObject($"Texto {shown}", typeof(RectTransform), typeof(TextMeshPro));
             go.transform.position = (visual != null ? visual.position : transform.position) + Vector3.up * 0.6f;
             var text = go.GetComponent<TextMeshPro>();
-            text.text = label;
+            text.text = shown;
             text.font = font;
             text.fontSize = 5f;
             text.color = labelColor;

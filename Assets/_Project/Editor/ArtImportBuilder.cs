@@ -198,6 +198,11 @@ namespace Odisea.EditorTools
             else
                 clips["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true);
 
+            // Tomar café (opcional, ulises_cafe.png con fondo transparente): sin la hoja, el juego dibuja un jarrito
+            // que Ulises se empina (PlayerBuffs).
+            if (TryLoadRow("ulises_cafe.png", attachDistance: 20, minFrames: 2, out Sheet drinkSheet, out List<Frame> drink))
+                clips["Drink"] = StripClip(drinkSheet, drink, idlePpu, "Drink", 10f, loop: false);
+
             // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
             // Se queda en el último cuadro; la escena se reinicia aparte.
             if (TryLoadRow("ulises_muerte.png", attachDistance: 30, minFrames: 7, out Sheet deathSheet, out List<Frame> death))
@@ -313,6 +318,12 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
+            if (states.TryGetValue("Drink", out AnimatorState drinkState))
+            {
+                controller.AddParameter("Drink", AnimatorControllerParameterType.Trigger);
+                AnyState(machine, drinkState, "Drink", toSelf: false);
+                ExitWhenDone(drinkState, idle);
+            }
             // Tras la vuelta: si ya va bajando, a caída; si no, a la subida (que luego pasa a caída).
             ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));
             ExitWhenDone(states["DoubleJump"], jump);

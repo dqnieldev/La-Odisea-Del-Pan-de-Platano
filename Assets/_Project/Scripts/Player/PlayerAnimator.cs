@@ -9,7 +9,7 @@ namespace Odisea.Player
     /// Parámetros que puede tener el Animator Controller (los que falten se ignoran):
     /// Speed (float), VerticalSpeed (float), ClimbSpeed (float: 1 si sube o baja por la escalera, 0 si está quieto),
     /// IsGrounded (bool), IsClimbing (bool),
-    /// Attack, Throw, DoubleJump, Hurt, Die (triggers).
+    /// Attack, Throw, DoubleJump, Hurt, Die, Drink (triggers; Drink al tomar café).
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
@@ -23,10 +23,13 @@ namespace Odisea.Player
         private static readonly int DoubleJumpId = Animator.StringToHash("DoubleJump");
         private static readonly int HurtId = Animator.StringToHash("Hurt");
         private static readonly int DieId = Animator.StringToHash("Die");
+        private static readonly int DrinkId = Animator.StringToHash("Drink");
 
         [SerializeField] private PlayerController controller;
         [SerializeField] private PlayerCombat combat;
         [SerializeField] private Health health;
+        [Tooltip("Opcional: para la animación de tomar café (trigger Drink).")]
+        [SerializeField] private PlayerBuffs buffs;
         [SerializeField] private Animator animator;
         [SerializeField] private SpriteRenderer spriteRenderer;
         [Tooltip("Parpadeos por segundo mientras Ulises es invulnerable.")]
@@ -45,6 +48,7 @@ namespace Odisea.Player
         private void OnEnable()
         {
             if (controller != null) controller.DoubleJumped += OnDoubleJumped;
+            if (buffs != null) buffs.Drank += OnDrank;
             if (combat != null)
             {
                 combat.Attacked += OnAttacked;
@@ -60,6 +64,7 @@ namespace Odisea.Player
         private void OnDisable()
         {
             if (controller != null) controller.DoubleJumped -= OnDoubleJumped;
+            if (buffs != null) buffs.Drank -= OnDrank;
             if (combat != null)
             {
                 combat.Attacked -= OnAttacked;
@@ -93,6 +98,7 @@ namespace Odisea.Player
         private void OnDoubleJumped() => SetTrigger(DoubleJumpId);
         private void OnAttacked() => SetTrigger(AttackId);
         private void OnThrown() => SetTrigger(ThrowId);
+        private void OnDrank() => SetTrigger(DrinkId);
         private void OnDamaged(DamageInfo _) => SetTrigger(HurtId);
         private void OnDied()
         {

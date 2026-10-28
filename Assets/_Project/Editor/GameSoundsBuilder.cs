@@ -39,7 +39,10 @@ namespace Odisea.EditorTools
 
         private const string ItemsNotes =
             "Efectos de sonido de los ítems. Nombres (wav, ogg o mp3; variantes con _1, _2...):\n" +
-            "  recoger         al tomar un ítem (mientras no esté, suena el brillo del logo)\n" +
+            "  recoger_pescado al tomar el pescado zarandeado\n" +
+            "  recoger_hoja    al tomar la hoja de plátano\n" +
+            "  recoger_cafe    al tomar el café de olla (un sorbo)\n" +
+            "  recoger         el de cualquier ítem que no tenga el suyo (si tampoco está, suena el brillo del logo)\n" +
             "  escudo_roto     cuando el escudo de hoja de plátano detiene un golpe\n" +
             "Después: Odisea > Niveles > Crear tutorial y Odisea > Sandbox > Crear escena de prueba del jugador.\n";
 
