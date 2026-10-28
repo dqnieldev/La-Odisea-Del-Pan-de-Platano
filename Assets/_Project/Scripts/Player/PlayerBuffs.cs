@@ -7,30 +7,33 @@ namespace Odisea.Player
     /// <summary>
     /// Ventajas temporales de Ulises que dan los ítems: escudo de hoja de plátano (detiene el siguiente golpe)
     /// y café de olla (corre más rápido). La curación (pescado zarandeado) va directo a <see cref="Health.Heal"/>.
-    /// El HUD lee <see cref="ShieldLeft"/> y <see cref="SpeedLeft"/> para dibujar el tiempo que queda.
+    /// El HUD lee <see cref="ShieldLeft"/> y <see cref="SpeedLeft"/> para dibujar el tiempo que queda; los efectos
+    /// (<see cref="ShieldLeaves"/>, <see cref="SpeedTrail"/>) leen <see cref="ShieldShown"/> y <see cref="SpeedShown"/>.
     /// </summary>
     public class PlayerBuffs : MonoBehaviour, IDamageBlocker
     {
         [SerializeField] private PlayerController controller;
-        [Tooltip("Dibujo del escudo sobre Ulises (hijo); se muestra mientras dura.")]
-        [SerializeField] private SpriteRenderer shieldVisual;
-        [Tooltip("Estela detrás de Ulises mientras corre con el café.")]
-        [SerializeField] private SpriteRenderer speedVisual;
-        [Tooltip("Último tramo del escudo y del café en que su dibujo parpadea, para avisar que se acaba.")]
+        [Tooltip("Último tramo del escudo y del café en que su efecto parpadea, para avisar que se acaba.")]
         [SerializeField, Min(0f)] private float warningTime = 1.5f;
         [SerializeField] private SoundEffect shieldBreak = new();
 
         [Header("Tomar café")]
-        [Tooltip("Lo que dura el jarrito dibujado por código (solo si Ulises no tiene su animación de tomar café).")]
+        [Tooltip("Lo que tarda en tomárselo: se detiene y la velocidad empieza al terminar.")]
         [SerializeField, Min(0f)] private float drinkTime = 0.25f;
         [Tooltip("Jarrito que se empina frente a la boca (hijo). Vacío si la animación de Ulises ya lo trae dibujado.")]
         [SerializeField] private SpriteRenderer drinkProp;
         [Tooltip("Dónde va el jarrito, mirando a la derecha (la x se voltea con Ulises).")]
         [SerializeField] private Vector2 drinkPropOffset = new(0.32f, 0.55f);
 
+        [Header("Comer y ponerse la hoja")]
+        [Tooltip("Pausa al comerse el pescado (animación \"Eat\"). 0 si Ulises no tiene esa animación dibujada.")]
+        [SerializeField, Min(0f)] private float eatTime = 0.25f;
+        [Tooltip("Pausa al ponerse la hoja de escudo (animación \"Leaf\"). 0 si no está dibujada.")]
+        [SerializeField, Min(0f)] private float leafTime = 0.25f;
+
         private float shieldTimer, shieldDuration;
         private float speedTimer, speedDuration, speedMultiplier = 1f;
-        private float drinkTimer;
+        private float drinkTimer, pendingMultiplier, pendingDuration;
 
         /// <summary>Empieza a tomar café (PlayerAnimator dispara la animación "Drink", si existe).</summary>
         public event Action Drank;
@@ -44,52 +47,61 @@ namespace Odisea.Player
         /// <summary>Fracción que queda del escudo (1 = recién tomado, 0 = sin escudo).</summary>
         public float ShieldLeft => HasShield ? shieldTimer / shieldDuration : 0f;
         public float SpeedLeft => HasSpeed ? speedTimer / speedDuration : 0f;
+        /// <summary>El efecto del escudo se dibuja en este cuadro (al final parpadea).</summary>
+        public bool ShieldShown => HasShield && !BlinkOff(shieldTimer);
+        public bool SpeedShown => HasSpeed && !BlinkOff(speedTimer);
+
+        /// <summary>El escudo detuvo un golpe y se rompió (las hojitas salen volando).</summary>
+        public event Action ShieldBroken;
 
         /// <summary>Empieza o termina un efecto (el HUD muestra u oculta su ícono).</summary>
         public event Action Changed;
 
-        // Solo apaga los dibujos: el controlador puede no haber hecho su Awake todavía (no tiene Rigidbody aún).
+        // Solo apaga el jarrito: el controlador puede no haber hecho su Awake todavía (no tiene Rigidbody aún).
         private void Awake()
         {
-            if (shieldVisual != null)
-                shieldVisual.enabled = false;
-            if (speedVisual != null)
-                speedVisual.enabled = false;
             if (drinkProp != null)
                 drinkProp.enabled = false;
         }
 
-        // Las animaciones de los ítems no detienen a Ulises: si se mueve, el Animator las corta (ArtImportBuilder).
-
-        /// <summary>Se toma el café de un trago y corre más rápido desde ya.</summary>
+        /// <summary>Se detiene a tomarse el café de un trago; al terminar, corre más rápido.</summary>
         public void DrinkCoffee(float multiplier, float seconds)
         {
-            ApplySpeed(multiplier, seconds);
+            pendingMultiplier = multiplier;
+            pendingDuration = seconds;
             drinkTimer = drinkTime;
+            if (controller != null)
+                controller.HoldStill(drinkTime);
             Drank?.Invoke();
+            if (drinkTime <= 0f)
+                FinishDrink();
         }
 
-        /// <summary>Se come el pescado (solo la animación: la vida la da Health).</summary>
-        public void Eat() => Ate?.Invoke();
+        /// <summary>Se come el pescado de un bocado: una pausa más corta que la del café.</summary>
+        public void Eat()
+        {
+            if (controller != null && eatTime > 0f)
+                controller.HoldStill(eatTime);
+            Ate?.Invoke();
+        }
 
-        private void StopDrink()
+        private void FinishDrink()
         {
             drinkTimer = 0f;
             if (drinkProp != null)
                 drinkProp.enabled = false;
+            ApplySpeed(pendingMultiplier, pendingDuration);
         }
 
         // El jarrito sube a la boca y se empina hacia atrás; un saltito al final, como el último trago.
-        // Como la animación dibujada, se corta si Ulises echa a andar o salta.
         private void AnimateDrink()
         {
             if (drinkTimer <= 0f)
                 return;
             drinkTimer -= Time.deltaTime;
-            bool moving = controller != null && (Mathf.Abs(controller.Velocity.x) > 0.1f || !controller.IsGrounded);
-            if (drinkTimer <= 0f || moving)
+            if (drinkTimer <= 0f)
             {
-                StopDrink();
+                FinishDrink();
                 return;
             }
             if (drinkProp == null)
@@ -108,6 +120,8 @@ namespace Odisea.Player
         public void ApplyShield(float seconds)
         {
             shieldDuration = shieldTimer = Mathf.Max(0.01f, seconds);
+            if (controller != null && leafTime > 0f)
+                controller.HoldStill(leafTime);
             Shielded?.Invoke();
             Refresh();
             Changed?.Invoke();
@@ -128,6 +142,7 @@ namespace Odisea.Player
             shieldTimer = 0f;
             shieldBreak.Play();
             Refresh();
+            ShieldBroken?.Invoke();
             Changed?.Invoke();
             return true;
         }
@@ -154,19 +169,10 @@ namespace Odisea.Player
         {
             if (controller != null)
                 controller.SpeedMultiplier = HasSpeed ? speedMultiplier : 1f;
-            Show(shieldVisual, HasShield, shieldTimer);
-            // La estela solo mientras corre: quieto no tiene sentido.
-            bool running = controller != null && Mathf.Abs(controller.Velocity.x) > 0.5f;
-            Show(speedVisual, HasSpeed && running, speedTimer);
         }
 
-        private void Show(SpriteRenderer visual, bool active, float timer)
-        {
-            if (visual == null)
-                return;
-            // Al final parpadea cada vez más rápido.
-            bool blinkOff = active && timer < warningTime && Mathf.Repeat(timer * (6f + 6f * (1f - timer / warningTime)), 1f) < 0.35f;
-            visual.enabled = active && !blinkOff;
-        }
+        // Al final parpadea cada vez más rápido.
+        private bool BlinkOff(float timer) =>
+            timer < warningTime && Mathf.Repeat(timer * (6f + 6f * (1f - timer / warningTime)), 1f) < 0.35f;
     }
 }

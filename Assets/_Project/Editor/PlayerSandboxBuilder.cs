@@ -426,33 +426,35 @@ namespace Odisea.EditorTools
             return item;
         }
 
-        // Escudo: burbuja verde alrededor de Ulises. Café: estela amarilla a sus pies mientras corre.
+        // Escudo: hojitas que giran alrededor de Ulises (ShieldLeaves). Café: siluetas, polvo y vapor (SpeedTrail).
         private static void CreateBuffs(GameObject player, PlayerController controller, int layer)
         {
             Sprite circle = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            var shield = new GameObject("Escudo") { layer = layer }.AddComponent<SpriteRenderer>();
-            shield.transform.SetParent(player.transform, false);
-            shield.transform.localPosition = new Vector3(0f, 0.15f, 0f);
-            shield.transform.localScale = new Vector3(2.3f, 2.5f, 1f);
-            shield.sprite = circle;
-            shield.color = new Color(LeafColor.r, LeafColor.g, LeafColor.b, 0.32f);
-            shield.sortingOrder = 9; // Detrás de Ulises: la burbuja no lo tiñe.
-            shield.enabled = false;
-
-            var trail = new GameObject("Estela") { layer = layer }.AddComponent<SpriteRenderer>();
-            trail.transform.SetParent(player.transform, false);
-            trail.transform.localPosition = new Vector3(0f, -0.35f, 0f);
-            trail.transform.localScale = new Vector3(1.8f, 0.7f, 1f);
-            trail.sprite = circle;
-            trail.color = new Color(Platano.r, Platano.g, Platano.b, 0.4f);
-            trail.sortingOrder = 8;
-            trail.enabled = false;
-
             var buffs = player.AddComponent<PlayerBuffs>();
             SetSerialized(buffs, "controller", controller);
-            SetSerialized(buffs, "shieldVisual", shield);
-            SetSerialized(buffs, "speedVisual", trail);
             SetSerialized(player.GetComponent<PlayerAnimator>(), "buffs", buffs);
+
+            (Sprite leafSprite, Color leafColor, bool leafIsArt) = ItemSprite(PickupKind.Shield);
+            var leaves = new UnityEngine.Object[3];
+            for (int i = 0; i < leaves.Length; i++)
+            {
+                var leaf = new GameObject($"Hojita {i + 1}") { layer = layer }.AddComponent<SpriteRenderer>();
+                leaf.transform.SetParent(player.transform, false);
+                leaf.sprite = leafSprite;
+                leaf.color = leafColor;
+                leaves[i] = leaf;
+            }
+            var shield = player.AddComponent<ShieldLeaves>();
+            SetSerialized(shield, "buffs", buffs);
+            SetSerialized(shield, "leaves", leaves);
+            // Sin el dibujo de la hoja, el círculo de color es más grande que el dibujo: se achica.
+            SetSerialized(shield, "leafSize", leafIsArt ? 0.6f : 0.35f);
+
+            var trail = player.AddComponent<SpeedTrail>();
+            SetSerialized(trail, "buffs", buffs);
+            SetSerialized(trail, "controller", controller);
+            SetSerialized(trail, "body", player.transform.Find("Visual").GetComponent<SpriteRenderer>());
+            SetSerialized(trail, "puff", circle);
 
             // Tomar café: si Ulises no tiene su animación dibujada (Ulises_Drink), un jarrito que se empina frente a él.
             if (!File.Exists($"{UlisesArtFolder}/Ulises_Drink.anim"))
