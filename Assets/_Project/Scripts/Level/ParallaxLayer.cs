@@ -19,7 +19,9 @@ namespace Odisea.Level
         private Vector3 startPosition;
         private Vector3 viewStart;
 
-        private void Start()
+        // En Awake, antes de cualquier Start: la cámara aún está donde la dejó la escena. Si luego salta a Ulises
+        // (al reaparecer en un punto de control), ese salto cuenta como movimiento y la capa lo acompaña.
+        private void Awake()
         {
             Camera main = Camera.main;
             if (main == null)
