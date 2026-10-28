@@ -345,12 +345,7 @@ namespace Odisea.EditorTools
             GameSoundsBuilder.SetSound(sounds, "doubleJump", GameSoundsBuilder.Load(ulises, "doble_salto"), 0.7f);
             GameSoundsBuilder.SetSound(sounds, "land", GameSoundsBuilder.Load(ulises, "aterrizar"), 0.5f);
             // Los pasos suenan muy seguido: bajitos, para que acompañen sin cansar.
-            AudioClip[] sandSteps = GameSoundsBuilder.Load(ulises, "paso_arena");
-            if (sandSteps.Length == 0)
-                sandSteps = GameSoundsBuilder.Load(ulises, "paso");
-            GameSoundsBuilder.SetSound(sounds, "footstepSand", sandSteps, 0.3f);
-            // La madera es un golpe seco y corto: se oye menos que la arena al mismo volumen.
-            GameSoundsBuilder.SetSound(sounds, "footstepWood", GameSoundsBuilder.Load(ulises, "paso_madera"), 0.75f);
+            GameSoundsBuilder.SetSound(sounds, "footstep", GameSoundsBuilder.Load(ulises, "paso"), 0.3f);
             GameSoundsBuilder.SetSound(sounds, "throwDough", GameSoundsBuilder.Load(ulises, "lanzar_masa"));
             GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(ulises, "dano"));
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));
@@ -807,10 +802,6 @@ namespace Odisea.EditorTools
         // Cuánto se dibuja a Ulises por debajo de su collider (margen de contacto de la física + grosor del contorno).
         private const float FeetSink = 0.03f;
 
-        // Las tablas suenan a madera al pisarlas (lo demás cuenta como arena).
-        private static void SetWood(GameObject platform) =>
-            SetSerialized(platform.AddComponent<GroundSurface>(), "kind", (int)SurfaceKind.Madera);
-
         /// <summary>
         /// Plataforma de un sentido. Con arte: tablón repetido a lo ancho (las cortas usan el tablón roto)
         /// y, si se pide, vigas que la sostienen desde el suelo. Sin arte: el cuadro café de siempre.
@@ -821,9 +812,7 @@ namespace Odisea.EditorTools
             Sprite plank = width <= 3f && art.BrokenPlank != null ? art.BrokenPlank : art.Plank;
             if (plank == null)
             {
-                GameObject block = CreateBlock(name, parent, square, center, new Vector2(width, PlatformThickness), Madera, layer);
-                MakeOneWay(block);
-                SetWood(block);
+                MakeOneWay(CreateBlock(name, parent, square, center, new Vector2(width, PlatformThickness), Madera, layer));
                 return;
             }
 
@@ -833,7 +822,6 @@ namespace Odisea.EditorTools
             var collider = platform.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(width, PlatformThickness);
             MakeOneWay(platform);
-            SetWood(platform);
 
             // La cara de arriba del tablón coincide con la del collider (donde pisa Ulises).
             float plankHeight = plank.bounds.size.y;

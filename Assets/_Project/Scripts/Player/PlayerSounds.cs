@@ -37,10 +37,7 @@ namespace Odisea.Player
         [Header("Pasos")]
         [Tooltip("Apágalo si los pasos estorban.")]
         [SerializeField] private bool footstepsEnabled = true;
-        [Tooltip("Pisadas en la arena (y en cualquier suelo sin GroundSurface).")]
-        [SerializeField] private SoundEffect footstepSand = new();
-        [Tooltip("Pisadas en las tablas de madera; si no hay, suenan las de arena.")]
-        [SerializeField] private SoundEffect footstepWood = new();
+        [SerializeField] private SoundEffect footstep = new();
         [Tooltip("En qué momento de la animación de correr pisa (0-1): donde el cuerpo baja más.")]
         [SerializeField] private float[] footstepMoments = { 0.36f, 0.82f };
 
@@ -116,16 +113,13 @@ namespace Odisea.Player
                     // ¿Cruzó la pisada de alguna vuelta entre el cuadro anterior y este?
                     if (Mathf.Floor(now - moment) > Mathf.Floor(lastRunTime - moment))
                     {
-                        Footstep().Play();
+                        footstep.Play();
                         break;
                     }
                 }
             }
             lastRunTime = now;
         }
-
-        private SoundEffect Footstep() =>
-            GroundSurface.Of(controller.Ground) == SurfaceKind.Madera && footstepWood.HasClips ? footstepWood : footstepSand;
 
         private void OnAttackHit() => (combat.LastHitDefeated && finisher.HasClips ? finisher : attackHit).Play();
 
