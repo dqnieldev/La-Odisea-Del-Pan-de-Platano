@@ -153,14 +153,6 @@ namespace Odisea.Player
             controlLockTimer = lockTime;
         }
 
-        /// <summary>Se detiene un momento sin poder moverse (tomar café). En el aire o en la escalera no frena.</summary>
-        public void HoldStill(float seconds)
-        {
-            if (IsGrounded)
-                body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
-            controlLockTimer = Mathf.Max(controlLockTimer, seconds);
-        }
-
         // ---------- Escaleras ----------
 
         private bool TryStartClimbing()

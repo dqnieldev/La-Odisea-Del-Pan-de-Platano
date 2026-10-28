@@ -21,22 +21,16 @@ namespace Odisea.Player
         [SerializeField] private SoundEffect shieldBreak = new();
 
         [Header("Tomar café")]
-        [Tooltip("Lo que tarda en tomárselo: se detiene y la velocidad empieza al terminar.")]
-        [SerializeField, Min(0f)] private float drinkTime = 0.45f;
+        [Tooltip("Lo que dura el jarrito dibujado por código (solo si Ulises no tiene su animación de tomar café).")]
+        [SerializeField, Min(0f)] private float drinkTime = 0.25f;
         [Tooltip("Jarrito que se empina frente a la boca (hijo). Vacío si la animación de Ulises ya lo trae dibujado.")]
         [SerializeField] private SpriteRenderer drinkProp;
         [Tooltip("Dónde va el jarrito, mirando a la derecha (la x se voltea con Ulises).")]
         [SerializeField] private Vector2 drinkPropOffset = new(0.32f, 0.55f);
 
-        [Header("Comer y ponerse la hoja")]
-        [Tooltip("Pausa al comerse el pescado (animación \"Eat\"). 0 si Ulises no tiene esa animación dibujada.")]
-        [SerializeField, Min(0f)] private float eatTime = 0.25f;
-        [Tooltip("Pausa al ponerse la hoja de escudo (animación \"Leaf\"). 0 si no está dibujada.")]
-        [SerializeField, Min(0f)] private float leafTime = 0.25f;
-
         private float shieldTimer, shieldDuration;
         private float speedTimer, speedDuration, speedMultiplier = 1f;
-        private float drinkTimer, pendingMultiplier, pendingDuration;
+        private float drinkTimer;
 
         /// <summary>Empieza a tomar café (PlayerAnimator dispara la animación "Drink", si existe).</summary>
         public event Action Drank;
@@ -65,44 +59,37 @@ namespace Odisea.Player
                 drinkProp.enabled = false;
         }
 
-        /// <summary>Se detiene a tomarse el café de un trago; al terminar, corre más rápido.</summary>
+        // Las animaciones de los ítems no detienen a Ulises: si se mueve, el Animator las corta (ArtImportBuilder).
+
+        /// <summary>Se toma el café de un trago y corre más rápido desde ya.</summary>
         public void DrinkCoffee(float multiplier, float seconds)
         {
-            pendingMultiplier = multiplier;
-            pendingDuration = seconds;
+            ApplySpeed(multiplier, seconds);
             drinkTimer = drinkTime;
-            if (controller != null)
-                controller.HoldStill(drinkTime);
             Drank?.Invoke();
-            if (drinkTime <= 0f)
-                FinishDrink();
         }
 
-        /// <summary>Se come el pescado de un bocado: una pausa más corta que la del café.</summary>
-        public void Eat()
-        {
-            if (controller != null && eatTime > 0f)
-                controller.HoldStill(eatTime);
-            Ate?.Invoke();
-        }
+        /// <summary>Se come el pescado (solo la animación: la vida la da Health).</summary>
+        public void Eat() => Ate?.Invoke();
 
-        private void FinishDrink()
+        private void StopDrink()
         {
             drinkTimer = 0f;
             if (drinkProp != null)
                 drinkProp.enabled = false;
-            ApplySpeed(pendingMultiplier, pendingDuration);
         }
 
         // El jarrito sube a la boca y se empina hacia atrás; un saltito al final, como el último trago.
+        // Como la animación dibujada, se corta si Ulises echa a andar o salta.
         private void AnimateDrink()
         {
             if (drinkTimer <= 0f)
                 return;
             drinkTimer -= Time.deltaTime;
-            if (drinkTimer <= 0f)
+            bool moving = controller != null && (Mathf.Abs(controller.Velocity.x) > 0.1f || !controller.IsGrounded);
+            if (drinkTimer <= 0f || moving)
             {
-                FinishDrink();
+                StopDrink();
                 return;
             }
             if (drinkProp == null)
@@ -121,8 +108,6 @@ namespace Odisea.Player
         public void ApplyShield(float seconds)
         {
             shieldDuration = shieldTimer = Mathf.Max(0.01f, seconds);
-            if (controller != null && leafTime > 0f)
-                controller.HoldStill(leafTime);
             Shielded?.Invoke();
             Refresh();
             Changed?.Invoke();

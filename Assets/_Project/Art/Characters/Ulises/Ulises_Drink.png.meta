@@ -176,28 +176,6 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: Ulises_Drink_3
-      rect:
-        serializedVersion: 2
-        x: 1554
-        y: 0
-        width: 518
-        height: 1054
-      alignment: 9
-      pivot: {x: 0.5, y: 0.0037950664}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 69ff33f72de668847a109f679fe42b14
-      internalID: 2909509251149184239
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -215,7 +193,6 @@ TextureImporter:
       Ulises_Drink_0: 8747405418828997457
       Ulises_Drink_1: -695381804261883329
       Ulises_Drink_2: -2083885389670280584
-      Ulises_Drink_3: 2909509251149184239
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

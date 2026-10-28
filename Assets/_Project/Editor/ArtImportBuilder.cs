@@ -74,6 +74,8 @@ namespace Odisea.EditorTools
         private const int FringeLightness = 150;
         // Borde vacío alrededor de cada dibujo (en píxeles de la hoja); quien acomode piezas lo puede descontar.
         public const int Padding = 4;
+        // Lo que duran las animaciones de los ítems (café, pescado, hoja): rápidas, y se cortan si Ulises se mueve.
+        private const float ItemAnimationTime = 0.25f;
 
         [MenuItem("Odisea/Arte/Importar arte de la sandbox")]
         public static void ImportAll()
@@ -201,15 +203,14 @@ namespace Odisea.EditorTools
             // Tomar café (opcional, ulises_cafe.png con fondo transparente): sin la hoja, el juego dibuja un jarrito
             // que Ulises se empina (PlayerBuffs).
             if (TryLoadRow("ulises_cafe.png", attachDistance: 20, minFrames: 2, out Sheet drinkSheet, out List<Frame> drink))
-                // Lo sube, trago largo (se repite el cuadro) y sonríe: ~0.45 s, lo que dura PlayerBuffs.drinkTime.
-                clips["Drink"] = StripClip(drinkSheet, PickFrames(drink, 0, 1, 1, 2), idlePpu, "Drink", 9f, loop: false);
+                clips["Drink"] = StripClip(drinkSheet, drink, idlePpu, "Drink", drink.Count / ItemAnimationTime, loop: false);
 
-            // Comer el pescado y ponerse la hoja (opcionales, fondo transparente): más rápidas que el café, ~0.25 s
-            // (PlayerBuffs.eatTime y leafTime). Sin la hoja de cuadros, el ítem se toma sin animación ni pausa.
+            // Comer el pescado y ponerse la hoja (opcionales, fondo transparente). Sin la hoja de cuadros, el ítem se
+            // toma sin animación.
             if (TryLoadRow("ulises_pescado.png", attachDistance: 20, minFrames: 2, out Sheet eatSheet, out List<Frame> eat))
-                clips["Eat"] = StripClip(eatSheet, eat, idlePpu, "Eat", eat.Count / 0.25f, loop: false);
+                clips["Eat"] = StripClip(eatSheet, eat, idlePpu, "Eat", eat.Count / ItemAnimationTime, loop: false);
             if (TryLoadRow("ulises_hoja.png", attachDistance: 20, minFrames: 2, out Sheet leafSheet, out List<Frame> leaf))
-                clips["Leaf"] = StripClip(leafSheet, leaf, idlePpu, "Leaf", leaf.Count / 0.25f, loop: false);
+                clips["Leaf"] = StripClip(leafSheet, leaf, idlePpu, "Leaf", leaf.Count / ItemAnimationTime, loop: false);
 
             // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
             // Se queda en el último cuadro; la escena se reinicia aparte.
@@ -333,6 +334,10 @@ namespace Odisea.EditorTools
                 controller.AddParameter(item, AnimatorControllerParameterType.Trigger);
                 AnyState(machine, itemState, item, toSelf: false);
                 ExitWhenDone(itemState, idle);
+                // No detienen a Ulises: si echa a andar o se cae/salta, se cortan para no estorbar.
+                Link(itemState, run, Cond("Speed", AnimatorConditionMode.Greater, 0.1f));
+                Link(itemState, jump, Cond("IsGrounded", false), Cond("VerticalSpeed", AnimatorConditionMode.Greater, 0.1f));
+                Link(itemState, fall, Cond("IsGrounded", false), Cond("VerticalSpeed", AnimatorConditionMode.Less, -0.1f));
             }
             // Tras la vuelta: si ya va bajando, a caída; si no, a la subida (que luego pasa a caída).
             ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));

@@ -453,9 +453,6 @@ namespace Odisea.EditorTools
             SetSerialized(buffs, "shieldVisual", shield);
             SetSerialized(buffs, "speedVisual", trail);
             SetSerialized(player.GetComponent<PlayerAnimator>(), "buffs", buffs);
-            // Comer y ponerse la hoja solo detienen a Ulises si tienen su animación dibujada.
-            SetSerialized(buffs, "eatTime", File.Exists($"{UlisesArtFolder}/Ulises_Eat.anim") ? 0.25f : 0f);
-            SetSerialized(buffs, "leafTime", File.Exists($"{UlisesArtFolder}/Ulises_Leaf.anim") ? 0.25f : 0f);
 
             // Tomar café: si Ulises no tiene su animación dibujada (Ulises_Drink), un jarrito que se empina frente a él.
             if (!File.Exists($"{UlisesArtFolder}/Ulises_Drink.anim"))
