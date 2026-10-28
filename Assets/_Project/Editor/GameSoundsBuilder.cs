@@ -22,9 +22,14 @@ namespace Odisea.EditorTools
         private const string UlisesNotes =
             "Efectos de sonido de Ulises. Nombres (wav, ogg o mp3; variantes con _1, _2...: golpe_rodillo_1.wav):\n" +
             "  golpe_rodillo   al golpear con el rodillo (el movimiento)\n" +
-            "  golpe_acierta   cuando el rodillo le da a un enemigo\n" +
+            "  golpe_acierta   cuando el rodillo le da a un enemigo (pon 2 o más: golpe_acierta_1, _2...; no se repite seguido)\n" +
+            "  golpe_remate    el golpe que derrota al enemigo (si no está, suena golpe_acierta)\n" +
             "  lanzar_masa     al lanzar la bolita de masa\n" +
             "  masa_impacto    cuando la bolita choca\n" +
+            "  salto           al saltar\n" +
+            "  doble_salto     la vuelta en el aire (si no está, suena salto)\n" +
+            "  aterrizar       al caer de un salto (no en escalones)\n" +
+            "  paso            cada pisada al correr (bajito; pon 2 o 3: paso_1, paso_2...)\n" +
             "  dano            al recibir daño\n" +
             "  muerte          al morir\n" +
             "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";

@@ -25,7 +25,7 @@ namespace Odisea.Core
         {
             if (effect == null || !effect.HasClips)
                 return;
-            AudioClip clip = effect.clips[Random.Range(0, effect.clips.Length)];
+            AudioClip clip = effect.NextClip();
             if (clip == null)
                 return;
             Instance.PlayClip(clip, effect.volume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
