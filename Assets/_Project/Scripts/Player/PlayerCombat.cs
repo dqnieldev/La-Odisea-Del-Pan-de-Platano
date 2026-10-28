@@ -25,6 +25,8 @@ namespace Odisea.Player
         public event Action Attacked;
         /// <summary>El golpe le dio a algo (para el sonido del impacto).</summary>
         public event Action AttackHit;
+        /// <summary>En el último <see cref="AttackHit"/>, el rodillo derrotó a alguien (el golpe de remate).</summary>
+        public bool LastHitDefeated { get; private set; }
         public event Action Thrown;
 
         private void Awake()
@@ -61,7 +63,7 @@ namespace Odisea.Player
             Attacked?.Invoke();
 
             alreadyHit.Clear();
-            bool landed = false;
+            bool landed = false, defeated = false;
             Collider2D[] hits = Physics2D.OverlapBoxAll(AttackCenter(config), config.attackSize, 0f, config.attackLayers);
             foreach (Collider2D hit in hits)
             {
@@ -71,10 +73,16 @@ namespace Odisea.Player
                     continue;
 
                 if (target.TakeDamage(new DamageInfo(config.attackDamage, transform.position, gameObject)))
+                {
                     landed = true;
+                    defeated |= target is Health { IsDead: true };
+                }
             }
             if (landed)
+            {
+                LastHitDefeated = defeated;
                 AttackHit?.Invoke();
+            }
         }
 
         private void Throw()

@@ -22,9 +22,14 @@ namespace Odisea.EditorTools
         private const string UlisesNotes =
             "Efectos de sonido de Ulises. Nombres (wav, ogg o mp3; variantes con _1, _2...: golpe_rodillo_1.wav):\n" +
             "  golpe_rodillo   al golpear con el rodillo (el movimiento)\n" +
-            "  golpe_acierta   cuando el rodillo le da a un enemigo\n" +
+            "  golpe_acierta   cuando el rodillo le da a un enemigo (pon 2 o más: golpe_acierta_1, _2...; no se repite seguido)\n" +
+            "  golpe_remate    el golpe que derrota al enemigo (si no está, suena golpe_acierta)\n" +
             "  lanzar_masa     al lanzar la bolita de masa\n" +
             "  masa_impacto    cuando la bolita choca\n" +
+            "  salto           al saltar\n" +
+            "  doble_salto     la vuelta en el aire (si no está, suena salto)\n" +
+            "  aterrizar       al caer de un salto (no en escalones)\n" +
+            "  paso            cada pisada al correr (bajito; pon 2 o 3: paso_1, paso_2...)\n" +
             "  dano            al recibir daño\n" +
             "  muerte          al morir\n" +
             "Después: Odisea > Sandbox > Crear escena de prueba del jugador.\n";
@@ -130,6 +135,32 @@ namespace Odisea.EditorTools
             return go.AddComponent<SceneMusic>();
         }
 
+        /// <summary>
+        /// Qué tan fuerte se oye un clip: el tramo de 50 ms más intenso (RMS). Mejor que el pico, porque casi todos
+        /// los archivos vienen normalizados al máximo aunque unos suenen la mitad de fuertes que otros.
+        /// </summary>
+        public static float Loudness(AudioClip clip)
+        {
+            if (clip == null || clip.samples == 0 || !clip.LoadAudioData() && clip.loadState != AudioDataLoadState.Loaded)
+                return 0f;
+            var data = new float[clip.samples * clip.channels];
+            if (!clip.GetData(data, 0))
+                return 0f;
+            int window = Mathf.Max(1, clip.frequency * clip.channels / 20);
+            double sum = 0;
+            float loudest = 0f;
+            for (int i = 0; i < data.Length; i++)
+            {
+                sum += data[i] * data[i];
+                if ((i + 1) % window == 0)
+                {
+                    loudest = Mathf.Max(loudest, Mathf.Sqrt((float)(sum / window)));
+                    sum = 0;
+                }
+            }
+            return loudest;
+        }
+
         /// <summary>Asigna los clips (y el volumen) a un campo SoundEffect de un componente.</summary>
         public static void SetSound(Object target, string field, AudioClip[] clips, float volume = 1f)
         {
@@ -139,6 +170,13 @@ namespace Odisea.EditorTools
             list.arraySize = clips.Length;
             for (int i = 0; i < clips.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = clips[i];
+            // Las variantes se emparejan con la más bajita: así ninguna se pierde ni sobresale.
+            float[] loudness = clips.Select(Loudness).ToArray();
+            float quietest = loudness.Length > 0 ? loudness.Min() : 1f;
+            SerializedProperty gains = serialized.FindProperty($"{field}.clipVolumes");
+            gains.arraySize = clips.Length;
+            for (int i = 0; i < clips.Length; i++)
+                gains.GetArrayElementAtIndex(i).floatValue = loudness[i] > 0f ? Mathf.Clamp01(quietest / loudness[i]) : 1f;
             serialized.FindProperty($"{field}.volume").floatValue = volume;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }

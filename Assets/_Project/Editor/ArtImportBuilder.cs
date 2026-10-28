@@ -272,6 +272,9 @@ namespace Odisea.EditorTools
             AnimatorController controller = ResetController(UlisesControllerPath);
             foreach (string name in new[] { "Speed", "VerticalSpeed", "ClimbSpeed" })
                 controller.AddParameter(name, AnimatorControllerParameterType.Float);
+            // Velocidad de la animación de correr: 1 normal, más con el café (PlayerAnimator).
+            controller.AddParameter(new AnimatorControllerParameter
+                { name = "RunSpeed", type = AnimatorControllerParameterType.Float, defaultFloat = 1f });
             foreach (string name in new[] { "IsGrounded", "IsClimbing" })
                 controller.AddParameter(name, AnimatorControllerParameterType.Bool);
             foreach (string name in new[] { "Attack", "Throw", "DoubleJump", "Hurt", "Die" })
@@ -315,6 +318,9 @@ namespace Odisea.EditorTools
             // En la escalera la animación solo avanza mientras se mueve (PlayerAnimator pone ClimbSpeed en 0 o 1).
             climb.speedParameterActive = true;
             climb.speedParameter = "ClimbSpeed";
+            // Con el café las piernas van tan rápido como él (y sus pasos suenan más seguido).
+            run.speedParameterActive = true;
+            run.speedParameter = "RunSpeed";
 
             // Acciones de un momento: desde cualquier estado con su trigger; al terminar regresan a reposo
             // y de ahí el desplazamiento elige (correr, caer...) en el siguiente cuadro.

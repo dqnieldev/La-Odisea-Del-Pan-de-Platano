@@ -330,10 +330,22 @@ namespace Odisea.EditorTools
             var sounds = player.AddComponent<PlayerSounds>();
             SetSerialized(sounds, "combat", combat);
             SetSerialized(sounds, "health", health);
+            SetSerialized(sounds, "controller", controller);
+            if (spriteAnimator != null)
+                SetSerialized(sounds, "animator", spriteAnimator);
             string ulises = GameSoundsBuilder.UlisesFolder;
             GameSoundsBuilder.SetSound(sounds, "attack", GameSoundsBuilder.Load(ulises, "golpe_rodillo"));
             // Los impactos de las armas suenan en cada acierto: más bajos, para no tapar la queja del enemigo.
-            GameSoundsBuilder.SetSound(sounds, "attackHit", GameSoundsBuilder.Load(ulises, "golpe_acierta"), ImpactVolume);
+            // Con varias variantes se emparejan a la más bajita: se compensa con volumen completo, para no perderse
+            // con el "fiu" del rodillo.
+            AudioClip[] hits = GameSoundsBuilder.Load(ulises, "golpe_acierta");
+            GameSoundsBuilder.SetSound(sounds, "attackHit", hits, hits.Length > 1 ? 1f : ImpactVolume);
+            GameSoundsBuilder.SetSound(sounds, "finisher", GameSoundsBuilder.Load(ulises, "golpe_remate"));
+            GameSoundsBuilder.SetSound(sounds, "jump", GameSoundsBuilder.Load(ulises, "salto"), 0.7f);
+            GameSoundsBuilder.SetSound(sounds, "doubleJump", GameSoundsBuilder.Load(ulises, "doble_salto"), 0.7f);
+            GameSoundsBuilder.SetSound(sounds, "land", GameSoundsBuilder.Load(ulises, "aterrizar"), 0.5f);
+            // Los pasos suenan muy seguido: bajitos, para que acompañen sin cansar.
+            GameSoundsBuilder.SetSound(sounds, "footstep", GameSoundsBuilder.Load(ulises, "paso"), 0.3f);
             GameSoundsBuilder.SetSound(sounds, "throwDough", GameSoundsBuilder.Load(ulises, "lanzar_masa"));
             GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(ulises, "dano"));
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));
