@@ -86,19 +86,23 @@ namespace Odisea.Level
         private bool Apply(Health health, out string shown)
         {
             shown = label;
+            var buffs = health.GetComponent<PlayerBuffs>();
             if (kind == PickupKind.Heal)
             {
                 int hearts = Mathf.Max(1, Mathf.RoundToInt(amount));
+                bool eaten = true;
                 if (health.Current < health.Max)
-                {
                     health.Heal(hearts);
-                    return true;
+                else
+                {
+                    shown = extraHeartLabel;
+                    eaten = health.IncreaseMax(hearts, maxHearts);
                 }
-                shown = extraHeartLabel;
-                return health.IncreaseMax(hearts, maxHearts);
+                if (eaten && buffs != null)
+                    buffs.Eat();
+                return eaten;
             }
 
-            var buffs = health.GetComponent<PlayerBuffs>();
             if (buffs == null)
                 return false;
             if (kind == PickupKind.Shield)

@@ -204,6 +204,13 @@ namespace Odisea.EditorTools
                 // Lo sube, trago largo (se repite el cuadro) y sonríe: ~0.45 s, lo que dura PlayerBuffs.drinkTime.
                 clips["Drink"] = StripClip(drinkSheet, PickFrames(drink, 0, 1, 1, 2), idlePpu, "Drink", 9f, loop: false);
 
+            // Comer el pescado y ponerse la hoja (opcionales, fondo transparente): más rápidas que el café, ~0.25 s
+            // (PlayerBuffs.eatTime y leafTime). Sin la hoja de cuadros, el ítem se toma sin animación ni pausa.
+            if (TryLoadRow("ulises_pescado.png", attachDistance: 20, minFrames: 2, out Sheet eatSheet, out List<Frame> eat))
+                clips["Eat"] = StripClip(eatSheet, eat, idlePpu, "Eat", eat.Count / 0.25f, loop: false);
+            if (TryLoadRow("ulises_hoja.png", attachDistance: 20, minFrames: 2, out Sheet leafSheet, out List<Frame> leaf))
+                clips["Leaf"] = StripClip(leafSheet, leaf, idlePpu, "Leaf", leaf.Count / 0.25f, loop: false);
+
             // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
             // Se queda en el último cuadro; la escena se reinicia aparte.
             if (TryLoadRow("ulises_muerte.png", attachDistance: 30, minFrames: 7, out Sheet deathSheet, out List<Frame> death))
@@ -319,11 +326,13 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
-            if (states.TryGetValue("Drink", out AnimatorState drinkState))
+            foreach (string item in new[] { "Drink", "Eat", "Leaf" })
             {
-                controller.AddParameter("Drink", AnimatorControllerParameterType.Trigger);
-                AnyState(machine, drinkState, "Drink", toSelf: false);
-                ExitWhenDone(drinkState, idle);
+                if (!states.TryGetValue(item, out AnimatorState itemState))
+                    continue;
+                controller.AddParameter(item, AnimatorControllerParameterType.Trigger);
+                AnyState(machine, itemState, item, toSelf: false);
+                ExitWhenDone(itemState, idle);
             }
             // Tras la vuelta: si ya va bajando, a caída; si no, a la subida (que luego pasa a caída).
             ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));

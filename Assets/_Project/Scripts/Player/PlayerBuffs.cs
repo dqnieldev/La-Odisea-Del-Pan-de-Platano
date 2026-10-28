@@ -28,12 +28,22 @@ namespace Odisea.Player
         [Tooltip("Dónde va el jarrito, mirando a la derecha (la x se voltea con Ulises).")]
         [SerializeField] private Vector2 drinkPropOffset = new(0.32f, 0.55f);
 
+        [Header("Comer y ponerse la hoja")]
+        [Tooltip("Pausa al comerse el pescado (animación \"Eat\"). 0 si Ulises no tiene esa animación dibujada.")]
+        [SerializeField, Min(0f)] private float eatTime = 0.25f;
+        [Tooltip("Pausa al ponerse la hoja de escudo (animación \"Leaf\"). 0 si no está dibujada.")]
+        [SerializeField, Min(0f)] private float leafTime = 0.25f;
+
         private float shieldTimer, shieldDuration;
         private float speedTimer, speedDuration, speedMultiplier = 1f;
         private float drinkTimer, pendingMultiplier, pendingDuration;
 
         /// <summary>Empieza a tomar café (PlayerAnimator dispara la animación "Drink", si existe).</summary>
         public event Action Drank;
+        /// <summary>Se come el pescado (PlayerAnimator dispara "Eat").</summary>
+        public event Action Ate;
+        /// <summary>Se pone la hoja de escudo (PlayerAnimator dispara "Leaf").</summary>
+        public event Action Shielded;
 
         public bool HasShield => shieldTimer > 0f;
         public bool HasSpeed => speedTimer > 0f;
@@ -66,6 +76,14 @@ namespace Odisea.Player
             Drank?.Invoke();
             if (drinkTime <= 0f)
                 FinishDrink();
+        }
+
+        /// <summary>Se come el pescado de un bocado: una pausa más corta que la del café.</summary>
+        public void Eat()
+        {
+            if (controller != null && eatTime > 0f)
+                controller.HoldStill(eatTime);
+            Ate?.Invoke();
         }
 
         private void FinishDrink()
@@ -103,6 +121,9 @@ namespace Odisea.Player
         public void ApplyShield(float seconds)
         {
             shieldDuration = shieldTimer = Mathf.Max(0.01f, seconds);
+            if (controller != null && leafTime > 0f)
+                controller.HoldStill(leafTime);
+            Shielded?.Invoke();
             Refresh();
             Changed?.Invoke();
         }
