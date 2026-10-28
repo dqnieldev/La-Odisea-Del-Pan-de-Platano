@@ -48,6 +48,10 @@ namespace Odisea.Player
         public bool HasControl => controlLockTimer <= 0f && (health == null || !health.IsDead);
         private Vector2 FeetPosition => body.position + feetOffset;
 
+        // Solo importa hacia dónde: -1, 0 o 1. Una diagonal (W+D, stick un poco arriba) se queda con menos de 1 en x
+        // y lo haría correr más lento; tampoco hay caminar despacio con el stick a medias.
+        private float Horizontal => Mathf.Abs(input.Move.x) >= config.moveDeadzone ? Mathf.Sign(input.Move.x) : 0f;
+
         public event Action Jumped;
         public event Action DoubleJumped;
         public event Action Landed;
@@ -123,7 +127,7 @@ namespace Odisea.Player
                 jumpBufferTimer = config.jumpBufferTime;
 
             TryJump();
-            UpdateFacing(input.Move.x);
+            UpdateFacing(Horizontal);
         }
 
         private void FixedUpdate()
@@ -343,7 +347,7 @@ namespace Odisea.Player
 
         private void MoveHorizontally(float dt)
         {
-            float target = input.Move.x * config.moveSpeed * SpeedMultiplier;
+            float target = Horizontal * config.moveSpeed * SpeedMultiplier;
             float rate = Mathf.Abs(target) > 0.01f ? config.acceleration : config.deceleration;
             if (!IsGrounded)
                 rate *= config.airControl;

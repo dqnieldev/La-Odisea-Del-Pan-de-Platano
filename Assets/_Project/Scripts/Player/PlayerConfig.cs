@@ -11,6 +11,9 @@ namespace Odisea.Player
     {
         [Header("Movimiento horizontal")]
         [Min(0f)] public float moveSpeed = 8f;
+        [Tooltip("Cuánto hay que inclinar el stick para caminar (0-1). Pasándolo corre a toda velocidad, aunque vaya " +
+                 "en diagonal: así W+D o el stick un poco arriba no lo hacen más lento.")]
+        [Range(0f, 0.9f)] public float moveDeadzone = 0.3f;
         [Tooltip("Qué tan rápido alcanza la velocidad máxima (unidades/s²).")]
         [Min(0f)] public float acceleration = 70f;
         [Tooltip("Qué tan rápido frena al soltar la dirección (unidades/s²).")]
