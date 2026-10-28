@@ -160,10 +160,11 @@ namespace Odisea.EditorTools
             else
                 clips["Hurt"] = StripClip(sheet, Pick(rows, 0, 3), ppu, "Hurt", 8f, loop: false, holdLast: 0.25f);
 
-            // Escalera (4 cuadros, de espaldas). Anclada en los pies (al pie de la escalera queda parado en el suelo);
-            // solo avanza mientras sube o baja (parámetro ClimbSpeed del Animator).
+            // Escalera (de espaldas). Anclada en los pies (al pie de la escalera queda parado en el suelo);
+            // solo avanza mientras sube o baja (parámetro ClimbSpeed del Animator). La hoja trae 4 cuadros, pero el
+            // 4.º tiene los tirantes rectos (en los demás van cruzados) y repite al 1.º: se usan los 3 primeros.
             if (TryLoadRow("ulises_escalera.png", attachDistance: 20, minFrames: 4, out Sheet climbSheet, out List<Frame> climb))
-                clips["Climb"] = StripClip(climbSheet, PickFrames(climb, 0, 1, 2, 3), idlePpu, "Climb", 8f, loop: true);
+                clips["Climb"] = StripClip(climbSheet, PickFrames(climb, 0, 1, 2), idlePpu, "Climb", 8f, loop: true);
             else
                 clips["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true);
 
