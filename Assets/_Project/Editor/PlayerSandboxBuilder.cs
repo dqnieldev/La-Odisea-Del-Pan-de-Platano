@@ -336,7 +336,10 @@ namespace Odisea.EditorTools
             string ulises = GameSoundsBuilder.UlisesFolder;
             GameSoundsBuilder.SetSound(sounds, "attack", GameSoundsBuilder.Load(ulises, "golpe_rodillo"));
             // Los impactos de las armas suenan en cada acierto: más bajos, para no tapar la queja del enemigo.
-            GameSoundsBuilder.SetSound(sounds, "attackHit", GameSoundsBuilder.Load(ulises, "golpe_acierta"), ImpactVolume);
+            // Con varias variantes se emparejan a la más bajita: se compensa con volumen completo, para no perderse
+            // con el "fiu" del rodillo.
+            AudioClip[] hits = GameSoundsBuilder.Load(ulises, "golpe_acierta");
+            GameSoundsBuilder.SetSound(sounds, "attackHit", hits, hits.Length > 1 ? 1f : ImpactVolume);
             GameSoundsBuilder.SetSound(sounds, "finisher", GameSoundsBuilder.Load(ulises, "golpe_remate"));
             GameSoundsBuilder.SetSound(sounds, "jump", GameSoundsBuilder.Load(ulises, "salto"), 0.7f);
             GameSoundsBuilder.SetSound(sounds, "doubleJump", GameSoundsBuilder.Load(ulises, "doble_salto"), 0.7f);
@@ -346,7 +349,8 @@ namespace Odisea.EditorTools
             if (sandSteps.Length == 0)
                 sandSteps = GameSoundsBuilder.Load(ulises, "paso");
             GameSoundsBuilder.SetSound(sounds, "footstepSand", sandSteps, 0.3f);
-            GameSoundsBuilder.SetSound(sounds, "footstepWood", GameSoundsBuilder.Load(ulises, "paso_madera"), 0.3f);
+            // La madera es un golpe seco y corto: se oye menos que la arena al mismo volumen.
+            GameSoundsBuilder.SetSound(sounds, "footstepWood", GameSoundsBuilder.Load(ulises, "paso_madera"), 0.75f);
             GameSoundsBuilder.SetSound(sounds, "throwDough", GameSoundsBuilder.Load(ulises, "lanzar_masa"));
             GameSoundsBuilder.SetSound(sounds, "hurt", GameSoundsBuilder.Load(ulises, "dano"));
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(ulises, "muerte"));

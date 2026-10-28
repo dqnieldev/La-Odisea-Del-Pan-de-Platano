@@ -25,10 +25,10 @@ namespace Odisea.Core
         {
             if (effect == null || !effect.HasClips)
                 return;
-            AudioClip clip = effect.NextClip();
+            AudioClip clip = effect.NextClip(out float clipVolume);
             if (clip == null)
                 return;
-            Instance.PlayClip(clip, effect.volume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
+            Instance.PlayClip(clip, effect.volume * clipVolume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
         }
 
         private static GameAudio Instance

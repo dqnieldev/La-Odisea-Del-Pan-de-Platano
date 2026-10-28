@@ -136,6 +136,32 @@ namespace Odisea.EditorTools
             return go.AddComponent<SceneMusic>();
         }
 
+        /// <summary>
+        /// Qué tan fuerte se oye un clip: el tramo de 50 ms más intenso (RMS). Mejor que el pico, porque casi todos
+        /// los archivos vienen normalizados al máximo aunque unos suenen la mitad de fuertes que otros.
+        /// </summary>
+        public static float Loudness(AudioClip clip)
+        {
+            if (clip == null || clip.samples == 0 || !clip.LoadAudioData() && clip.loadState != AudioDataLoadState.Loaded)
+                return 0f;
+            var data = new float[clip.samples * clip.channels];
+            if (!clip.GetData(data, 0))
+                return 0f;
+            int window = Mathf.Max(1, clip.frequency * clip.channels / 20);
+            double sum = 0;
+            float loudest = 0f;
+            for (int i = 0; i < data.Length; i++)
+            {
+                sum += data[i] * data[i];
+                if ((i + 1) % window == 0)
+                {
+                    loudest = Mathf.Max(loudest, Mathf.Sqrt((float)(sum / window)));
+                    sum = 0;
+                }
+            }
+            return loudest;
+        }
+
         /// <summary>Asigna los clips (y el volumen) a un campo SoundEffect de un componente.</summary>
         public static void SetSound(Object target, string field, AudioClip[] clips, float volume = 1f)
         {
@@ -145,6 +171,13 @@ namespace Odisea.EditorTools
             list.arraySize = clips.Length;
             for (int i = 0; i < clips.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = clips[i];
+            // Las variantes se emparejan con la más bajita: así ninguna se pierde ni sobresale.
+            float[] loudness = clips.Select(Loudness).ToArray();
+            float quietest = loudness.Length > 0 ? loudness.Min() : 1f;
+            SerializedProperty gains = serialized.FindProperty($"{field}.clipVolumes");
+            gains.arraySize = clips.Length;
+            for (int i = 0; i < clips.Length; i++)
+                gains.GetArrayElementAtIndex(i).floatValue = loudness[i] > 0f ? Mathf.Clamp01(quietest / loudness[i]) : 1f;
             serialized.FindProperty($"{field}.volume").floatValue = volume;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
