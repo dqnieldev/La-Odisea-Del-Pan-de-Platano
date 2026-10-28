@@ -16,6 +16,7 @@ namespace Odisea.Core
         [SerializeField] private bool destroyOnDeath;
 
         private float invulnerabilityTimer;
+        private IDamageBlocker blocker;
 
         public int Max => maxHealth;
         public int Current { get; private set; }
@@ -26,10 +27,13 @@ namespace Odisea.Core
         public event Action<int, int> HealthChanged;
         public event Action<DamageInfo> Damaged;
         public event Action Died;
+        /// <summary>Un escudo detuvo el golpe: no se perdió vida.</summary>
+        public event Action<DamageInfo> Blocked;
 
         private void Awake()
         {
             Current = maxHealth;
+            blocker = GetComponent<IDamageBlocker>();
         }
 
         private void Update()
@@ -42,6 +46,14 @@ namespace Odisea.Core
         {
             if (IsDead || IsInvulnerable || info.Amount <= 0)
                 return false;
+
+            // El escudo se gasta en este golpe; la invulnerabilidad breve evita que el siguiente toque llegue enseguida.
+            if (blocker != null && blocker.TryBlock(info))
+            {
+                invulnerabilityTimer = invulnerabilityTime;
+                Blocked?.Invoke(info);
+                return false;
+            }
 
             Current = Mathf.Max(0, Current - info.Amount);
             invulnerabilityTimer = invulnerabilityTime;
@@ -65,6 +77,18 @@ namespace Odisea.Core
 
             Current = Mathf.Min(maxHealth, Current + amount);
             HealthChanged?.Invoke(Current, maxHealth);
+        }
+
+        /// <summary>Un corazón más (el nuevo ya lleno), sin pasar de <paramref name="limit"/>. Devuelve si se pudo.</summary>
+        public bool IncreaseMax(int amount, int limit)
+        {
+            if (IsDead || amount <= 0 || maxHealth >= limit)
+                return false;
+            int added = Mathf.Min(amount, limit - maxHealth);
+            maxHealth += added;
+            Current += added;
+            HealthChanged?.Invoke(Current, maxHealth);
+            return true;
         }
 
         public void ResetHealth()

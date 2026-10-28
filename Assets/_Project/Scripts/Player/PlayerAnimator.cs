@@ -9,7 +9,8 @@ namespace Odisea.Player
     /// Parámetros que puede tener el Animator Controller (los que falten se ignoran):
     /// Speed (float), VerticalSpeed (float), ClimbSpeed (float: 1 si sube o baja por la escalera, 0 si está quieto),
     /// IsGrounded (bool), IsClimbing (bool),
-    /// Attack, Throw, DoubleJump, Hurt, Die (triggers).
+    /// Attack, Throw, DoubleJump, Hurt, Die, Drink, Eat, Leaf (triggers; Drink al tomar café, Eat al comer el pescado,
+    /// Leaf al ponerse la hoja de escudo).
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
@@ -23,10 +24,15 @@ namespace Odisea.Player
         private static readonly int DoubleJumpId = Animator.StringToHash("DoubleJump");
         private static readonly int HurtId = Animator.StringToHash("Hurt");
         private static readonly int DieId = Animator.StringToHash("Die");
+        private static readonly int DrinkId = Animator.StringToHash("Drink");
+        private static readonly int EatId = Animator.StringToHash("Eat");
+        private static readonly int LeafId = Animator.StringToHash("Leaf");
 
         [SerializeField] private PlayerController controller;
         [SerializeField] private PlayerCombat combat;
         [SerializeField] private Health health;
+        [Tooltip("Opcional: para las animaciones de los ítems (triggers Drink, Eat y Leaf).")]
+        [SerializeField] private PlayerBuffs buffs;
         [SerializeField] private Animator animator;
         [SerializeField] private SpriteRenderer spriteRenderer;
         [Tooltip("Parpadeos por segundo mientras Ulises es invulnerable.")]
@@ -45,6 +51,12 @@ namespace Odisea.Player
         private void OnEnable()
         {
             if (controller != null) controller.DoubleJumped += OnDoubleJumped;
+            if (buffs != null)
+            {
+                buffs.Drank += OnDrank;
+                buffs.Ate += OnAte;
+                buffs.Shielded += OnShielded;
+            }
             if (combat != null)
             {
                 combat.Attacked += OnAttacked;
@@ -60,6 +72,12 @@ namespace Odisea.Player
         private void OnDisable()
         {
             if (controller != null) controller.DoubleJumped -= OnDoubleJumped;
+            if (buffs != null)
+            {
+                buffs.Drank -= OnDrank;
+                buffs.Ate -= OnAte;
+                buffs.Shielded -= OnShielded;
+            }
             if (combat != null)
             {
                 combat.Attacked -= OnAttacked;
@@ -93,6 +111,9 @@ namespace Odisea.Player
         private void OnDoubleJumped() => SetTrigger(DoubleJumpId);
         private void OnAttacked() => SetTrigger(AttackId);
         private void OnThrown() => SetTrigger(ThrowId);
+        private void OnDrank() => SetTrigger(DrinkId);
+        private void OnAte() => SetTrigger(EatId);
+        private void OnShielded() => SetTrigger(LeafId);
         private void OnDamaged(DamageInfo _) => SetTrigger(HurtId);
         private void OnDied()
         {

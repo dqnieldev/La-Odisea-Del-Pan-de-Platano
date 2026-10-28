@@ -84,8 +84,38 @@ namespace Odisea.EditorTools
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
+            ImportItems();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
+        }
+
+        // ---------- Ítems ----------
+
+        // Pescado zarandeado (cura), hoja de plátano (escudo) y café de olla (velocidad). Cada uno en su imagen de
+        // Docs/Referencias/Sprites-por-revisar/Items, con fondo blanco o transparente; caben en un cuadro de ItemSize.
+        public const string ItemsFolder = "Assets/_Project/Art/Items";
+        public const string FishPath = ItemsFolder + "/Pescado.png";
+        public const string LeafPath = ItemsFolder + "/Hoja.png";
+        public const string CoffeePath = ItemsFolder + "/Cafe.png";
+        private const string ItemsSource = "Sprites-por-revisar/Items/";
+        private const float ItemSize = 0.9f;
+
+        private static void ImportItems()
+        {
+            EnsureFolder(ItemsFolder);
+            WriteItem("item_pescado.png", FishPath);
+            WriteItem("item_hoja.png", LeafPath);
+            WriteItem("item_cafe.png", CoffeePath);
+        }
+
+        // Sin la imagen no pasa nada: el juego usa un círculo de color mientras llega el arte.
+        private static void WriteItem(string file, string path)
+        {
+            Sheet sheet = LoadSheet(ItemsSource + file, whiteThreshold: 235, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            WriteRegion(sheet, bounds, path, Mathf.Max(bounds.width, bounds.height) / ItemSize, new Vector2(0.5f, 0.5f));
         }
 
         // ---------- Ulises ----------
@@ -167,6 +197,19 @@ namespace Odisea.EditorTools
                 clips["Climb"] = StripClip(climbSheet, PickFrames(climb, 0, 1, 2), idlePpu, "Climb", 8f, loop: true);
             else
                 clips["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true);
+
+            // Tomar café (opcional, ulises_cafe.png con fondo transparente): sin la hoja, el juego dibuja un jarrito
+            // que Ulises se empina (PlayerBuffs).
+            if (TryLoadRow("ulises_cafe.png", attachDistance: 20, minFrames: 2, out Sheet drinkSheet, out List<Frame> drink))
+                // Lo sube, trago y sonríe: 0.25 s, lo que dura PlayerBuffs.drinkTime (igual que comer y la hoja).
+                clips["Drink"] = StripClip(drinkSheet, drink, idlePpu, "Drink", drink.Count / 0.25f, loop: false);
+
+            // Comer el pescado y ponerse la hoja (opcionales, fondo transparente): más rápidas que el café, ~0.25 s
+            // (PlayerBuffs.eatTime y leafTime). Sin la hoja de cuadros, el ítem se toma sin animación ni pausa.
+            if (TryLoadRow("ulises_pescado.png", attachDistance: 20, minFrames: 2, out Sheet eatSheet, out List<Frame> eat))
+                clips["Eat"] = StripClip(eatSheet, eat, idlePpu, "Eat", eat.Count / 0.25f, loop: false);
+            if (TryLoadRow("ulises_hoja.png", attachDistance: 20, minFrames: 2, out Sheet leafSheet, out List<Frame> leaf))
+                clips["Leaf"] = StripClip(leafSheet, leaf, idlePpu, "Leaf", leaf.Count / 0.25f, loop: false);
 
             // Muerte (7 cuadros): golpe, sale volando, gira, mareado de pie (3, sirve de medida), cae y queda tirado.
             // Se queda en el último cuadro; la escena se reinicia aparte.
@@ -283,6 +326,14 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
+            foreach (string item in new[] { "Drink", "Eat", "Leaf" })
+            {
+                if (!states.TryGetValue(item, out AnimatorState itemState))
+                    continue;
+                controller.AddParameter(item, AnimatorControllerParameterType.Trigger);
+                AnyState(machine, itemState, item, toSelf: false);
+                ExitWhenDone(itemState, idle);
+            }
             // Tras la vuelta: si ya va bajando, a caída; si no, a la subida (que luego pasa a caída).
             ExitWhenDone(states["DoubleJump"], fall, Cond("VerticalSpeed", AnimatorConditionMode.Less, 0f));
             ExitWhenDone(states["DoubleJump"], jump);
