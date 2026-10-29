@@ -23,6 +23,14 @@ namespace Odisea.Core
         [Tooltip("Escenas a las que la canción pasa sin cortarse (por nombre). A las demás se desvanece.")]
         [SerializeField] private string[] continueInto = Array.Empty<string>();
 
+        [Header("En pausa: más bajito y como disco viejo")]
+        [SerializeField, Range(0f, 1f)] private float pausedVolume = 0.55f;
+        [Tooltip("Corta los agudos (Hz): suena apagado, como un radio antiguo.")]
+        [SerializeField, Min(100f)] private float pausedLowPass = 1600f;
+        [Tooltip("Corta los graves (Hz): suena delgado, como un gramófono.")]
+        [SerializeField, Min(10f)] private float pausedHighPass = 450f;
+        [SerializeField, Min(0.01f)] private float pauseTransition = 0.35f;
+
         // La que está sonando ahora (puede venir de una escena anterior).
         private static SceneMusic playing;
         // Ya pasó a otra escena: sobrevive al cambio y se destruye al desvanecerse.
@@ -32,6 +40,10 @@ namespace Odisea.Core
         // Multiplicador del fundido (0 a 1); el volumen final es fundido × volumen de música.
         private float fade;
         private Coroutine fadeRoutine;
+        private AudioLowPassFilter lowPass;
+        private AudioHighPassFilter highPass;
+        // 0 = normal, 1 = en pausa (disco viejo); se mueve suave hacia la meta.
+        private float muffle;
 
         private void Awake()
         {
@@ -46,6 +58,10 @@ namespace Odisea.Core
             source.loop = true;
             source.playOnAwake = false;
             source.spatialBlend = 0f;
+            lowPass = gameObject.AddComponent<AudioLowPassFilter>();
+            highPass = gameObject.AddComponent<AudioHighPassFilter>();
+            muffle = GamePause.IsPaused ? 1f : 0f;
+            ApplyMuffle();
             fade = 0f;
             ApplyVolume();
         }
@@ -82,6 +98,28 @@ namespace Odisea.Core
         }
 
         private void OnMusicVolumeChanged(float _) => ApplyVolume();
+
+        // Con el tiempo detenido de la pausa, por eso en tiempo real.
+        private void Update()
+        {
+            float target = GamePause.IsPaused ? 1f : 0f;
+            if (Mathf.Approximately(muffle, target))
+                return;
+            muffle = Mathf.MoveTowards(muffle, target, Time.unscaledDeltaTime / pauseTransition);
+            ApplyMuffle();
+            ApplyVolume();
+        }
+
+        private void ApplyMuffle()
+        {
+            if (lowPass == null)
+                return;
+            // Sin pausa los filtros se apagan del todo (no gastan ni colorean el sonido).
+            lowPass.enabled = highPass.enabled = muffle > 0f;
+            // El corte baja en escala logarítmica: así el cambio se oye parejo.
+            lowPass.cutoffFrequency = Mathf.Exp(Mathf.Lerp(Mathf.Log(22000f), Mathf.Log(pausedLowPass), muffle));
+            highPass.cutoffFrequency = Mathf.Exp(Mathf.Lerp(Mathf.Log(10f), Mathf.Log(pausedHighPass), muffle));
+        }
 
         private void OnLoadStarted(string sceneName)
         {
@@ -128,6 +166,6 @@ namespace Odisea.Core
             }
         }
 
-        private void ApplyVolume() => source.volume = fade * GameSettings.MusicVolume;
+        private void ApplyVolume() => source.volume = fade * GameSettings.MusicVolume * Mathf.Lerp(1f, pausedVolume, muffle);
     }
 }

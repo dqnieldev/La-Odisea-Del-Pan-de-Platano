@@ -17,6 +17,8 @@ namespace Odisea.UI
         [SerializeField] private TMP_Text levelTitle;
         [Tooltip("Nombre que se muestra en la portada. Vacío = el nombre de la escena.")]
         [SerializeField] private string levelName;
+        [Tooltip("Muestra \"Reiniciar nivel\" (en el mapa no tiene sentido).")]
+        [SerializeField] private bool allowRestart = true;
 
         private PlayerInputReader[] disabledInputs = System.Array.Empty<PlayerInputReader>();
 
@@ -28,6 +30,8 @@ namespace Odisea.UI
                 levelTitle.text = string.IsNullOrWhiteSpace(levelName)
                     ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
                     : levelName;
+            if (!allowRestart)
+                book.HideRestart();
             book.gameObject.SetActive(false);
         }
 
@@ -47,7 +51,10 @@ namespace Odisea.UI
         {
             // Si la escena se cambia desde la pausa, el tiempo no debe quedarse detenido.
             if (IsPaused)
+            {
                 Time.timeScale = 1f;
+                GamePause.Set(false);
+            }
         }
 
         public void Pause()
@@ -63,6 +70,7 @@ namespace Odisea.UI
                 input.enabled = false;
 
             UiAudio.Play(UiSound.Click);
+            GamePause.Set(true);
             book.Open(onClosed: Resume);
         }
 
@@ -76,6 +84,7 @@ namespace Odisea.UI
             disabledInputs = System.Array.Empty<PlayerInputReader>();
             Time.timeScale = 1f;
             IsPaused = false;
+            GamePause.Set(false);
         }
     }
 }

@@ -165,6 +165,8 @@ namespace Odisea.EditorTools
             {
                 var pause = (GameObject)PrefabUtility.InstantiatePrefab(pausePrefab);
                 PlayerSandboxBuilder.SetSerialized(pause.GetComponent<PauseMenu>(), "levelName", "San Blas");
+                // En el mapa no hay nivel que reiniciar.
+                PlayerSandboxBuilder.SetSerialized(pause.GetComponent<PauseMenu>(), "allowRestart", false);
             }
 
             PlayerSandboxBuilder.EndLevel(level);
