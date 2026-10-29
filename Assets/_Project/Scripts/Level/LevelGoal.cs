@@ -38,11 +38,15 @@ namespace Odisea.Level
                 center = new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y));
             }
             Checkpoints.Clear();
-            GameProgress.Complete(completesLocation);
+            // El tutorial de práctica (abierto desde el menú) regresa al menú y no cuenta para la partida.
+            bool practice = SceneFlow.TutorialFromMenu && completesLocation == GameProgress.Tutorial;
+            string destination = practice ? SceneFlow.MainMenu : nextScene;
+            if (!practice)
+                GameProgress.Complete(completesLocation);
             if (completeScreen != null)
-                completeScreen.Show(() => SceneFlow.Load(nextScene, center));
+                completeScreen.Show(() => SceneFlow.Load(destination, center));
             else
-                SceneFlow.Load(nextScene, center);
+                SceneFlow.Load(destination, center);
         }
     }
 }

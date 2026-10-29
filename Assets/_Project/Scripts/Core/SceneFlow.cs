@@ -30,6 +30,12 @@ namespace Odisea.Core
         public static string PendingStory { get; private set; }
         public static string AfterStory { get; private set; }
 
+        /// <summary>
+        /// El tutorial se abrió con el botón Tutorial del menú (de práctica): al terminarlo regresa al menú y no
+        /// cuenta para ninguna partida.
+        /// </summary>
+        public static bool TutorialFromMenu { get; private set; }
+
         public static bool IsLoading => ScreenFader.Instance.IsBusy;
 
         /// <summary>
@@ -72,12 +78,20 @@ namespace Odisea.Core
         /// <summary>Jugar: abre la pantalla de partidas.</summary>
         public static void StartGame() => Load(Slots);
 
+        /// <summary>Botón Tutorial del menú: el tutorial de práctica, que al terminar regresa al menú.</summary>
+        public static void PlayTutorialFromMenu()
+        {
+            TutorialFromMenu = true;
+            Load(Tutorial);
+        }
+
         /// <summary>
         /// Entra a una partida: si es nueva o no ha terminado el tutorial, la historieta del prólogo y el tutorial;
         /// si ya lo terminó, directo al mapa.
         /// </summary>
         public static void PlaySlot(int slot)
         {
+            TutorialFromMenu = false;
             GameProgress.Begin(slot);
             if (GameProgress.TutorialDone)
                 Load(Map);

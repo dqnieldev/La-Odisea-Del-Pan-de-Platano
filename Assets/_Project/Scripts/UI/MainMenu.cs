@@ -32,7 +32,7 @@ namespace Odisea.UI
         private void Start()
         {
             playButton.onClick.AddListener(SceneFlow.StartGame);
-            tutorialButton.onClick.AddListener(() => SceneFlow.Load(SceneFlow.Tutorial));
+            tutorialButton.onClick.AddListener(SceneFlow.PlayTutorialFromMenu);
             optionsButton.onClick.AddListener(OpenOptions);
             quitButton.onClick.AddListener(AskToQuit);
             quitNoButton.onClick.AddListener(CancelQuit);
