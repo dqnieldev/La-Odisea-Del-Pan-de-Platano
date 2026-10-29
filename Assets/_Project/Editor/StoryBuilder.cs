@@ -22,8 +22,14 @@ namespace Odisea.EditorTools
         private const string ArtFolder = "Assets/_Project/Art/Comics";
         // Papel viejo opcional (toda la hoja) y la viñeta 16:9 grande, un poco arriba para dejar lugar al texto.
         private const string PaperPath = "Assets/_Project/Art/Comics/Papel.png";
+        // Libro abierto (como el de Cuphead): la viñeta en la página derecha; título y número en la izquierda.
+        // Las posiciones son para un dibujo 16:9 con la página derecha de ~22 % a ~91 % del ancho.
+        private const string BookPath = "Assets/_Project/Art/Comics/Libro.png";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
+        private static readonly Vector2 BookPanelCenter = new(125f, 75f);
+        private static readonly Vector2 BookPanelSize = new(1120f, 630f);
+        private const float BookLeftPageX = -765f;
         private static readonly Color OldPaper = new(0.910f, 0.851f, 0.722f);
         private static readonly Color OldPaperLight = new(0.945f, 0.898f, 0.788f);
         private static readonly Color OldPaperEdge = new(0.749f, 0.635f, 0.459f);
@@ -58,12 +64,32 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.CreateUiAudio();
             MenuScenesBuilder.CreateMenuMusic();
 
-            RectTransform paper = CreatePaper((RectTransform)canvas);
-            (RectTransform panel, Image art, TMP_Text note, TMP_Text caption) = CreatePanel(paper);
-            TMP_Text counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
-                MenuScenesBuilder.TintaClara, position: new Vector2(-560f, -478f), rectSize: new Vector2(640f, 50f),
-                alignment: TextAlignmentOptions.MidlineLeft);
-            TMP_Text nextLabel = CreatePromptBar(paper);
+            Sprite book = File.Exists(BookPath) ? MenuScenesBuilder.LoadUiSprite(BookPath) : null;
+            RectTransform paper;
+            RectTransform panel;
+            Image art;
+            TMP_Text note, caption, counter, title = null, nextLabel;
+            if (book != null)
+            {
+                // El libro llena la pantalla; la página izquierda lleva el título y el número de viñeta.
+                paper = (RectTransform)canvas;
+                MenuScenesBuilder.CreateImage("Libro", paper, book, Color.white, Vector2.zero, Vector2.zero, stretch: true);
+                (panel, art, note, caption) = CreatePanel(paper, BookPanelCenter, BookPanelSize, 34);
+                title = MenuScenesBuilder.CreateText("Título", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 46,
+                    Ink, position: new Vector2(BookLeftPageX, 150f), rectSize: new Vector2(300f, 460f));
+                counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 40,
+                    MenuScenesBuilder.TintaClara, position: new Vector2(BookLeftPageX, -330f), rectSize: new Vector2(300f, 60f));
+                nextLabel = CreatePromptBar(paper, new Vector2(560f, -470f));
+            }
+            else
+            {
+                paper = CreatePaper((RectTransform)canvas);
+                (panel, art, note, caption) = CreatePanel(paper, new Vector2(0f, PanelOffsetY), PanelSize, 38);
+                counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
+                    MenuScenesBuilder.TintaClara, position: new Vector2(-560f, -478f), rectSize: new Vector2(640f, 50f),
+                    alignment: TextAlignmentOptions.MidlineLeft);
+                nextLabel = CreatePromptBar(paper, new Vector2(560f, -478f));
+            }
 
             var viewer = new GameObject("Visor de historietas").AddComponent<ComicViewer>();
             PlayerSandboxBuilder.SetSerialized(viewer, "stories", stories.Cast<Object>().ToArray());
@@ -74,6 +100,8 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(viewer, "placeholder", note);
             MenuScenesBuilder.SetField(viewer, "caption", caption);
             MenuScenesBuilder.SetField(viewer, "counter", counter);
+            if (title != null)
+                MenuScenesBuilder.SetField(viewer, "title", title);
             MenuScenesBuilder.SetField(viewer, "nextLabel", nextLabel);
 
             EditorSceneManager.SaveScene(scene);
@@ -141,21 +169,22 @@ namespace Odisea.EditorTools
         }
 
         // La viñeta grande (16:9) con marco negro y su texto debajo; todo junto entra y sale.
-        private static (RectTransform, Image, TMP_Text, TMP_Text) CreatePanel(RectTransform paper)
+        private static (RectTransform, Image, TMP_Text, TMP_Text) CreatePanel(RectTransform paper, Vector2 center, Vector2 panelSize,
+            float captionSize)
         {
             var root = new GameObject("Viñeta", typeof(RectTransform), typeof(CanvasGroup));
             var rect = (RectTransform)root.transform;
             rect.SetParent(paper, false);
-            rect.sizeDelta = PanelSize;
-            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = panelSize;
+            rect.anchoredPosition = new Vector2(center.x, 0f);
             // El grupo se mueve desde el centro del dibujo (que está más arriba que el centro de la hoja).
             rect.pivot = new Vector2(0.5f, 0.5f);
 
             var frame = new GameObject("Marco", typeof(RectTransform));
             var frameRect = (RectTransform)frame.transform;
             frameRect.SetParent(rect, false);
-            frameRect.anchoredPosition = new Vector2(0f, PanelOffsetY);
-            frameRect.sizeDelta = PanelSize;
+            frameRect.anchoredPosition = new Vector2(0f, center.y);
+            frameRect.sizeDelta = panelSize;
             Image shadow = MenuScenesBuilder.CreateImage("Sombra", frameRect, null, new Color(0f, 0f, 0f, 0.3f), Vector2.zero,
                 Vector2.zero, stretch: true);
             shadow.rectTransform.offsetMin = shadow.rectTransform.offsetMax = new Vector2(10f, -12f);
@@ -167,21 +196,21 @@ namespace Odisea.EditorTools
             ((RectTransform)note.transform).offsetMax = new Vector2(-120f, -80f);
             note.fontStyle = FontStyles.Italic;
 
-            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 38,
-                Ink, position: new Vector2(0f, PanelOffsetY - PanelSize.y / 2f - 72f), rectSize: new Vector2(PanelSize.x, 110f),
+            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), captionSize,
+                Ink, position: new Vector2(0f, center.y - panelSize.y / 2f - 72f), rectSize: new Vector2(panelSize.x, 110f),
                 alignment: TextAlignmentOptions.Top);
             caption.lineSpacing = -8f;
             return (rect, art, note, caption);
         }
 
         // Abajo a la derecha: [Aceptar] Siguiente  [Atrás] Saltar.
-        private static TMP_Text CreatePromptBar(RectTransform paper)
+        private static TMP_Text CreatePromptBar(RectTransform paper, Vector2 position)
         {
             TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
             var go = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
             var rect = (RectTransform)go.transform;
             rect.SetParent(paper, false);
-            rect.anchoredPosition = new Vector2(560f, -478f);
+            rect.anchoredPosition = position;
             rect.sizeDelta = new Vector2(560f, 56f);
             var layout = go.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 8f;

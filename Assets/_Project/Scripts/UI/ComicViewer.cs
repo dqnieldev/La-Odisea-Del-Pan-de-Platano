@@ -30,8 +30,10 @@ namespace Odisea.UI
         [Tooltip("Descripción de lo que va dibujado (solo mientras no hay dibujo).")]
         [SerializeField] private TMP_Text placeholder;
         [SerializeField] private TMP_Text caption;
-        [Tooltip("Título de la historieta y \"1 / 4\".")]
+        [Tooltip("\"1 / 4\" (con el título delante si no hay dónde poner el título aparte).")]
         [SerializeField] private TMP_Text counter;
+        [Tooltip("Opcional: el título aparte (la página izquierda del libro).")]
+        [SerializeField] private TMP_Text title;
         [Tooltip("Ayuda de botones; dice \"Siguiente\" y en la última viñeta \"Continuar\".")]
         [SerializeField] private TMP_Text nextLabel;
 
@@ -45,12 +47,15 @@ namespace Odisea.UI
         private string nextScene;
         private int index = -1;
         private bool busy, leaving;
+        // Dónde va la viñeta en la página; la animación la mueve alrededor de este punto.
+        private Vector2 home;
 
         private void Start()
         {
             (string storyName, string next) = SceneFlow.TakeStoryRequest();
             story = storyName != null ? stories.FirstOrDefault(s => s != null && s.name == storyName) : fallback;
             nextScene = next ?? fallbackNextScene;
+            home = panel.anchoredPosition;
             panelGroup.alpha = 0f;
             if (story == null || story.panels.Length == 0)
             {
@@ -99,7 +104,7 @@ namespace Odisea.UI
                 for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / outDuration)
                 {
                     panelGroup.alpha = 1f - t;
-                    panel.anchoredPosition = new Vector2(-80f * t * t, 0f);
+                    panel.anchoredPosition = home + new Vector2(-80f * t * t, 0f);
                     panel.localRotation = Quaternion.Euler(0f, 0f, 3f * t);
                     yield return null;
                 }
@@ -122,7 +127,7 @@ namespace Odisea.UI
             panelGroup.alpha = Mathf.Clamp01(t * 2f);
             float scale = 0.92f + 0.08f * t + Mathf.Sin(t * Mathf.PI) * 0.03f;
             panel.localScale = new Vector3(scale, scale, 1f);
-            panel.anchoredPosition = new Vector2(60f * (1f - t), 0f);
+            panel.anchoredPosition = home + new Vector2(60f * (1f - t), 0f);
             panel.localRotation = Quaternion.Euler(0f, 0f, -2f * (1f - t));
         }
 
@@ -137,7 +142,10 @@ namespace Odisea.UI
             placeholder.text = data.placeholderNote;
             caption.text = data.caption;
             if (counter != null)
-                counter.text = $"{story.title}   ·   {index + 1} / {story.panels.Length}";
+                counter.text = title != null ? $"{index + 1} / {story.panels.Length}"
+                    : $"{story.title}   ·   {index + 1} / {story.panels.Length}";
+            if (title != null)
+                title.text = story.title;
             if (nextLabel != null)
                 nextLabel.text = index + 1 < story.panels.Length ? "Siguiente" : "Continuar";
         }
