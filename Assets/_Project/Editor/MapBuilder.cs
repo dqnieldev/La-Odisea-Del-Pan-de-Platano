@@ -109,7 +109,7 @@ namespace Odisea.EditorTools
             root.name = "Mapa";
             Sprite square = level.Square;
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            Sprite mapArt = LoadMapSprite(MapArtPath);
+            Sprite mapArt = LoadMapSprite(MapArtPath, maxSize: 8192);
             bool graybox = mapArt == null;
 
             // ----- Suelo -----
@@ -296,7 +296,20 @@ namespace Odisea.EditorTools
         }
 
         // Sprite de un PNG del mapa (se configura como sprite la primera vez); null si no existe.
-        private static Sprite LoadMapSprite(string path) => File.Exists(path) ? MenuScenesBuilder.LoadUiSprite(path) : null;
+        // maxSize: el mapa base es grande (~5500 px) y con el tope normal de Unity (2048) se vería borroso de cerca.
+        private static Sprite LoadMapSprite(string path, int maxSize = 2048)
+        {
+            if (!File.Exists(path))
+                return null;
+            Sprite sprite = MenuScenesBuilder.LoadUiSprite(path);
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.maxTextureSize != maxSize)
+            {
+                importer.maxTextureSize = maxSize;
+                importer.SaveAndReimport();
+                sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+            return sprite;
+        }
 
         /// <summary>
         /// Sprite de folder/name.png recortado a lo dibujado: los generadores dejan mucho margen transparente y así
