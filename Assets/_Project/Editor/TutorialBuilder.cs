@@ -26,9 +26,9 @@ namespace Odisea.EditorTools
         internal const string CirclePath = "Assets/_Project/Art/Placeholders/Circulo.png";
 
         // Paleta de boceto (placeholders): papel, arena, tinta y fondos lavados.
-        private static readonly Color Paper = new(0.937f, 0.898f, 0.800f);
-        private static readonly Color Sand = new(0.882f, 0.792f, 0.600f);
-        private static readonly Color SandDark = new(0.780f, 0.678f, 0.490f);
+        internal static readonly Color Paper = new(0.937f, 0.898f, 0.800f);
+        internal static readonly Color Sand = new(0.882f, 0.792f, 0.600f);
+        internal static readonly Color SandDark = new(0.780f, 0.678f, 0.490f);
         private static readonly Color Sun = new(0.976f, 0.878f, 0.549f);
         private static readonly Color Sea = new(0.760f, 0.812f, 0.796f);
         private static readonly Color Far = new(0.690f, 0.729f, 0.698f);
@@ -131,7 +131,7 @@ namespace Odisea.EditorTools
 
             // ----- Fondo por capas: el arte del tutorial, o placeholders de color si aún no se importa -----
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath) != null)
-                CreateArtBackground(root, sand.GetComponent<SpriteRenderer>());
+                CreateArtBackground(root, sand.GetComponent<SpriteRenderer>(), LeftEdge, RightEdge);
             else
                 CreateBackground(square, circle);
 
@@ -163,14 +163,14 @@ namespace Odisea.EditorTools
         // Alto máximo de los íconos de botones en el letrero y separación entre piezas de la fila.
         private const float MaxIconSize = 0.8f;
         // Lo que va detrás de la orilla de la arena (su base queda tapada, como enterrada): obstáculos y letreros.
-        private const int BehindSandOrder = -6;
+        internal const int BehindSandOrder = -6;
         private const float RowGap = 0.08f;
 
         /// <summary>
         /// Qué muestra un letrero debajo del título: una fila de botones por dispositivo (nombres de íconos de
         /// Art/UI/Botones; lo que no sea ícono, como "/" o "x2", va como texto) o una frase igual para todos.
         /// </summary>
-        private sealed class Prompt
+        internal sealed class Prompt
         {
             public string[] Keyboard, Xbox, PlayStation;
             public string Hint;
@@ -186,7 +186,7 @@ namespace Odisea.EditorTools
         /// solos según se juegue con teclado, mando de Xbox o de PlayStation (igual que en Controles).
         /// Con checkpointLayer (la capa de Ulises) también es punto de control: al pasarlo, si muere, reaparece ahí.
         /// </summary>
-        private static void CreateSign(Transform parent, Sprite square, TMP_FontAsset titleFont, TMP_FontAsset bodyFont,
+        internal static void CreateSign(Transform parent, Sprite square, TMP_FontAsset titleFont, TMP_FontAsset bodyFont,
             float x, string title, Prompt prompt, int checkpointLayer = -1)
         {
             var sign = new GameObject($"Letrero {title}");
@@ -458,7 +458,7 @@ namespace Odisea.EditorTools
         /// Capas con paralaje, todavía de color. Al llegar el arte, cada una se cambia por su imagen
         /// (cielo, sol, horizonte, muelle y palmeras, primer plano); la arena es el suelo del nivel.
         /// </summary>
-        private static void CreateBackground(Sprite square, Sprite circle)
+        internal static void CreateBackground(Sprite square, Sprite circle)
         {
             var background = new GameObject("Fondo").transform;
 
@@ -495,7 +495,7 @@ namespace Odisea.EditorTools
         /// Fondo con el arte (Art/Environment/Tutorial/Fondo): el papel pegado a la cámara, el horizonte casi
         /// quieto y la arena como suelo.
         /// </summary>
-        private static void CreateArtBackground(Transform root, SpriteRenderer sandBlock)
+        internal static void CreateArtBackground(Transform root, SpriteRenderer sandBlock, float leftEdge, float rightEdge)
         {
             var background = new GameObject("Fondo").transform;
 
@@ -519,7 +519,7 @@ namespace Odisea.EditorTools
                 ground.SetParent(root, false);
                 float step = sands[0].bounds.size.x;
                 int index = 0;
-                for (float x = LeftEdge - 2f; x - step / 2f < RightEdge + 2f; x += step, index++)
+                for (float x = leftEdge - 2f; x - step / 2f < rightEdge + 2f; x += step, index++)
                 {
                     Sprite sprite = index % 3 == 1 && sands[1] != null ? sands[1] : sands[0];
                     var tile = new GameObject($"Arena {index}").AddComponent<SpriteRenderer>();

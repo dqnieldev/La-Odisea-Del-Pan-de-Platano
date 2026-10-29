@@ -1,4 +1,5 @@
 using Odisea.Core;
+using Odisea.Player;
 using Odisea.UI;
 using TMPro;
 using UnityEngine;
@@ -8,7 +9,8 @@ namespace Odisea.Map
 {
     /// <summary>
     /// Ventanita del mapa que sale al acercarse a un lugar: su nombre, si ya se terminó (y la mejor puntuación) y
-    /// "Entrar" (Aceptar), o por qué todavía no se puede ("Bloqueado", "Próximamente").
+    /// "Entrar" (arriba o Enter, como una puerta: A / Espacio es saltar), o por qué todavía no se puede ("Bloqueado",
+    /// "Próximamente").
     /// </summary>
     public class LocationPanel : MonoBehaviour
     {
@@ -17,14 +19,17 @@ namespace Odisea.Map
         [SerializeField] private TMP_Text title;
         [SerializeField] private TMP_Text subtitle;
         [SerializeField] private TMP_Text status;
-        [Tooltip("Ícono del botón Aceptar y \"Entrar\"; solo si se puede entrar.")]
+        [Tooltip("Ícono de arriba y \"Entrar\"; solo si se puede entrar.")]
         [SerializeField] private GameObject enterPrompt;
-        [SerializeField] private MapWalker walker;
+        [Tooltip("Los controles de Ulises: arriba es entrar, y se le quitan al entrar.")]
+        [SerializeField] private PlayerInputReader input;
+        [Tooltip("Cuánto hay que empujar hacia arriba para entrar.")]
+        [SerializeField, Range(0.1f, 1f)] private float upThreshold = 0.6f;
         [SerializeField, Min(0.01f)] private float appearDuration = 0.25f;
 
         private MapLocation current;
         private float shownTime;
-        private bool entering;
+        private bool entering, upHeld = true;
 
         private void Awake()
         {
@@ -70,23 +75,31 @@ namespace Odisea.Map
             card.localScale = new Vector3(scale, scale, 1f);
             group.alpha = Mathf.MoveTowards(group.alpha, target, Time.unscaledDeltaTime * 8f);
 
+            // "Arriba" cuenta al empujarlo, no mientras se mantiene (si llega con arriba presionado, hay que soltarlo).
+            bool up = input != null && input.Move.y >= upThreshold;
+            bool upPressed = up && !upHeld;
+            upHeld = up;
             if (current == null || entering || Time.timeScale == 0f || SceneFlow.IsLoading)
                 return;
-            if (current.State == LocationState.Available && EnterPressed())
+            if (current.State == LocationState.Available && (upPressed || EnterPressed()))
                 Enter();
         }
 
         private void Enter()
         {
             entering = true;
-            if (walker != null)
-                walker.Frozen = true;
+            // Se queda quieto mientras se cierra el iris.
+            if (input != null)
+            {
+                input.ScriptedMove = Vector2.zero;
+                input.ScriptedJumpHeld = false;
+            }
             UiAudio.Play(UiSound.Click);
             Vector2? center = null;
             Camera view = Camera.main;
-            if (view != null && walker != null)
+            if (view != null && input != null)
             {
-                Vector3 point = view.WorldToViewportPoint(walker.transform.position);
+                Vector3 point = view.WorldToViewportPoint(input.transform.position + Vector3.up);
                 center = new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y));
             }
             current.Enter(center);
@@ -96,9 +109,8 @@ namespace Odisea.Map
         {
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
-            return (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame ||
-                                         keyboard.spaceKey.wasPressedThisFrame)) ||
-                   (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+            return (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)) ||
+                   (gamepad != null && gamepad.buttonNorth.wasPressedThisFrame);
         }
     }
 }

@@ -88,7 +88,7 @@ namespace Odisea.Map
         }
 
         private bool IsPlayer(Collider2D other) =>
-            (playerLayers.value & (1 << other.gameObject.layer)) != 0 && other.GetComponentInParent<MapWalker>() != null;
+            (playerLayers.value & (1 << other.gameObject.layer)) != 0 && other.GetComponentInParent<Health>() != null;
 
         /// <summary>Entra: recuerda el lugar (para volver aquí) y abre su historieta y su nivel.</summary>
         public void Enter(Vector2? viewportCenter = null)
