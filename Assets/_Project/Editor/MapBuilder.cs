@@ -24,6 +24,8 @@ namespace Odisea.EditorTools
         // Cada lugar con su dibujo (Panaderia.png, Mercado.png, Horno.png, Tovara.png) y los detalles sueltos.
         private const string PlacesArtFolder = "Assets/_Project/Art/Map/Lugares";
         private const string DetailsArtFolder = "Assets/_Project/Art/Map/Detalles";
+        // Copias recortadas a lo dibujado (los PNG vienen con mucho margen transparente).
+        private const string TrimmedFolder = "Assets/_Project/Art/Map/Recortes";
         // Encima de todo lo del suelo: nombres y banderitas.
         private const int LabelOrder = 2000;
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
@@ -31,6 +33,15 @@ namespace Odisea.EditorTools
         // El mapa mide Width × Height unidades, centrado en el origen.
         private const float Width = 64f, Height = 36f;
         private const float CameraSize = 7f;
+        // El dibujo del mapa trae un marco de papel alrededor: ni Ulises ni la cámara llegan ahí.
+        private const float FrameMargin = 1.4f;
+
+        // Orilla del mar del dibujo (de izquierda a derecha): abajo de esta línea es agua.
+        private static readonly Vector2[] Coast =
+        {
+            new(-32f, -7.6f), new(-26f, -7.7f), new(-18f, -8.3f), new(-9f, -9.0f), new(0f, -10.0f),
+            new(9f, -11.3f), new(17f, -12.6f), new(24f, -13.8f), new(32f, -14.8f),
+        };
 
         private static readonly Color Sand = new(0.93f, 0.85f, 0.68f);
         private static readonly Color Path = new(0.86f, 0.74f, 0.55f);
@@ -56,19 +67,25 @@ namespace Odisea.EditorTools
         // En orden de la historia; el camino los une en este orden.
         private static readonly Place[] Places =
         {
+            // Cada uno en el centro de su claro del dibujo del mapa.
             new(GameProgress.Tutorial, "Panadería de Don Lupe", "Aprende el oficio con Don Lupe", SceneFlow.Tutorial, "", "", "",
-                new Vector2(-21f, -5f), new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
+                new Vector2(-23.3f, -2.0f), new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
             new(GameProgress.Mercado, "El Mercado", "Acto I · La cueva del mercado", "Mercado", "Mercado", GameProgress.Tutorial,
-                "el tutorial", new Vector2(-7f, 6f), new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
+                "el tutorial", new Vector2(-2.8f, 11.1f), new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
             new(GameProgress.Horno, "El Horno", "Acto II · El asedio a la panadería", "Horno", "Horno", GameProgress.Mercado,
-                "El Mercado", new Vector2(7f, -5f), new Color(0.85f, 0.62f, 0.45f), new Color(0.55f, 0.30f, 0.20f)),
+                "El Mercado", new Vector2(1.8f, -6.5f), new Color(0.85f, 0.62f, 0.45f), new Color(0.55f, 0.30f, 0.20f)),
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
-                "El Horno", new Vector2(21f, 6f), new Color(0.55f, 0.70f, 0.45f), new Color(0.30f, 0.45f, 0.28f)),
+                "El Horno", new Vector2(23.7f, -0.2f), new Color(0.55f, 0.70f, 0.45f), new Color(0.30f, 0.45f, 0.28f)),
         };
 
+        // Cada lugar ocupa su claro (≈ 7 × 6): el dibujo se apoya abajo del claro, el edificio choca en la parte de
+        // atrás y la entrada queda enfrente de la puerta.
         private static readonly Vector2 BuildingSize = new(5f, 3.4f);
-        // Ancho con el que se dibuja el arte de cada lugar (su alto sale de la proporción del dibujo).
-        private const float PlaceArtWidth = 7f;
+        private const float PlaceArtWidth = 6.6f;
+        private const float ArtBaseDrop = 2.7f;
+        private static readonly Vector2 BuildingCollider = new(4.2f, 2.2f);
+        private const float BuildingColliderY = 0.25f;
+        private static readonly Vector2 EntranceSize = new(4.6f, 1.8f);
 
         // Detalles del mapa: nombre del archivo en Art/Map/Detalles, ancho en el mapa y dónde va cada uno (su base).
         // Si falta el dibujo, no se pone (no hay graybox de detalles).
@@ -81,8 +98,8 @@ namespace Odisea.EditorTools
             ("lancha", 3.2f, new[] { new Vector2(-8f, -16.6f), new Vector2(19f, -16.4f) }),
             ("casita", 3.4f, new[] { new Vector2(-14f, -9f), new Vector2(0f, 1f) }),
         };
-        // La zona de entrada queda frente a la puerta (abajo del edificio).
-        private const float EntranceDrop = 3.1f;
+        // La zona de entrada queda frente a la puerta, en la parte de abajo del claro.
+        private const float EntranceDrop = 1.9f;
 
         [MenuItem("Odisea/Niveles/Crear mapa")]
         public static void Build()
@@ -114,12 +131,17 @@ namespace Odisea.EditorTools
                 art.sortingOrder = -30;
             }
 
-            // ----- Bordes: el mar y las orillas del mapa -----
+            // ----- Bordes: la orilla del mar y el marco del dibujo -----
             int ground = level.GroundLayer;
-            Wall("Orilla del mar", root, new Vector2(0f, -Height / 2f + 2.5f), new Vector2(Width, 5f), ground);
-            Wall("Borde norte", root, new Vector2(0f, Height / 2f + 0.5f), new Vector2(Width + 2f, 1f), ground);
-            Wall("Borde oeste", root, new Vector2(-Width / 2f - 0.5f, 0f), new Vector2(1f, Height + 2f), ground);
-            Wall("Borde este", root, new Vector2(Width / 2f + 0.5f, 0f), new Vector2(1f, Height + 2f), ground);
+            var coast = new GameObject("Orilla del mar") { layer = ground };
+            coast.transform.SetParent(root, false);
+            coast.AddComponent<EdgeCollider2D>().points = graybox
+                ? new[] { new Vector2(-Width / 2f, -Height / 2f + 5f), new Vector2(Width / 2f, -Height / 2f + 5f) }
+                : Coast;
+            float inner = FrameMargin;
+            Wall("Borde norte", root, new Vector2(0f, Height / 2f - inner + 0.5f), new Vector2(Width + 2f, 1f), ground);
+            Wall("Borde oeste", root, new Vector2(-Width / 2f + inner - 0.5f, 0f), new Vector2(1f, Height + 2f), ground);
+            Wall("Borde este", root, new Vector2(Width / 2f - inner + 0.5f, 0f), new Vector2(1f, Height + 2f), ground);
 
             // ----- HUD: la ventanita de cada lugar -----
             LocationPanel panel = CreateLocationPanel();
@@ -131,22 +153,24 @@ namespace Odisea.EditorTools
 
             // ----- Ulises -----
             // La primera vez aparece en el camino, junto a la panadería (fuera de su zona de entrada).
-            MapWalker walker = CreateWalker(level, Entrance(Places[0]) + new Vector2(3.2f, 0f));
+            MapWalker walker = CreateWalker(level, Entrance(Places[0]) + new Vector2(5.4f, -0.3f));
             PlayerSandboxBuilder.SetSerialized(panel, "walker", walker);
 
             // ----- Cámara, música y pausa -----
             var camera = GameObject.Find("Main Camera");
             var cam = camera.GetComponent<Camera>();
             cam.orthographicSize = CameraSize;
-            cam.backgroundColor = Sea;
+            cam.backgroundColor = PlayerSandboxBuilder.Cafe;
             camera.transform.position = new Vector3(walker.transform.position.x, walker.transform.position.y, -10f);
             var follow = camera.AddComponent<CameraFollow2D>();
             follow.Target = walker.transform;
             float halfWidth = CameraSize * 16f / 9f;
             PlayerSandboxBuilder.SetSerialized(follow, "offset", new Vector2(0f, 0.5f));
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
-            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-Width / 2f + halfWidth, -Height / 2f + CameraSize));
-            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(Width / 2f - halfWidth, Height / 2f - CameraSize));
+            PlayerSandboxBuilder.SetSerialized(follow, "minPosition",
+                new Vector2(-Width / 2f + FrameMargin + halfWidth, -Height / 2f + FrameMargin + CameraSize));
+            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition",
+                new Vector2(Width / 2f - FrameMargin - halfWidth, Height / 2f - FrameMargin - CameraSize));
 
             string music = File.Exists(MapMusicPath + ".mp3") || File.Exists(MapMusicPath + ".ogg") || File.Exists(MapMusicPath + ".wav")
                 ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
@@ -174,36 +198,42 @@ namespace Odisea.EditorTools
             go.transform.SetParent(root, false);
             go.transform.position = place.Position;
 
-            // El edificio se ordena por su base (la puerta), como Ulises.
-            int order = MapWalker.SortingOrder(place.Position.y - BuildingSize.y / 2f);
+            // El edificio se ordena por la línea de su puerta (el frente del choque), como Ulises: si Ulises está más
+            // abajo pasa delante; si está detrás del edificio, queda tapado.
+            float frontY = BuildingColliderY - BuildingCollider.y / 2f;
+            int order = MapWalker.SortingOrder(place.Position.y + frontY);
             var tinted = new System.Collections.Generic.List<Object>();
-            Sprite art = LoadMapSprite($"{PlacesArtFolder}/{place.ArtName}.png");
+            float top;
+            Sprite art = LoadTrimmedSprite(PlacesArtFolder, place.ArtName);
             if (art != null)
             {
-                // Dibujo del lugar con su base sobre la orilla de abajo del edificio.
+                // Dibujo del lugar apoyado en la parte de abajo de su claro.
                 var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(go.transform, false);
                 float scale = PlaceArtWidth / art.bounds.size.x;
                 drawing.transform.localScale = Vector3.one * scale;
-                drawing.transform.localPosition = new Vector3(0f, -BuildingSize.y / 2f - art.bounds.min.y * scale, 0f);
+                drawing.transform.localPosition = new Vector3(0f, -ArtBaseDrop - art.bounds.min.y * scale, 0f);
                 drawing.sprite = art;
                 drawing.sortingOrder = order;
                 tinted.Add(drawing);
+                top = -ArtBaseDrop + art.bounds.size.y * scale;
             }
             else
             {
-                tinted.Add(Rect("Pared", go.transform, square, Vector2.zero, BuildingSize, place.Wall, order));
-                tinted.Add(Rect("Techo", go.transform, square, new Vector2(0f, BuildingSize.y / 2f + 0.4f),
+                Vector2 center = new(0f, frontY + BuildingSize.y / 2f);
+                tinted.Add(Rect("Pared", go.transform, square, center, BuildingSize, place.Wall, order));
+                tinted.Add(Rect("Techo", go.transform, square, center + new Vector2(0f, BuildingSize.y / 2f + 0.4f),
                     new Vector2(BuildingSize.x + 0.6f, 1.2f), place.Roof, order + 1));
-                tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, -BuildingSize.y / 2f + 0.8f), new Vector2(1.2f, 1.6f),
+                tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, frontY + 0.8f), new Vector2(1.2f, 1.6f),
                     PlayerSandboxBuilder.Cafe, order + 1));
+                top = center.y + BuildingSize.y / 2f + 1f;
             }
-            Wall("Choque", go.transform, place.Position, BuildingSize, level.GroundLayer);
+            Wall("Choque", go.transform, place.Position + new Vector2(0f, BuildingColliderY), BuildingCollider, level.GroundLayer);
 
             // Nombre sobre el techo.
             var label = new GameObject("Letrero", typeof(RectTransform), typeof(TextMeshPro));
             label.transform.SetParent(go.transform, false);
-            label.transform.localPosition = new Vector3(0f, BuildingSize.y / 2f + 1.6f, 0f);
+            label.transform.localPosition = new Vector3(0f, top + 0.6f, 0f);
             ((RectTransform)label.transform).sizeDelta = new Vector2(9f, 1.4f);
             var text = label.GetComponent<TextMeshPro>();
             text.text = place.Name;
@@ -217,7 +247,7 @@ namespace Odisea.EditorTools
             var flag = new GameObject("Terminado");
             flag.transform.SetParent(go.transform, false);
             // Al lado del edificio, para no tapar el nombre.
-            flag.transform.localPosition = new Vector3(BuildingSize.x / 2f + 0.7f, -BuildingSize.y / 2f + 0.7f, 0f);
+            flag.transform.localPosition = new Vector3(PlaceArtWidth / 2f - 0.2f, frontY - 0.4f, 0f);
             Rect("Asta", flag.transform, square, new Vector2(0f, 0f), new Vector2(0.12f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
             Rect("Bandera", flag.transform, circle, new Vector2(0.35f, 0.45f), new Vector2(0.7f, 0.5f),
                 new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
@@ -226,7 +256,7 @@ namespace Odisea.EditorTools
             var entrance = new GameObject("Entrada");
             entrance.transform.SetParent(go.transform, false);
             entrance.transform.position = Entrance(place);
-            entrance.AddComponent<BoxCollider2D>().size = new Vector2(4.5f, 2.8f);
+            entrance.AddComponent<BoxCollider2D>().size = EntranceSize;
             var location = entrance.AddComponent<MapLocation>();
             PlayerSandboxBuilder.SetSerialized(location, "id", place.Id);
             PlayerSandboxBuilder.SetSerialized(location, "displayName", place.Name);
@@ -249,7 +279,7 @@ namespace Odisea.EditorTools
             parent.SetParent(root, false);
             foreach ((string file, float width, Vector2[] spots) in Details)
             {
-                Sprite sprite = LoadMapSprite($"{DetailsArtFolder}/{file}.png");
+                Sprite sprite = LoadTrimmedSprite(DetailsArtFolder, file);
                 if (sprite == null)
                     continue;
                 float scale = width / sprite.bounds.size.x;
@@ -267,6 +297,49 @@ namespace Odisea.EditorTools
 
         // Sprite de un PNG del mapa (se configura como sprite la primera vez); null si no existe.
         private static Sprite LoadMapSprite(string path) => File.Exists(path) ? MenuScenesBuilder.LoadUiSprite(path) : null;
+
+        /// <summary>
+        /// Sprite de folder/name.png recortado a lo dibujado: los generadores dejan mucho margen transparente y así
+        /// el tamaño en el mapa corresponde al dibujo. La copia recortada va en Art/Map/Recortes y se rehace si el
+        /// original cambia.
+        /// </summary>
+        private static Sprite LoadTrimmedSprite(string folder, string name)
+        {
+            string source = $"{folder}/{name}.png";
+            if (!File.Exists(source))
+                return null;
+            string target = $"{TrimmedFolder}/{System.IO.Path.GetFileName(folder)}_{name}.png";
+            if (!File.Exists(target) || File.GetLastWriteTimeUtc(source) > File.GetLastWriteTimeUtc(target))
+            {
+                var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                texture.LoadImage(File.ReadAllBytes(source));
+                Color32[] pixels = texture.GetPixels32();
+                int w = texture.width, h = texture.height, minX = w, minY = h, maxX = -1, maxY = -1;
+                for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    if (pixels[y * w + x].a <= 10)
+                        continue;
+                    minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                    minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
+                }
+                if (maxX < 0)
+                {
+                    Object.DestroyImmediate(texture);
+                    return null;
+                }
+                int cw = maxX - minX + 1, ch = maxY - minY + 1;
+                var cropped = new Texture2D(cw, ch, TextureFormat.RGBA32, false);
+                cropped.SetPixels(texture.GetPixels(minX, minY, cw, ch));
+                cropped.Apply();
+                PlayerSandboxBuilder.EnsureFolder(TrimmedFolder);
+                File.WriteAllBytes(target, cropped.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(cropped);
+                AssetDatabase.ImportAsset(target, ImportAssetOptions.ForceSynchronousImport);
+            }
+            return MenuScenesBuilder.LoadUiSprite(target);
+        }
 
         private static MapWalker CreateWalker(PlayerSandboxBuilder.LevelContext level, Vector2 spawn)
         {
