@@ -36,7 +36,7 @@ namespace Odisea.EditorTools
 
         // Design system.
         internal static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
-        private static readonly Color PlatanoOscuro = new(0.878f, 0.635f, 0.118f);
+        internal static readonly Color PlatanoOscuro = new(0.878f, 0.635f, 0.118f);
         internal static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
         internal static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
         internal static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
@@ -1065,7 +1065,7 @@ namespace Odisea.EditorTools
         // ---------- Piezas de UI ----------
 
         /// <summary>Botón del design system: sombra café desplazada, borde café y relleno plátano.</summary>
-        private static Button CreateMenuButton(string label, RectTransform parent, Sprite rounded, TMP_FontAsset font, Vector2 size, float fontSize)
+        internal static Button CreateMenuButton(string label, RectTransform parent, Sprite rounded, TMP_FontAsset font, Vector2 size, float fontSize)
         {
             var root = new GameObject($"Botón {label}", typeof(RectTransform), typeof(Button));
             var rect = (RectTransform)root.transform;
@@ -1444,7 +1444,8 @@ namespace Odisea.EditorTools
             // Los niveles se agregan si ya se generaron (el tutorial lo crea Odisea > Niveles > Crear tutorial).
             EditorBuildSettings.scenes = new[]
                 {
-                    SplashScenePath, TitleScenePath, MenuScenePath, StoryBuilder.ScenePath, MapBuilder.ScenePath,
+                    SplashScenePath, TitleScenePath, MenuScenePath, SlotSelectBuilder.ScenePath, StoryBuilder.ScenePath,
+                    MapBuilder.ScenePath,
                     TutorialBuilder.ScenePath, SandboxScenePath,
                 }
                 .Where(File.Exists)

@@ -13,13 +13,19 @@ namespace Odisea.EditorTools
     /// <summary>
     /// Mapa de San Blas visto desde arriba: Ulises camina entre los cuatro lugares (Panadería de Don Lupe = tutorial,
     /// El Mercado, El Horno y La Tovara), unidos por caminos, con el mar abajo y el manglar a la derecha.
-    /// En graybox mientras no exista el dibujo Art/Map/Mapa.png; con él, el dibujo reemplaza el suelo, los caminos y
-    /// los edificios (los choques y las zonas de entrada se quedan).
+    /// Se arma por piezas: Art/Map/Mapa.png es la base (suelo, caminos, mar), Art/Map/Lugares/&lt;Lugar&gt;.png cada
+    /// edificio y Art/Map/Detalles/&lt;detalle&gt;.png lo que adorna (palmeras, árboles...). Lo que falte queda en graybox;
+    /// los choques y las zonas de entrada no cambian.
     /// </summary>
     public static class MapBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Mapa.unity";
         private const string MapArtPath = "Assets/_Project/Art/Map/Mapa.png";
+        // Cada lugar con su dibujo (Panaderia.png, Mercado.png, Horno.png, Tovara.png) y los detalles sueltos.
+        private const string PlacesArtFolder = "Assets/_Project/Art/Map/Lugares";
+        private const string DetailsArtFolder = "Assets/_Project/Art/Map/Detalles";
+        // Encima de todo lo del suelo: nombres y banderitas.
+        private const int LabelOrder = 2000;
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
 
         // El mapa mide Width × Height unidades, centrado en el origen.
@@ -34,7 +40,7 @@ namespace Odisea.EditorTools
 
         private readonly struct Place
         {
-            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName;
+            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, ArtName;
             public readonly Vector2 Position;
             public readonly Color Wall, Roof;
 
@@ -43,6 +49,7 @@ namespace Odisea.EditorTools
             {
                 Id = id; Name = name; Subtitle = subtitle; Scene = scene; Story = story;
                 Requires = requires; RequiresName = requiresName; Position = position; Wall = wall; Roof = roof;
+                ArtName = id == GameProgress.Tutorial ? "Panaderia" : char.ToUpperInvariant(id[0]) + id.Substring(1);
             }
         }
 
@@ -60,6 +67,20 @@ namespace Odisea.EditorTools
         };
 
         private static readonly Vector2 BuildingSize = new(5f, 3.4f);
+        // Ancho con el que se dibuja el arte de cada lugar (su alto sale de la proporción del dibujo).
+        private const float PlaceArtWidth = 7f;
+
+        // Detalles del mapa: nombre del archivo en Art/Map/Detalles, ancho en el mapa y dónde va cada uno (su base).
+        // Si falta el dibujo, no se pone (no hay graybox de detalles).
+        private static readonly (string file, float width, Vector2[] spots)[] Details =
+        {
+            ("palmera", 2.6f, new[] { new Vector2(-29f, -11.5f), new Vector2(-15f, -12f), new Vector2(-1f, -11.6f), new Vector2(13f, -12f) }),
+            ("arbol", 3.2f, new[] { new Vector2(-27f, 8f), new Vector2(-17f, 12f), new Vector2(2f, 12.5f), new Vector2(-1f, 8f) }),
+            ("mangle", 3.6f, new[] { new Vector2(17f, 13f), new Vector2(27f, 12f), new Vector2(28f, 0f), new Vector2(17f, -1f) }),
+            ("roca", 1.3f, new[] { new Vector2(-12f, -1f), new Vector2(12f, 1.5f), new Vector2(-25f, 2f) }),
+            ("lancha", 3.2f, new[] { new Vector2(-8f, -16.6f), new Vector2(19f, -16.4f) }),
+            ("casita", 3.4f, new[] { new Vector2(-14f, -9f), new Vector2(0f, 1f) }),
+        };
         // La zona de entrada queda frente a la puerta (abajo del edificio).
         private const float EntranceDrop = 3.1f;
 
@@ -71,7 +92,7 @@ namespace Odisea.EditorTools
             root.name = "Mapa";
             Sprite square = level.Square;
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            var mapArt = AssetDatabase.LoadAssetAtPath<Sprite>(MapArtPath);
+            Sprite mapArt = LoadMapSprite(MapArtPath);
             bool graybox = mapArt == null;
 
             // ----- Suelo -----
@@ -103,9 +124,10 @@ namespace Odisea.EditorTools
             // ----- HUD: la ventanita de cada lugar -----
             LocationPanel panel = CreateLocationPanel();
 
-            // ----- Lugares -----
+            // ----- Lugares y detalles -----
             foreach (Place place in Places)
-                CreateLocation(place, root, square, circle, graybox, level, panel);
+                CreateLocation(place, root, square, circle, level, panel);
+            CreateDetails(root);
 
             // ----- Ulises -----
             // La primera vez aparece en el camino, junto a la panadería (fuera de su zona de entrada).
@@ -145,21 +167,36 @@ namespace Odisea.EditorTools
         private static Vector2 Entrance(Place place) => place.Position + Vector2.down * EntranceDrop;
 
         // Edificio (choca), letrero con el nombre, banderita de terminado y la zona de entrada frente a la puerta.
-        private static void CreateLocation(Place place, Transform root, Sprite square, Sprite circle, bool graybox,
+        private static void CreateLocation(Place place, Transform root, Sprite square, Sprite circle,
             PlayerSandboxBuilder.LevelContext level, LocationPanel panel)
         {
             var go = new GameObject(place.Name);
             go.transform.SetParent(root, false);
             go.transform.position = place.Position;
 
+            // El edificio se ordena por su base (la puerta), como Ulises.
+            int order = MapWalker.SortingOrder(place.Position.y - BuildingSize.y / 2f);
             var tinted = new System.Collections.Generic.List<Object>();
-            if (graybox)
+            Sprite art = LoadMapSprite($"{PlacesArtFolder}/{place.ArtName}.png");
+            if (art != null)
             {
-                tinted.Add(Rect("Pared", go.transform, square, Vector2.zero, BuildingSize, place.Wall, 2));
+                // Dibujo del lugar con su base sobre la orilla de abajo del edificio.
+                var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
+                drawing.transform.SetParent(go.transform, false);
+                float scale = PlaceArtWidth / art.bounds.size.x;
+                drawing.transform.localScale = Vector3.one * scale;
+                drawing.transform.localPosition = new Vector3(0f, -BuildingSize.y / 2f - art.bounds.min.y * scale, 0f);
+                drawing.sprite = art;
+                drawing.sortingOrder = order;
+                tinted.Add(drawing);
+            }
+            else
+            {
+                tinted.Add(Rect("Pared", go.transform, square, Vector2.zero, BuildingSize, place.Wall, order));
                 tinted.Add(Rect("Techo", go.transform, square, new Vector2(0f, BuildingSize.y / 2f + 0.4f),
-                    new Vector2(BuildingSize.x + 0.6f, 1.2f), place.Roof, 3));
+                    new Vector2(BuildingSize.x + 0.6f, 1.2f), place.Roof, order + 1));
                 tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, -BuildingSize.y / 2f + 0.8f), new Vector2(1.2f, 1.6f),
-                    PlayerSandboxBuilder.Cafe, 3));
+                    PlayerSandboxBuilder.Cafe, order + 1));
             }
             Wall("Choque", go.transform, place.Position, BuildingSize, level.GroundLayer);
 
@@ -174,16 +211,16 @@ namespace Odisea.EditorTools
             text.fontSize = 6f;
             text.alignment = TextAlignmentOptions.Center;
             text.color = PlayerSandboxBuilder.Cafe;
-            text.sortingOrder = 20;
+            text.sortingOrder = LabelOrder;
 
             // Banderita amarilla de "terminado".
             var flag = new GameObject("Terminado");
             flag.transform.SetParent(go.transform, false);
             // Al lado del edificio, para no tapar el nombre.
             flag.transform.localPosition = new Vector3(BuildingSize.x / 2f + 0.7f, -BuildingSize.y / 2f + 0.7f, 0f);
-            Rect("Asta", flag.transform, square, new Vector2(0f, 0f), new Vector2(0.12f, 1.4f), PlayerSandboxBuilder.Cafe, 21);
-            var cloth = Rect("Bandera", flag.transform, circle, new Vector2(0.35f, 0.45f), new Vector2(0.7f, 0.5f),
-                new Color(0.96f, 0.72f, 0.19f), 22);
+            Rect("Asta", flag.transform, square, new Vector2(0f, 0f), new Vector2(0.12f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
+            Rect("Bandera", flag.transform, circle, new Vector2(0.35f, 0.45f), new Vector2(0.7f, 0.5f),
+                new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
 
             // Zona de entrada (frente a la puerta) y dónde aparece Ulises al volver.
             var entrance = new GameObject("Entrada");
@@ -204,6 +241,32 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(location, "doneMark", flag);
             PlayerSandboxBuilder.SetSerialized(location, "tinted", tinted.ToArray());
         }
+
+        // Palmeras, árboles, mangles, rocas, lanchas y casitas: cada uno con su base en su lugar, ordenados por altura.
+        private static void CreateDetails(Transform root)
+        {
+            var parent = new GameObject("Detalles").transform;
+            parent.SetParent(root, false);
+            foreach ((string file, float width, Vector2[] spots) in Details)
+            {
+                Sprite sprite = LoadMapSprite($"{DetailsArtFolder}/{file}.png");
+                if (sprite == null)
+                    continue;
+                float scale = width / sprite.bounds.size.x;
+                for (int i = 0; i < spots.Length; i++)
+                {
+                    var detail = new GameObject($"{file} {i + 1}").AddComponent<SpriteRenderer>();
+                    detail.transform.SetParent(parent, false);
+                    detail.transform.localScale = new Vector3(i % 2 == 0 ? scale : -scale, scale, 1f); // Volteados para variar.
+                    detail.transform.position = new Vector3(spots[i].x, spots[i].y - sprite.bounds.min.y * scale, 0f);
+                    detail.sprite = sprite;
+                    detail.sortingOrder = MapWalker.SortingOrder(spots[i].y);
+                }
+            }
+        }
+
+        // Sprite de un PNG del mapa (se configura como sprite la primera vez); null si no existe.
+        private static Sprite LoadMapSprite(string path) => File.Exists(path) ? MenuScenesBuilder.LoadUiSprite(path) : null;
 
         private static MapWalker CreateWalker(PlayerSandboxBuilder.LevelContext level, Vector2 spawn)
         {
@@ -244,6 +307,7 @@ namespace Odisea.EditorTools
 
             var walker = player.AddComponent<MapWalker>();
             MenuScenesBuilder.SetField(walker, "visual", visual.transform);
+            MenuScenesBuilder.SetField(walker, "visualRenderer", renderer);
             if (animator != null)
                 MenuScenesBuilder.SetField(walker, "animator", animator);
             GameSoundsBuilder.SetSound(walker, "footstep", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "paso"), 0.25f);

@@ -14,7 +14,7 @@ namespace Odisea.UI
         [Serializable]
         public class Panel
         {
-            [Tooltip("Dibujo de la viñeta (horizontal, 4:3). Sin dibujo se ve un recuadro con la descripción.")]
+            [Tooltip("Dibujo de la viñeta (horizontal, 16:9). Sin dibujo se ve un recuadro con la descripción.")]
             public Sprite art;
             [Tooltip("Texto que se lee debajo del dibujo.")]
             [TextArea(2, 4)] public string caption;

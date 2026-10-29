@@ -24,9 +24,18 @@ namespace Odisea.Map
         [SerializeField] private SoundEffect footstep = new();
         [SerializeField, Min(0.05f)] private float footstepInterval = 0.32f;
 
+        [Tooltip("El dibujo de Ulises: su orden sigue a su altura en el mapa, para pasar delante o detrás de árboles.")]
+        [SerializeField] private SpriteRenderer visualRenderer;
+
         private Rigidbody2D body;
         private PlayerInputReader input;
         private float stepTimer;
+
+        /// <summary>
+        /// Orden de dibujo de algo que toca el suelo en la altura y: lo de más abajo (más cerca) va delante. Lo usan
+        /// Ulises y, al generar el mapa, los edificios y los detalles.
+        /// </summary>
+        public static int SortingOrder(float y) => 500 - Mathf.RoundToInt(y * 10f);
 
         /// <summary>Quieto (al entrar a un lugar, con la pausa abierta...).</summary>
         public bool Frozen { get; set; }
@@ -79,6 +88,9 @@ namespace Odisea.Map
                 scale.x = Mathf.Abs(scale.x) * Mathf.Sign(velocity.x);
                 visual.localScale = scale;
             }
+
+            if (visualRenderer != null)
+                visualRenderer.sortingOrder = SortingOrder(transform.position.y);
 
             stepTimer -= Time.deltaTime;
             if (walking && stepTimer <= 0f)

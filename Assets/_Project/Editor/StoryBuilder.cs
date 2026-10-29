@@ -20,8 +20,14 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Menus/Historia.unity";
         private const string StoriesFolder = "Assets/_Project/ScriptableObjects/Comics";
         private const string ArtFolder = "Assets/_Project/Art/Comics";
-        // Tamaño de diseño de una viñeta (4:3); el visor la agranda o achica para llenar la página.
-        private static readonly Vector2 PanelSize = new(560f, 420f);
+        // Papel viejo opcional (toda la hoja) y la viñeta 16:9 grande, un poco arriba para dejar lugar al texto.
+        private const string PaperPath = "Assets/_Project/Art/Comics/Papel.png";
+        private static readonly Vector2 PanelSize = new(1440f, 810f);
+        private const float PanelOffsetY = 75f;
+        private static readonly Color OldPaper = new(0.910f, 0.851f, 0.722f);
+        private static readonly Color OldPaperLight = new(0.945f, 0.898f, 0.788f);
+        private static readonly Color OldPaperEdge = new(0.749f, 0.635f, 0.459f);
+        private static readonly Color Ink = new(0.12f, 0.09f, 0.07f);
 
         private static readonly (string caption, string note)[] Prologue =
         {
@@ -52,28 +58,22 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.CreateUiAudio();
             MenuScenesBuilder.CreateMenuMusic();
 
-            // Página de papel crema con marco café, como el recetario.
-            var canvasRect = (RectTransform)canvas;
-            RectTransform paper = MenuScenesBuilder.CreateCard("Página", canvasRect, UiAssetsBuilder.EnsureRoundedSprite(),
-                new Vector2(1840f, 1010f), MenuScenesBuilder.Crema);
-            TMP_Text title = MenuScenesBuilder.CreateText("Título", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold),
-                56, MenuScenesBuilder.Cafe, position: new Vector2(0f, 445f), rectSize: new Vector2(1700f, 80f));
-
-            var page = new GameObject("Viñetas", typeof(RectTransform));
-            var pageRect = (RectTransform)page.transform;
-            pageRect.SetParent(paper, false);
-            pageRect.anchoredPosition = new Vector2(0f, -10f);
-            pageRect.sizeDelta = new Vector2(1720f, 800f);
-
-            ComicPanelView template = CreatePanelTemplate(pageRect);
+            RectTransform paper = CreatePaper((RectTransform)canvas);
+            (RectTransform panel, Image art, TMP_Text note, TMP_Text caption) = CreatePanel(paper);
+            TMP_Text counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
+                MenuScenesBuilder.TintaClara, position: new Vector2(-560f, -478f), rectSize: new Vector2(640f, 50f),
+                alignment: TextAlignmentOptions.MidlineLeft);
             TMP_Text nextLabel = CreatePromptBar(paper);
 
             var viewer = new GameObject("Visor de historietas").AddComponent<ComicViewer>();
             PlayerSandboxBuilder.SetSerialized(viewer, "stories", stories.Cast<Object>().ToArray());
             MenuScenesBuilder.SetField(viewer, "fallback", prologue);
-            MenuScenesBuilder.SetField(viewer, "title", title);
-            MenuScenesBuilder.SetField(viewer, "page", pageRect);
-            MenuScenesBuilder.SetField(viewer, "template", template);
+            MenuScenesBuilder.SetField(viewer, "panel", panel);
+            MenuScenesBuilder.SetField(viewer, "panelGroup", panel.GetComponent<CanvasGroup>());
+            MenuScenesBuilder.SetField(viewer, "art", art);
+            MenuScenesBuilder.SetField(viewer, "placeholder", note);
+            MenuScenesBuilder.SetField(viewer, "caption", caption);
+            MenuScenesBuilder.SetField(viewer, "counter", counter);
             MenuScenesBuilder.SetField(viewer, "nextLabel", nextLabel);
 
             EditorSceneManager.SaveScene(scene);
@@ -118,51 +118,60 @@ namespace Odisea.EditorTools
             return file != null ? MenuScenesBuilder.LoadUiSprite(file.Replace('\\', '/')) : null;
         }
 
-        // Marco café, el dibujo (o la descripción mientras no hay dibujo) y el texto en un cartucho crema abajo.
-        private static ComicPanelView CreatePanelTemplate(RectTransform page)
+        // Hoja de papel viejo que llena la pantalla: con Art/Comics/Papel.png si existe; si no, papel amarillento con
+        // la orilla más oscura, como quemada por el tiempo.
+        private static RectTransform CreatePaper(RectTransform canvas)
         {
-            var root = new GameObject("Viñeta (plantilla)", typeof(RectTransform), typeof(CanvasGroup));
+            var paper = new GameObject("Papel", typeof(RectTransform));
+            var rect = (RectTransform)paper.transform;
+            rect.SetParent(canvas, false);
+            rect.sizeDelta = new Vector2(1880f, 1040f);
+            Sprite texture = AssetDatabase.LoadAssetAtPath<Sprite>(PaperPath) ??
+                             (File.Exists(PaperPath) ? MenuScenesBuilder.LoadUiSprite(PaperPath) : null);
+            if (texture != null)
+            {
+                MenuScenesBuilder.CreateImage("Textura", rect, texture, Color.white, Vector2.zero, Vector2.zero, stretch: true);
+                return rect;
+            }
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+            MenuScenesBuilder.CreateImage("Orilla", rect, rounded, OldPaperEdge, Vector2.zero, Vector2.zero, stretch: true);
+            MenuScenesBuilder.CreateImage("Hoja", rect, rounded, OldPaper, Vector2.zero, Vector2.zero, stretch: true, inset: 22f);
+            MenuScenesBuilder.CreateImage("Centro", rect, rounded, OldPaperLight, Vector2.zero, Vector2.zero, stretch: true, inset: 70f);
+            return rect;
+        }
+
+        // La viñeta grande (16:9) con marco negro y su texto debajo; todo junto entra y sale.
+        private static (RectTransform, Image, TMP_Text, TMP_Text) CreatePanel(RectTransform paper)
+        {
+            var root = new GameObject("Viñeta", typeof(RectTransform), typeof(CanvasGroup));
             var rect = (RectTransform)root.transform;
-            rect.SetParent(page, false);
+            rect.SetParent(paper, false);
             rect.sizeDelta = PanelSize;
+            rect.anchoredPosition = Vector2.zero;
+            // El grupo se mueve desde el centro del dibujo (que está más arriba que el centro de la hoja).
+            rect.pivot = new Vector2(0.5f, 0.5f);
 
-            Image shadow = MenuScenesBuilder.CreateImage("Sombra", rect, null, new Color(0f, 0f, 0f, 0.25f), Vector2.zero,
+            var frame = new GameObject("Marco", typeof(RectTransform));
+            var frameRect = (RectTransform)frame.transform;
+            frameRect.SetParent(rect, false);
+            frameRect.anchoredPosition = new Vector2(0f, PanelOffsetY);
+            frameRect.sizeDelta = PanelSize;
+            Image shadow = MenuScenesBuilder.CreateImage("Sombra", frameRect, null, new Color(0f, 0f, 0f, 0.3f), Vector2.zero,
                 Vector2.zero, stretch: true);
-            shadow.rectTransform.offsetMin = shadow.rectTransform.offsetMax = new Vector2(8f, -10f);
-            MenuScenesBuilder.CreateImage("Marco", rect, null, MenuScenesBuilder.Cafe, Vector2.zero, Vector2.zero, stretch: true);
-            Image art = MenuScenesBuilder.CreateImage("Dibujo", rect, null, Color.white, Vector2.zero, Vector2.zero, stretch: true, inset: 7f);
-
-            TMP_Text note = MenuScenesBuilder.CreateText("Descripción (sin dibujo)", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium),
-                26, MenuScenesBuilder.TintaClara, stretch: true);
-            ((RectTransform)note.transform).offsetMin = new Vector2(40f, 120f);
-            ((RectTransform)note.transform).offsetMax = new Vector2(-40f, -30f);
+            shadow.rectTransform.offsetMin = shadow.rectTransform.offsetMax = new Vector2(10f, -12f);
+            MenuScenesBuilder.CreateImage("Borde", frameRect, null, Ink, Vector2.zero, Vector2.zero, stretch: true);
+            Image art = MenuScenesBuilder.CreateImage("Dibujo", frameRect, null, Color.white, Vector2.zero, Vector2.zero, stretch: true, inset: 10f);
+            TMP_Text note = MenuScenesBuilder.CreateText("Descripción (sin dibujo)", frameRect, "",
+                UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 40, Ink, stretch: true);
+            ((RectTransform)note.transform).offsetMin = new Vector2(120f, 80f);
+            ((RectTransform)note.transform).offsetMax = new Vector2(-120f, -80f);
             note.fontStyle = FontStyles.Italic;
 
-            // Cartucho del texto: ocupa la franja de abajo del dibujo.
-            var box = new GameObject("Cartucho", typeof(RectTransform));
-            var boxRect = (RectTransform)box.transform;
-            boxRect.SetParent(rect, false);
-            boxRect.anchorMin = new Vector2(0f, 0f);
-            boxRect.anchorMax = new Vector2(1f, 0.27f);
-            boxRect.offsetMin = new Vector2(7f, 7f);
-            boxRect.offsetMax = new Vector2(-7f, 0f);
-            MenuScenesBuilder.CreateImage("Fondo", boxRect, null, new Color(MenuScenesBuilder.Crema.r, MenuScenesBuilder.Crema.g,
-                MenuScenesBuilder.Crema.b, 0.94f), Vector2.zero, Vector2.zero, stretch: true);
-            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", boxRect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium),
-                24, MenuScenesBuilder.Cafe, stretch: true);
-            var captionRect = (RectTransform)caption.transform;
-            captionRect.offsetMin = new Vector2(16f, 6f);
-            captionRect.offsetMax = new Vector2(-16f, -6f);
-            caption.enableAutoSizing = true;
-            caption.fontSizeMin = 14f;
-            caption.fontSizeMax = 26f;
-
-            var view = root.AddComponent<ComicPanelView>();
-            MenuScenesBuilder.SetField(view, "group", root.GetComponent<CanvasGroup>());
-            MenuScenesBuilder.SetField(view, "art", art);
-            MenuScenesBuilder.SetField(view, "placeholder", note);
-            MenuScenesBuilder.SetField(view, "caption", caption);
-            return view;
+            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 38,
+                Ink, position: new Vector2(0f, PanelOffsetY - PanelSize.y / 2f - 72f), rectSize: new Vector2(PanelSize.x, 110f),
+                alignment: TextAlignmentOptions.Top);
+            caption.lineSpacing = -8f;
+            return (rect, art, note, caption);
         }
 
         // Abajo a la derecha: [Aceptar] Siguiente  [Atrás] Saltar.
@@ -172,7 +181,7 @@ namespace Odisea.EditorTools
             var go = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
             var rect = (RectTransform)go.transform;
             rect.SetParent(paper, false);
-            rect.anchoredPosition = new Vector2(560f, -458f);
+            rect.anchoredPosition = new Vector2(560f, -478f);
             rect.sizeDelta = new Vector2(560f, 56f);
             var layout = go.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 8f;

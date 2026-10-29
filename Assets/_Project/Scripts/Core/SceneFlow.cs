@@ -19,6 +19,8 @@ namespace Odisea.Core
         public const string Tutorial = "Tutorial";
         /// <summary>Visor de historietas: muestra la que se pidió con <see cref="PlayStory"/> y luego sigue.</summary>
         public const string Story = "Historia";
+        /// <summary>Elegir una de las tres partidas (la abre Jugar).</summary>
+        public const string Slots = "Partidas";
         /// <summary>Mapa de San Blas: Ulises camina y entra a cada lugar (tutorial y niveles).</summary>
         public const string Map = "Mapa";
         /// <summary>Historieta del principio (antes del tutorial).</summary>
@@ -67,11 +69,16 @@ namespace Odisea.Core
             UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
         }
 
+        /// <summary>Jugar: abre la pantalla de partidas.</summary>
+        public static void StartGame() => Load(Slots);
+
         /// <summary>
-        /// Jugar: la primera vez, la historieta del prólogo y el tutorial; si ya terminó el tutorial, directo al mapa.
+        /// Entra a una partida: si es nueva o no ha terminado el tutorial, la historieta del prólogo y el tutorial;
+        /// si ya lo terminó, directo al mapa.
         /// </summary>
-        public static void StartGame()
+        public static void PlaySlot(int slot)
         {
+            GameProgress.Begin(slot);
             if (GameProgress.TutorialDone)
                 Load(Map);
             else

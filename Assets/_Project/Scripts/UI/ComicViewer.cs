@@ -1,16 +1,18 @@
-using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 using Odisea.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Odisea.UI
 {
     /// <summary>
-    /// Escena de historietas: muestra la que se pidió con <see cref="SceneFlow.PlayStory"/> en una página, viñeta
-    /// por viñeta (Aceptar = siguiente), y al terminar carga la escena que sigue. Atrás o Start la salta.
-    /// Las viñetas se acomodan solas: 2×2 si son 4, en fila si son 3 o menos.
+    /// Escena de historietas: muestra la que se pidió con <see cref="SceneFlow.PlayStory"/> una viñeta por pantalla,
+    /// grande, sobre una hoja de papel viejo (como Cuphead), con su texto debajo. Aceptar pasa a la siguiente (la
+    /// actual se va y la nueva llega con un rebote); después de la última carga la escena que sigue. Atrás o Start
+    /// la salta.
     /// </summary>
     public class ComicViewer : MonoBehaviour
     {
@@ -19,30 +21,37 @@ namespace Odisea.UI
         [Tooltip("La que se muestra si se abre esta escena directo (pruebas en el editor).")]
         [SerializeField] private ComicSequence fallback;
         [SerializeField] private string fallbackNextScene = SceneFlow.MainMenu;
-        [SerializeField] private TMP_Text title;
-        [Tooltip("Área de la página donde van las viñetas.")]
-        [SerializeField] private RectTransform page;
-        [Tooltip("Viñeta de plantilla (apagada); se copia una por viñeta.")]
-        [SerializeField] private ComicPanelView template;
-        [Tooltip("Ayuda de botones; la palabra cambia de \"Siguiente\" a \"Continuar\" en la última viñeta.")]
-        [SerializeField] private TMP_Text nextLabel;
-        [SerializeField] private Vector2 gap = new(48f, 36f);
-        [Tooltip("Pausa antes de la primera viñeta y antes de aceptar botones (que no se salte con el clic de Jugar).")]
-        [SerializeField, Min(0f)] private float startDelay = 0.5f;
-        [Tooltip("Tiempo mínimo entre viñetas, para no saltarse varias con un solo toque.")]
-        [SerializeField, Min(0f)] private float minInterval = 0.25f;
 
-        private readonly List<ComicPanelView> views = new();
+        [Header("Página")]
+        [Tooltip("La viñeta (marco, dibujo y texto); es lo que entra y sale.")]
+        [SerializeField] private RectTransform panel;
+        [SerializeField] private CanvasGroup panelGroup;
+        [SerializeField] private Image art;
+        [Tooltip("Descripción de lo que va dibujado (solo mientras no hay dibujo).")]
+        [SerializeField] private TMP_Text placeholder;
+        [SerializeField] private TMP_Text caption;
+        [Tooltip("Título de la historieta y \"1 / 4\".")]
+        [SerializeField] private TMP_Text counter;
+        [Tooltip("Ayuda de botones; dice \"Siguiente\" y en la última viñeta \"Continuar\".")]
+        [SerializeField] private TMP_Text nextLabel;
+
+        [Header("Tiempos")]
+        [Tooltip("Pausa antes de la primera viñeta (que no se salte con el botón de Jugar).")]
+        [SerializeField, Min(0f)] private float startDelay = 0.45f;
+        [SerializeField, Min(0.01f)] private float outDuration = 0.15f;
+        [SerializeField, Min(0.01f)] private float inDuration = 0.35f;
+
+        private ComicSequence story;
         private string nextScene;
-        private int shown;
-        private float startTime, lastStep;
-        private bool leaving;
+        private int index = -1;
+        private bool busy, leaving;
 
         private void Start()
         {
             (string storyName, string next) = SceneFlow.TakeStoryRequest();
-            ComicSequence story = storyName != null ? stories.FirstOrDefault(s => s != null && s.name == storyName) : fallback;
+            story = storyName != null ? stories.FirstOrDefault(s => s != null && s.name == storyName) : fallback;
             nextScene = next ?? fallbackNextScene;
+            panelGroup.alpha = 0f;
             if (story == null || story.panels.Length == 0)
             {
                 if (storyName != null)
@@ -50,45 +59,7 @@ namespace Odisea.UI
                 Leave();
                 return;
             }
-
-            title.text = story.title;
-            template.gameObject.SetActive(false);
-            BuildPanels(story);
-            startTime = Time.unscaledTime;
-            lastStep = -minInterval;
-        }
-
-        private void BuildPanels(ComicSequence story)
-        {
-            int count = story.panels.Length;
-            int columns = count == 4 ? 2 : Mathf.Min(count, 3);
-            int rows = Mathf.CeilToInt(count / (float)columns);
-            Vector2 area = page.rect.size;
-            // Celdas iguales que llenan la página; la viñeta conserva su forma dentro de la celda.
-            var cell = new Vector2((area.x - gap.x * (columns - 1)) / columns, (area.y - gap.y * (rows - 1)) / rows);
-            Vector2 templateSize = ((RectTransform)template.transform).sizeDelta;
-            float fit = Mathf.Min(cell.x / templateSize.x, cell.y / templateSize.y);
-            // Las viñetas van juntas (separadas solo por gap), centradas en la página.
-            Vector2 size = templateSize * fit;
-
-            for (int i = 0; i < count; i++)
-            {
-                ComicPanelView view = Instantiate(template, page);
-                view.name = $"Viñeta {i + 1}";
-                view.gameObject.SetActive(true);
-                var rect = (RectTransform)view.transform;
-                rect.sizeDelta = size;
-                int column = i % columns, row = i / columns;
-                // La última fila, si queda incompleta, se centra.
-                int inRow = row == rows - 1 ? count - row * columns : columns;
-                float rowWidth = inRow * size.x + (inRow - 1) * gap.x;
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = new Vector2(
-                    -rowWidth / 2f + size.x / 2f + column * (size.x + gap.x),
-                    (rows - 1) * (size.y + gap.y) / 2f - row * (size.y + gap.y));
-                view.Set(story.panels[i]);
-                views.Add(view);
-            }
+            StartCoroutine(ShowNext(startDelay));
         }
 
         private void Update()
@@ -100,39 +71,75 @@ namespace Odisea.UI
                     SceneFlow.Load(nextScene);
                 return;
             }
-            if (views.Count == 0)
+            if (story == null || index < 0)
                 return;
-            float now = Time.unscaledTime;
-            if (now - startTime < startDelay)
-                return;
-            if (shown == 0)
-            {
-                Step();
-                return;
-            }
             if (SkipPressed())
             {
                 UiAudio.Play(UiSound.Back);
                 Leave();
                 return;
             }
-            if (now - lastStep < minInterval || !NextPressed())
+            if (busy || !NextPressed())
                 return;
             UiAudio.Play(UiSound.Click);
-            if (shown < views.Count)
-                Step();
+            if (index + 1 < story.panels.Length)
+                StartCoroutine(ShowNext(0f));
             else
                 Leave();
         }
 
-        private void Step()
+        // La viñeta actual se va hacia la izquierda; la siguiente llega creciendo con un rebote, como al pasar la hoja.
+        private IEnumerator ShowNext(float delay)
         {
-            views[shown].Appear();
-            shown++;
-            lastStep = Time.unscaledTime;
+            busy = true;
+            if (delay > 0f)
+                yield return new WaitForSecondsRealtime(delay);
+            if (index >= 0)
+            {
+                for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / outDuration)
+                {
+                    panelGroup.alpha = 1f - t;
+                    panel.anchoredPosition = new Vector2(-80f * t * t, 0f);
+                    panel.localRotation = Quaternion.Euler(0f, 0f, 3f * t);
+                    yield return null;
+                }
+            }
+
+            index++;
+            Fill(story.panels[index]);
             UiAudio.Play(UiSound.Page);
+            for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / inDuration)
+            {
+                Pose(t);
+                yield return null;
+            }
+            Pose(1f);
+            busy = false;
+        }
+
+        private void Pose(float t)
+        {
+            panelGroup.alpha = Mathf.Clamp01(t * 2f);
+            float scale = 0.92f + 0.08f * t + Mathf.Sin(t * Mathf.PI) * 0.03f;
+            panel.localScale = new Vector3(scale, scale, 1f);
+            panel.anchoredPosition = new Vector2(60f * (1f - t), 0f);
+            panel.localRotation = Quaternion.Euler(0f, 0f, -2f * (1f - t));
+        }
+
+        private void Fill(ComicSequence.Panel data)
+        {
+            bool hasArt = data.art != null;
+            art.sprite = data.art;
+            // Sin dibujo, un recuadro de color con la descripción de lo que va.
+            art.color = hasArt ? Color.white : new Color(0.886f, 0.690f, 0.494f);
+            art.preserveAspect = hasArt;
+            placeholder.gameObject.SetActive(!hasArt);
+            placeholder.text = data.placeholderNote;
+            caption.text = data.caption;
+            if (counter != null)
+                counter.text = $"{story.title}   ·   {index + 1} / {story.panels.Length}";
             if (nextLabel != null)
-                nextLabel.text = shown < views.Count ? "Siguiente" : "Continuar";
+                nextLabel.text = index + 1 < story.panels.Length ? "Siguiente" : "Continuar";
         }
 
         private void Leave()
@@ -148,7 +155,7 @@ namespace Odisea.UI
             Gamepad gamepad = Gamepad.current;
             Mouse mouse = Mouse.current;
             return (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame ||
-                                         keyboard.spaceKey.wasPressedThisFrame)) ||
+                                         keyboard.spaceKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame)) ||
                    (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame) ||
                    (mouse != null && mouse.leftButton.wasPressedThisFrame);
         }
