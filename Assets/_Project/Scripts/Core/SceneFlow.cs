@@ -14,9 +14,19 @@ namespace Odisea.Core
         public const string Splash = "Splash";
         public const string Title = "Title";
         public const string MainMenu = "MainMenu";
-        // Mientras no exista el nivel 1, Jugar abre la escena de prueba del jugador.
+        /// <summary>Escena de pruebas del jugador (ya no la abre Jugar; queda para probar mecánicas).</summary>
         public const string Play = "PlayerSandbox";
         public const string Tutorial = "Tutorial";
+        /// <summary>Visor de historietas: muestra la que se pidió con <see cref="PlayStory"/> y luego sigue.</summary>
+        public const string Story = "Historia";
+        /// <summary>Mapa de San Blas: Ulises camina y entra a cada lugar (tutorial y niveles).</summary>
+        public const string Map = "Mapa";
+        /// <summary>Historieta del principio (antes del tutorial).</summary>
+        public const string PrologueStory = "Prologo";
+
+        /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
+        public static string PendingStory { get; private set; }
+        public static string AfterStory { get; private set; }
 
         public static bool IsLoading => ScreenFader.Instance.IsBusy;
 
@@ -55,6 +65,41 @@ namespace Odisea.Core
             Time.timeScale = 1f;
             LoadStarted?.Invoke(sceneName);
             UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+        }
+
+        /// <summary>
+        /// Jugar: la primera vez, la historieta del prólogo y el tutorial; si ya terminó el tutorial, directo al mapa.
+        /// </summary>
+        public static void StartGame()
+        {
+            if (GameProgress.TutorialDone)
+                Load(Map);
+            else
+                PlayStory(PrologueStory, Tutorial);
+        }
+
+        /// <summary>
+        /// Muestra una historieta (por su nombre, en la escena <see cref="Story"/>) y después carga nextScene.
+        /// Sin historieta, carga nextScene directo.
+        /// </summary>
+        public static void PlayStory(string storyName, string nextScene, Vector2? viewportCenter = null)
+        {
+            if (string.IsNullOrEmpty(storyName) || !Application.CanStreamedLevelBeLoaded(Story))
+            {
+                Load(nextScene, viewportCenter);
+                return;
+            }
+            PendingStory = storyName;
+            AfterStory = nextScene;
+            Load(Story, viewportCenter);
+        }
+
+        /// <summary>El visor toma la historieta pendiente (y la borra para que no se repita).</summary>
+        public static (string story, string next) TakeStoryRequest()
+        {
+            var request = (PendingStory, AfterStory);
+            PendingStory = AfterStory = null;
+            return request;
         }
 
         /// <summary>Vuelve a cargar la escena actual (reiniciar nivel).</summary>

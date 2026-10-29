@@ -20,6 +20,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Levels/Tutorial.unity
     guid: c015c7b730781564e84a6af07ef9ab5a
+  - enabled: 1
+    path: Assets/_Project/Scenes/Menus/Historia.unity
+    guid: 79a3547538dcb7a48b4abc5f7347cc9f
+  - enabled: 1
+    path: Assets/_Project/Scenes/Levels/Mapa.unity
+    guid: 5dfa7d40ad49b60479bad84ba89f7b19
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

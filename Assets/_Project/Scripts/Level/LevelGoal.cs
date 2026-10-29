@@ -6,7 +6,7 @@ namespace Odisea.Level
 {
     /// <summary>
     /// Meta del nivel: cuando Ulises la toca, sale la tarjeta de nivel completado (si hay) y, al aceptar, el iris
-    /// se cierra sobre él y se carga la escena siguiente (por ahora el menú principal; luego el siguiente nivel).
+    /// se cierra sobre él y se carga la escena siguiente (el mapa). Marca el lugar como terminado.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class LevelGoal : MonoBehaviour
@@ -14,6 +14,8 @@ namespace Odisea.Level
         [Tooltip("Escena a la que lleva (nombre en Build Settings).")]
         [SerializeField] private string nextScene = SceneFlow.MainMenu;
         [SerializeField] private LayerMask playerLayers;
+        [Tooltip("Lugar del mapa que queda terminado al llegar (GameProgress: tutorial, mercado, horno, tovara).")]
+        [SerializeField] private string completesLocation;
         [Tooltip("Opcional: tarjeta de \"¡Nivel completado!\" que se muestra antes de irse.")]
         [SerializeField] private LevelCompleteScreen completeScreen;
 
@@ -36,6 +38,7 @@ namespace Odisea.Level
                 center = new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y));
             }
             Checkpoints.Clear();
+            GameProgress.Complete(completesLocation);
             if (completeScreen != null)
                 completeScreen.Show(() => SceneFlow.Load(nextScene, center));
             else

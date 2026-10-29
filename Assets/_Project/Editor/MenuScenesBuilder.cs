@@ -35,13 +35,13 @@ namespace Odisea.EditorTools
         private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".jfif" };
 
         // Design system.
-        private static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
+        internal static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
         private static readonly Color PlatanoOscuro = new(0.878f, 0.635f, 0.118f);
-        private static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
-        private static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
-        private static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
+        internal static readonly Color Cafe = new(0.169f, 0.118f, 0.086f);
+        internal static readonly Color Crema = new(0.984f, 0.973f, 0.949f);
+        internal static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
         // Tinte del fondo del menú: vuelve madera el rodillo dibujado en tonos fríos (#E2B07E).
-        private static readonly Color TinteMadera = new(0.886f, 0.690f, 0.494f);
+        internal static readonly Color TinteMadera = new(0.886f, 0.690f, 0.494f);
 
         [MenuItem("Odisea/Menús/Crear pantalla de inicio y menú principal")]
         public static void Build()
@@ -313,7 +313,7 @@ namespace Odisea.EditorTools
         private static readonly Vector2 LeftPageCenter = new(-405f, 10f);
         private static readonly Vector2 RightPageCenter = new(407f, 10f);
         private static readonly Vector2 PageSize = new(600f, 700f);
-        private static readonly Color TintaClara = new(0.45f, 0.36f, 0.27f);
+        internal static readonly Color TintaClara = new(0.45f, 0.36f, 0.27f);
         // Sonido de hoja que da vuelta; suena solo al cambiar de sección en el recetario.
         private const string PageSoundName = "ui_clickOptions";
         // El libro de pausa es más chico para que se vea el juego alrededor.
@@ -726,7 +726,7 @@ namespace Odisea.EditorTools
             return footer;
         }
 
-        private static Image CreatePromptIcon(RectTransform bar)
+        internal static Image CreatePromptIcon(RectTransform bar)
         {
             var go = new GameObject("Ícono", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
             go.transform.SetParent(bar, false);
@@ -739,7 +739,7 @@ namespace Odisea.EditorTools
             return image;
         }
 
-        private static TMP_Text CreatePromptLabel(RectTransform bar, TMP_FontAsset font, string text)
+        internal static TMP_Text CreatePromptLabel(RectTransform bar, TMP_FontAsset font, string text)
         {
             var go = new GameObject(text, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(bar, false);
@@ -754,14 +754,14 @@ namespace Odisea.EditorTools
             return label;
         }
 
-        private static void CreatePromptSpacer(RectTransform bar)
+        internal static void CreatePromptSpacer(RectTransform bar)
         {
             var go = new GameObject("Separación", typeof(RectTransform), typeof(LayoutElement));
             go.transform.SetParent(bar, false);
             go.GetComponent<LayoutElement>().preferredWidth = 18f;
         }
 
-        private static void SetPromptSet(ButtonPromptBar bar, string field, string confirm, string back, string left, string right)
+        internal static void SetPromptSet(ButtonPromptBar bar, string field, string confirm, string back, string left, string right)
         {
             var serialized = new SerializedObject(bar);
             SerializedProperty set = serialized.FindProperty(field);
@@ -1143,7 +1143,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Tarjeta con sombra desplazada y borde café.</summary>
-        private static RectTransform CreateCard(string name, RectTransform parent, Sprite rounded, Vector2 size, Color color)
+        internal static RectTransform CreateCard(string name, RectTransform parent, Sprite rounded, Vector2 size, Color color)
         {
             var card = new GameObject(name, typeof(RectTransform));
             var rect = (RectTransform)card.transform;
@@ -1297,7 +1297,7 @@ namespace Odisea.EditorTools
             return colors;
         }
 
-        private static Image CreateImage(string name, Transform parent, Sprite sprite, Color color, Vector2 position,
+        internal static Image CreateImage(string name, Transform parent, Sprite sprite, Color color, Vector2 position,
             Vector2 size, bool stretch, float inset = 0f)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -1324,7 +1324,7 @@ namespace Odisea.EditorTools
             return image;
         }
 
-        private static TMP_Text CreateText(string name, Transform parent, string content, TMP_FontAsset font, float fontSize,
+        internal static TMP_Text CreateText(string name, Transform parent, string content, TMP_FontAsset font, float fontSize,
             Color color, bool stretch = false, Vector2? anchor = null, Vector2? position = null, Vector2? rectSize = null,
             TextAlignmentOptions alignment = TextAlignmentOptions.Center)
         {
@@ -1354,7 +1354,7 @@ namespace Odisea.EditorTools
             return text;
         }
 
-        private static void Stretch(RectTransform rect)
+        internal static void Stretch(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
@@ -1363,7 +1363,7 @@ namespace Odisea.EditorTools
 
         // ---------- Escena, cámara, canvas ----------
 
-        private static UnityEngine.SceneManagement.Scene NewScene(string path)
+        internal static UnityEngine.SceneManagement.Scene NewScene(string path)
         {
             EnsureFolder(Path.GetDirectoryName(path));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -1371,7 +1371,7 @@ namespace Odisea.EditorTools
             return scene;
         }
 
-        private static Camera CreateCamera(Color background)
+        internal static Camera CreateCamera(Color background)
         {
             var go = new GameObject("Main Camera") { tag = "MainCamera" };
             go.transform.position = new Vector3(0f, 0f, -10f);
@@ -1383,7 +1383,7 @@ namespace Odisea.EditorTools
             return camera;
         }
 
-        private static Transform CreateCanvas(string name)
+        internal static Transform CreateCanvas(string name)
         {
             var go = new GameObject(name, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
@@ -1394,7 +1394,7 @@ namespace Odisea.EditorTools
             return go.transform;
         }
 
-        private static GameObject CreateEventSystem()
+        internal static GameObject CreateEventSystem()
         {
             // Teclado, mouse y mando navegan la UI con el nuevo Input System.
             var go = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
@@ -1402,7 +1402,7 @@ namespace Odisea.EditorTools
             return go;
         }
 
-        private static GameObject CreateUiAudio()
+        internal static GameObject CreateUiAudio()
         {
             var go = new GameObject("Sonidos de UI", typeof(AudioSource));
             var audio = go.AddComponent<UiAudio>();
@@ -1427,10 +1427,10 @@ namespace Odisea.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private const string MenuMusicPath = "Assets/_Project/Audio/Music/musica_menu";
+        internal const string MenuMusicPath = "Assets/_Project/Audio/Music/musica_menu";
 
         /// <summary>Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio).</summary>
-        private static void CreateMenuMusic() => GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
+        internal static void CreateMenuMusic() => GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
 
         private static void SetEnum(UnityEngine.Object target, string field, int value)
         {
@@ -1442,10 +1442,22 @@ namespace Odisea.EditorTools
         private static void SetBuildScenes()
         {
             // Los niveles se agregan si ya se generaron (el tutorial lo crea Odisea > Niveles > Crear tutorial).
-            EditorBuildSettings.scenes = new[] { SplashScenePath, TitleScenePath, MenuScenePath, SandboxScenePath, TutorialBuilder.ScenePath }
+            EditorBuildSettings.scenes = new[]
+                {
+                    SplashScenePath, TitleScenePath, MenuScenePath, StoryBuilder.ScenePath, MapBuilder.ScenePath,
+                    TutorialBuilder.ScenePath, SandboxScenePath,
+                }
                 .Where(File.Exists)
                 .Select(path => new EditorBuildSettingsScene(path, true))
                 .ToArray();
+        }
+
+        /// <summary>Agrega una escena a Build Settings si no está (la generan los otros constructores).</summary>
+        internal static void AddToBuild(string path)
+        {
+            if (EditorBuildSettings.scenes.Any(scene => scene.path == path))
+                return;
+            EditorBuildSettings.scenes = EditorBuildSettings.scenes.Append(new EditorBuildSettingsScene(path, true)).ToArray();
         }
 
         // ---------- Archivos del usuario ----------
@@ -1517,7 +1529,7 @@ namespace Odisea.EditorTools
 
         private static string AssetPathOf(UnityEngine.Object asset) => asset != null ? AssetDatabase.GetAssetPath(asset) : null;
 
-        private static void SetField(UnityEngine.Object target, string field, UnityEngine.Object value)
+        internal static void SetField(UnityEngine.Object target, string field, UnityEngine.Object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(field)

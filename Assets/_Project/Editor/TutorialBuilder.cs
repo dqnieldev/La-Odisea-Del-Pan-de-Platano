@@ -432,6 +432,9 @@ namespace Odisea.EditorTools
             area.size = new Vector2(2f, 4f);
             var component = goal.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
+            // Al terminarlo se abre el mapa (y Jugar ya lleva directo ahí).
+            PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
+            PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Tutorial);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Tutorial completado!", "Ya sabes moverte, saltar, golpear y lanzar masa.\n¡Ahora sí, a la aventura!"));
             // El carrito de pan de plátano con su letrero "¡META!"; sin el arte importado, un banderín de color.

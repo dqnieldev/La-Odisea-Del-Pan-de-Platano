@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: UlisesConfig
   m_EditorClassIdentifier: Odisea::Odisea.Player.PlayerConfig
   moveSpeed: 8
+  moveDeadzone: 0.3
   acceleration: 70
   deceleration: 90
   airControl: 0.75
