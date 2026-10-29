@@ -1438,7 +1438,8 @@ namespace Odisea.EditorTools
                 return;
             var serialized = new SerializedObject(music);
             SerializedProperty scenes = serialized.FindProperty("continueInto");
-            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Story, SceneFlow.Map };
+            // La historia va en silencio (más seria) y el mapa tiene su propia canción.
+            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots };
             scenes.arraySize = names.Length;
             for (int i = 0; i < names.Length; i++)
                 scenes.GetArrayElementAtIndex(i).stringValue = names[i];

@@ -26,3 +26,15 @@ MonoBehaviour:
   - art: {fileID: 21300000, guid: 99513d6dc2be3224b9730cd87130f45f, type: 3}
     caption: "Entonces aparece Madame Circe, la chef del consorcio rival: \xABLa costa no tiene espacio para recetas humildes.\xBB"
     placeholderNote: "Madame Circe, elegante y burlona, con su batidora cromada, frente a Ulises que frunce el ce\xF1o."
+  - art: {fileID: 0}
+    caption: "Circe se marcha y deja su tarjeta sobre la mesa. Don Lupe la mira en silencio: no es solo un concurso, es la panader\xEDa entera."
+    placeholderNote: Don Lupe sosteniendo la tarjeta dorada del consorcio; por la ventana, anuncios de hoteles y franquicias sobre el puerto.
+  - art: {fileID: 0}
+    caption: 'Esa noche, a la luz de una vela, Ulises traza su ruta: el Mercado, el Horno del pueblo y los manglares de La Tovara.'
+    placeholderNote: "Ulises de noche sobre un mapa viejo de San Blas, marcando con l\xE1piz el Mercado, el Horno y La Tovara."
+  - art: {fileID: 0}
+    caption: 'Mientras tanto, en su cocina de acero, Circe no piensa jugar limpio: sus ayudantes ya se adelantan por la costa.'
+    placeholderNote: "Cocina industrial cromada; Circe sonriendo y se\xF1alando un mapa mientras sus ayudantes salen por la puerta."
+  - art: {fileID: 0}
+    caption: "Al amanecer, Don Lupe lo detiene en la puerta: \xABAntes de irte, muchacho, demu\xE9strame que no se te olvid\xF3 lo b\xE1sico.\xBB"
+    placeholderNote: "Amanecer en la puerta de la panader\xEDa; Don Lupe le ofrece el rodillo a Ulises, el puerto de fondo."

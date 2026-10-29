@@ -46,6 +46,15 @@ namespace Odisea.EditorTools
              "Ulises imaginando los ingredientes a su alrededor: racimo de plátano macho, caña de azúcar, canela, costal de harina."),
             ("Entonces aparece Madame Circe, la chef del consorcio rival: «La costa no tiene espacio para recetas humildes.»",
              "Madame Circe, elegante y burlona, con su batidora cromada, frente a Ulises que frunce el ceño."),
+            ("Circe se marcha y deja su tarjeta sobre la mesa. Don Lupe la mira en silencio: no es solo un concurso, " +
+             "es la panadería entera.",
+             "Don Lupe sosteniendo la tarjeta dorada del consorcio; por la ventana, anuncios de hoteles y franquicias sobre el puerto."),
+            ("Esa noche, a la luz de una vela, Ulises traza su ruta: el Mercado, el Horno del pueblo y los manglares de La Tovara.",
+             "Ulises de noche sobre un mapa viejo de San Blas, marcando con lápiz el Mercado, el Horno y La Tovara."),
+            ("Mientras tanto, en su cocina de acero, Circe no piensa jugar limpio: sus ayudantes ya se adelantan por la costa.",
+             "Cocina industrial cromada; Circe sonriendo y señalando un mapa mientras sus ayudantes salen por la puerta."),
+            ("Al amanecer, Don Lupe lo detiene en la puerta: «Antes de irte, muchacho, demuéstrame que no se te olvidó lo básico.»",
+             "Amanecer en la puerta de la panadería; Don Lupe le ofrece el rodillo a Ulises, el puerto de fondo."),
         };
 
         [MenuItem("Odisea/Menús/Crear escena de historietas")]
@@ -62,7 +71,7 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.CreateCamera(MenuScenesBuilder.Cafe);
             Transform canvas = MenuScenesBuilder.CreateCanvas("Historieta");
             MenuScenesBuilder.CreateUiAudio();
-            MenuScenesBuilder.CreateMenuMusic();
+            // Sin música: las historietas van en silencio para que se sientan más serias.
 
             Sprite book = File.Exists(BookPath) ? MenuScenesBuilder.LoadUiSprite(BookPath) : null;
             RectTransform paper;
@@ -111,7 +120,8 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// Crea la historieta si no existe (con sus textos) y le asigna los dibujos que haya en Art/Comics/&lt;nombre&gt;.
-        /// Si ya existe, conserva sus textos: diseño los puede corregir en el Inspector.
+        /// Si ya existe, conserva sus textos (diseño los puede corregir en el Inspector) y solo agrega las viñetas nuevas
+        /// que falten al final.
         /// </summary>
         private static ComicSequence EnsureStory(string name, string title, (string caption, string note)[] panels)
         {
@@ -124,6 +134,11 @@ namespace Odisea.EditorTools
                 story.title = title;
                 story.panels = panels.Select(p => new ComicSequence.Panel { caption = p.caption, placeholderNote = p.note }).ToArray();
                 AssetDatabase.CreateAsset(story, path);
+            }
+            else if (story.panels.Length < panels.Length)
+            {
+                story.panels = story.panels.Concat(panels.Skip(story.panels.Length)
+                    .Select(p => new ComicSequence.Panel { caption = p.caption, placeholderNote = p.note })).ToArray();
             }
             for (int i = 0; i < story.panels.Length; i++)
             {

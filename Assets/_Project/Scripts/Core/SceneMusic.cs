@@ -8,7 +8,7 @@ namespace Odisea.Core
     /// Música de fondo de una escena (el menú principal o un nivel): entra con un fundido suave, se repite en loop,
     /// sigue el volumen de música de Opciones y se desvanece en cuanto empieza un cambio de escena, mientras se
     /// cierra el iris. En un nivel, opcionalmente se apaga rápido cuando muere Ulises (para que se oiga la muerte).
-    /// Si va a una escena de <see cref="continueInto"/> (la del menú: partidas, historia, mapa) sigue sonando sin
+    /// Si va a una escena de <see cref="continueInto"/> (la del menú: partidas) sigue sonando sin
     /// cortarse, y esa escena, al traer la misma canción, deja la que ya sonaba.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
