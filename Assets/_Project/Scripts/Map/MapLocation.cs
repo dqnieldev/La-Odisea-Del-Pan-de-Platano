@@ -11,9 +11,9 @@ namespace Odisea.Map
     }
 
     /// <summary>
-    /// Un lugar del mapa (la panadería, el mercado, el horno, La Tovara): al acercarse Ulises sale la ventanita con
-    /// su nombre (<see cref="LocationPanel"/>) y desde ahí se entra a su historieta y su nivel. Se abre al terminar el
-    /// lugar anterior; si su escena todavía no existe, dice "Próximamente".
+    /// Un lugar del mapa (la panadería, el mercado, el horno, La Tovara): su nombre, a qué nivel lleva y si ya se
+    /// puede entrar. Se abre al terminar el lugar anterior; si su escena todavía no existe, dice "Próximamente".
+    /// Su collider es el área a la que se le da clic (lo maneja <see cref="OverworldMap"/>).
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class MapLocation : MonoBehaviour
@@ -30,10 +30,6 @@ namespace Odisea.Map
         [Tooltip("Lugar que hay que terminar para que este se abra; vacío = siempre abierto.")]
         [SerializeField] private string requires;
         [SerializeField] private string requiresName;
-        [Tooltip("Dónde aparece Ulises al volver de este lugar.")]
-        [SerializeField] private Transform arrival;
-        [SerializeField] private LayerMask playerLayers;
-        [SerializeField] private LocationPanel panel;
 
         [Header("Dibujo en el mapa")]
         [Tooltip("Se oscurecen mientras está bloqueado.")]
@@ -45,8 +41,8 @@ namespace Odisea.Map
         public string DisplayName => displayName;
         public string Subtitle => subtitle;
         public string RequiresName => requiresName;
-        public Vector2 ArrivalPoint => arrival != null ? (Vector2)arrival.position : (Vector2)transform.position;
         public bool IsDone => GameProgress.IsDone(id);
+        public bool IsLocked => State == LocationState.Locked;
 
         public LocationState State
         {
@@ -62,8 +58,8 @@ namespace Odisea.Map
 
         private void Start()
         {
-            // Bloqueado se oscurece sobre su propio color (el graybox tiene colores; el dibujo, blanco).
-            if (State == LocationState.Locked)
+            // Bloqueado se oscurece sobre su propio color.
+            if (IsLocked)
             {
                 foreach (SpriteRenderer renderer in tinted)
                 {
@@ -74,21 +70,6 @@ namespace Odisea.Map
             if (doneMark != null)
                 doneMark.SetActive(IsDone);
         }
-
-        private void OnTriggerEnter2D(Collider2D other)
-        {
-            if (IsPlayer(other) && panel != null)
-                panel.Show(this);
-        }
-
-        private void OnTriggerExit2D(Collider2D other)
-        {
-            if (IsPlayer(other) && panel != null)
-                panel.Hide(this);
-        }
-
-        private bool IsPlayer(Collider2D other) =>
-            (playerLayers.value & (1 << other.gameObject.layer)) != 0 && other.GetComponentInParent<Health>() != null;
 
         /// <summary>Entra: recuerda el lugar (para volver aquí) y abre su historieta y su nivel.</summary>
         public void Enter(Vector2? viewportCenter = null)

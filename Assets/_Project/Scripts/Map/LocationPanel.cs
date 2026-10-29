@@ -1,16 +1,14 @@
 using Odisea.Core;
-using Odisea.Player;
 using Odisea.UI;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Odisea.Map
 {
     /// <summary>
-    /// Ventanita del mapa que sale al acercarse a un lugar: su nombre, si ya se terminó (y la mejor puntuación) y
-    /// "Entrar" (arriba o Enter, como una puerta: A / Espacio es saltar), o por qué todavía no se puede ("Bloqueado",
-    /// "Próximamente").
+    /// Ventanita del mapa con el lugar donde está Ulises: su nombre, si ya se terminó (y la mejor puntuación) y
+    /// "Entrar", o por qué todavía no se puede ("Próximamente"). Al dar clic a un lugar bloqueado avisa un momento
+    /// qué hay que terminar antes. Solo dibuja: los controles los lleva <see cref="OverworldMap"/>.
     /// </summary>
     public class LocationPanel : MonoBehaviour
     {
@@ -19,17 +17,14 @@ namespace Odisea.Map
         [SerializeField] private TMP_Text title;
         [SerializeField] private TMP_Text subtitle;
         [SerializeField] private TMP_Text status;
-        [Tooltip("Ícono de arriba y \"Entrar\"; solo si se puede entrar.")]
+        [Tooltip("Ícono de Aceptar y \"Entrar\"; solo si se puede entrar.")]
         [SerializeField] private GameObject enterPrompt;
-        [Tooltip("Los controles de Ulises: arriba es entrar, y se le quitan al entrar.")]
-        [SerializeField] private PlayerInputReader input;
-        [Tooltip("Cuánto hay que empujar hacia arriba para entrar.")]
-        [SerializeField, Range(0.1f, 1f)] private float upThreshold = 0.6f;
         [SerializeField, Min(0.01f)] private float appearDuration = 0.25f;
+        [Tooltip("Cuánto se ve el aviso de un lugar bloqueado antes de volver al lugar actual.")]
+        [SerializeField, Min(0.1f)] private float lockedNoticeTime = 2f;
 
-        private MapLocation current;
-        private float shownTime;
-        private bool entering, upHeld = true;
+        private MapLocation shown, home;
+        private float shownTime, noticeUntil = -1f;
 
         private void Awake()
         {
@@ -37,15 +32,35 @@ namespace Odisea.Map
             card.localScale = Vector3.zero;
         }
 
+        /// <summary>Muestra el lugar donde quedó Ulises.</summary>
         public void Show(MapLocation location)
         {
-            if (entering)
-                return;
-            current = location;
+            home = location;
+            noticeUntil = -1f;
+            Display(location);
+        }
+
+        /// <summary>Oculta la ventanita (mientras Ulises camina).</summary>
+        public void Hide()
+        {
+            home = shown = null;
+            noticeUntil = -1f;
+        }
+
+        /// <summary>Aviso de un momento sobre un lugar bloqueado; luego vuelve al lugar actual.</summary>
+        public void ShowLocked(MapLocation location)
+        {
+            Display(location);
+            noticeUntil = Time.unscaledTime + lockedNoticeTime;
+            UiAudio.Play(UiSound.Back);
+        }
+
+        private void Display(MapLocation location)
+        {
+            shown = location;
             shownTime = Time.unscaledTime;
             title.text = location.DisplayName;
             subtitle.text = location.Subtitle;
-
             LocationState state = location.State;
             enterPrompt.SetActive(state == LocationState.Available);
             status.text = state switch
@@ -57,60 +72,26 @@ namespace Odisea.Map
                 _ when location.IsDone => "¡Terminado!",
                 _ => "",
             };
-            UiAudio.Play(UiSound.Hover);
-        }
-
-        public void Hide(MapLocation location)
-        {
-            if (location == current && !entering)
-                current = null;
         }
 
         private void Update()
         {
-            // Aparece con un rebote y se encoge al alejarse.
-            float target = current != null ? 1f : 0f;
+            if (noticeUntil > 0f && Time.unscaledTime >= noticeUntil)
+            {
+                noticeUntil = -1f;
+                if (home != null)
+                    Display(home);
+                else
+                    shown = null;
+            }
+
+            // Aparece con un rebote y se encoge al ocultarse.
+            bool visible = shown != null;
             float t = Mathf.Clamp01((Time.unscaledTime - shownTime) / appearDuration);
-            float scale = current != null ? 0.8f + 0.2f * t + Mathf.Sin(t * Mathf.PI) * 0.08f : Mathf.MoveTowards(card.localScale.x, 0f, Time.unscaledDeltaTime * 6f);
+            float scale = visible ? 0.8f + 0.2f * t + Mathf.Sin(t * Mathf.PI) * 0.08f
+                : Mathf.MoveTowards(card.localScale.x, 0f, Time.unscaledDeltaTime * 6f);
             card.localScale = new Vector3(scale, scale, 1f);
-            group.alpha = Mathf.MoveTowards(group.alpha, target, Time.unscaledDeltaTime * 8f);
-
-            // "Arriba" cuenta al empujarlo, no mientras se mantiene (si llega con arriba presionado, hay que soltarlo).
-            bool up = input != null && input.Move.y >= upThreshold;
-            bool upPressed = up && !upHeld;
-            upHeld = up;
-            if (current == null || entering || Time.timeScale == 0f || SceneFlow.IsLoading)
-                return;
-            if (current.State == LocationState.Available && (upPressed || EnterPressed()))
-                Enter();
-        }
-
-        private void Enter()
-        {
-            entering = true;
-            // Se queda quieto mientras se cierra el iris.
-            if (input != null)
-            {
-                input.ScriptedMove = Vector2.zero;
-                input.ScriptedJumpHeld = false;
-            }
-            UiAudio.Play(UiSound.Click);
-            Vector2? center = null;
-            Camera view = Camera.main;
-            if (view != null && input != null)
-            {
-                Vector3 point = view.WorldToViewportPoint(input.transform.position + Vector3.up);
-                center = new Vector2(Mathf.Clamp01(point.x), Mathf.Clamp01(point.y));
-            }
-            current.Enter(center);
-        }
-
-        private static bool EnterPressed()
-        {
-            Keyboard keyboard = Keyboard.current;
-            Gamepad gamepad = Gamepad.current;
-            return (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)) ||
-                   (gamepad != null && gamepad.buttonNorth.wasPressedThisFrame);
+            group.alpha = Mathf.MoveTowards(group.alpha, visible ? 1f : 0f, Time.unscaledDeltaTime * 8f);
         }
     }
 }

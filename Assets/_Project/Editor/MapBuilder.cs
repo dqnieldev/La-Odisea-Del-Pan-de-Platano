@@ -2,7 +2,6 @@ using System.IO;
 using System.Linq;
 using Odisea.Core;
 using Odisea.Map;
-using Odisea.Player;
 using Odisea.UI;
 using TMPro;
 using UnityEditor;
@@ -12,56 +11,73 @@ using UnityEngine.UI;
 namespace Odisea.EditorTools
 {
     /// <summary>
-    /// Mapa de San Blas, de lado (como el tutorial): Ulises camina por la costa con el mismo control de los niveles
-    /// y los cuatro lugares están en fila: Panadería de Don Lupe (tutorial), El Mercado, El Horno y La Tovara.
-    /// Cada uno tiene su dibujo (Art/Map/Lugares/&lt;Lugar&gt;.png, o un edificio de colores si falta), su letrero y su
-    /// puerta: al pararse enfrente sale la ventanita del lugar y con arriba se entra.
+    /// Mapa de San Blas como el de Mario: el dibujo completo en pantalla (Art/Map/Mapa.png, visto desde arriba), los
+    /// cuatro lugares sobre sus claros (Art/Map/Lugares/&lt;Lugar&gt;.png) y la ficha de Ulises que camina por los
+    /// caminos dibujados (<see cref="OverworldMap"/>). Las coordenadas de claros y caminos se midieron en el dibujo
+    /// (en píxeles de una imagen de 1376 × 768; sirven para cualquier tamaño con la misma proporción).
     /// </summary>
     public static class MapBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Mapa.unity";
+        private const string MapArtPath = "Assets/_Project/Art/Map/Mapa.png";
         private const string PlacesArtFolder = "Assets/_Project/Art/Map/Lugares";
         // Copias recortadas a lo dibujado (los PNG vienen con mucho margen transparente).
         private const string TrimmedFolder = "Assets/_Project/Art/Map/Recortes";
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
 
-        private const float LeftEdge = -12f;
-        private const float RightEdge = 104f;
-        // Ancho del dibujo de cada lugar y cuánto se hunde su base tras la orilla de la arena.
-        private const float PlaceArtWidth = 8f;
-        private const float PlaceArtSink = 0.6f;
-        // El letrero va a la izquierda de cada lugar; la puerta (zona de entrada) frente al edificio.
-        private const float SignOffset = -6.5f;
-        private static readonly Vector2 DoorSize = new(5f, 3f);
-        private const int FlagOrder = 30;
+        // El mapa mide Width de ancho (el alto sale de la proporción del dibujo) y llena la pantalla.
+        private const float Width = 64f;
+        private static readonly Vector2 Reference = new(1376f, 768f);
+        private const float PlaceArtWidth = 6.6f;
+        // Base del dibujo de cada lugar: la orilla de abajo de su claro.
+        private const float PlaceBaseDrop = 2.7f;
+        private static readonly Vector2 ClickArea = new(7f, 6.2f);
+        private const int PlaceOrder = 10, LabelOrder = 40, TokenOrder = 100;
 
         private readonly struct Place
         {
-            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, SignTitle, SignHint, ArtName;
-            public readonly float X;
+            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, ArtName;
+            public readonly Vector2 Clearing, Stand;
             public readonly Color Wall, Roof;
 
             public Place(string id, string name, string subtitle, string scene, string story, string requires, string requiresName,
-                string signTitle, string signHint, float x, Color wall, Color roof)
+                Vector2 clearing, Vector2 stand, Color wall, Color roof)
             {
                 Id = id; Name = name; Subtitle = subtitle; Scene = scene; Story = story; Requires = requires;
-                RequiresName = requiresName; SignTitle = signTitle; SignHint = signHint; X = x; Wall = wall; Roof = roof;
+                RequiresName = requiresName; Clearing = clearing; Stand = stand; Wall = wall; Roof = roof;
                 ArtName = id == GameProgress.Tutorial ? "Panaderia" : char.ToUpperInvariant(id[0]) + id.Substring(1);
             }
         }
 
-        // En orden de la historia, de izquierda a derecha.
+        // En orden de la historia. Clearing: centro del claro; Stand: dónde se para Ulises (frente a la puerta).
         private static readonly Place[] Places =
         {
             new(GameProgress.Tutorial, "Panadería de Don Lupe", "Aprende el oficio con Don Lupe", SceneFlow.Tutorial, "", "", "",
-                "PANADERÍA", "De Don Lupe", 0f, new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
+                new Vector2(187f, 427f), new Vector2(187f, 470f), new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
             new(GameProgress.Mercado, "El Mercado", "Acto I · La cueva del mercado", "Mercado", "Mercado", GameProgress.Tutorial,
-                "el tutorial", "EL MERCADO", "Acto I", 30f, new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
+                "el tutorial", new Vector2(627f, 148f), new Vector2(627f, 195f), new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
             new(GameProgress.Horno, "El Horno", "Acto II · El asedio a la panadería", "Horno", "Horno", GameProgress.Mercado,
-                "El Mercado", "EL HORNO", "Acto II", 60f, new Color(0.85f, 0.62f, 0.45f), new Color(0.55f, 0.30f, 0.20f)),
+                "El Mercado", new Vector2(727f, 522f), new Vector2(727f, 565f), new Color(0.85f, 0.62f, 0.45f), new Color(0.55f, 0.30f, 0.20f)),
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
-                "El Horno", "LA TOVARA", "Acto III", 90f, new Color(0.55f, 0.70f, 0.45f), new Color(0.30f, 0.45f, 0.28f)),
+                "El Horno", new Vector2(1199f, 388f), new Vector2(1199f, 430f), new Color(0.55f, 0.70f, 0.45f), new Color(0.30f, 0.45f, 0.28f)),
         };
+
+        // Cruce de caminos (nodo 4) y los tramos entre nodos, con puntos que siguen los caminos dibujados.
+        // Nodos: 0 Panadería, 1 Mercado, 2 Horno, 3 Tovara, 4 cruce.
+        private static readonly Vector2 Junction = new(560f, 468f);
+        private static readonly (int from, int to, Vector2[] points)[] Paths =
+        {
+            (0, 4, new Vector2[] { new(265f, 440f), new(340f, 438f), new(420f, 448f), new(490f, 465f) }),
+            (4, 1, new Vector2[] { new(565f, 420f), new(600f, 375f), new(650f, 335f), new(690f, 300f), new(700f, 250f), new(670f, 215f) }),
+            (4, 2, new Vector2[] { new(610f, 490f), new(660f, 525f), new(700f, 560f) }),
+            (2, 3, new Vector2[] { new(800f, 540f), new(870f, 505f), new(960f, 497f), new(1050f, 478f), new(1110f, 450f), new(1150f, 430f) }),
+        };
+
+        private static float height = Width * 9f / 16f;
+
+        // Píxel del dibujo (en la referencia de 1376 × 768) → unidades del mundo, con el mapa centrado en el origen.
+        private static Vector2 P(Vector2 pixel) =>
+            new((pixel.x / Reference.x - 0.5f) * Width, (0.5f - pixel.y / Reference.y) * height);
 
         [MenuItem("Odisea/Niveles/Crear mapa")]
         public static void Build()
@@ -72,105 +88,131 @@ namespace Odisea.EditorTools
             root.name = "Mapa";
             Sprite square = level.Square;
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            int ground = level.GroundLayer;
 
-            // ----- Suelo y paredes (como el tutorial) -----
-            GameObject sand = PlayerSandboxBuilder.CreateBlock("Arena", root, square,
-                new Vector2((LeftEdge + RightEdge) / 2f, -3f), new Vector2(RightEdge - LeftEdge, 6f), TutorialBuilder.Sand, ground);
-            sand.GetComponent<SpriteRenderer>().sortingOrder = -8;
-            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 7f), new Vector2(1f, 20f),
-                TutorialBuilder.SandDark, ground);
-            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 7f), new Vector2(1f, 20f),
-                TutorialBuilder.SandDark, ground);
-
-            // ----- Lugares -----
-            LocationPanel panel = CreateLocationPanel();
-            TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
-            TMP_FontAsset bodyFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
-            foreach (Place place in Places)
-                CreateLocation(place, root, square, circle, level, panel, titleFont, bodyFont);
-
-            // ----- Fondo: el del tutorial (papel, horizonte y arena dibujada) -----
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath) != null)
-                TutorialBuilder.CreateArtBackground(root, sand.GetComponent<SpriteRenderer>(), LeftEdge, RightEdge);
+            // ----- El dibujo del mapa, completo en pantalla -----
+            Sprite mapArt = LoadMapSprite(MapArtPath);
+            if (mapArt != null)
+            {
+                height = Width * mapArt.bounds.size.y / mapArt.bounds.size.x;
+                var art = new GameObject("Dibujo del mapa").AddComponent<SpriteRenderer>();
+                art.transform.SetParent(root, false);
+                art.sprite = mapArt;
+                art.transform.localScale = Vector3.one * (Width / mapArt.bounds.size.x);
+                art.sortingOrder = -30;
+            }
             else
-                TutorialBuilder.CreateBackground(square, circle);
+            {
+                height = Width * 9f / 16f;
+                Rect("Arena", root, square, Vector2.zero, new Vector2(Width, height), TutorialBuilder.Sand, -30);
+                Debug.LogWarning($"[Odisea] Falta {MapArtPath}; el mapa queda de un color.");
+            }
 
-            // ----- Ulises: el mismo de los niveles; aparece frente al último lugar del que salió -----
+            // ----- Lugares y caminos -----
+            LocationPanel panel = CreateLocationPanel();
+            var locations = Places.Select(place => CreateLocation(place, root, square, circle)).ToArray();
+            var map = new GameObject("Mapa (control)").AddComponent<OverworldMap>();
+            var serialized = new SerializedObject(map);
+            SerializedProperty nodes = serialized.FindProperty("nodes");
+            nodes.arraySize = Places.Length + 1;
+            for (int i = 0; i < Places.Length; i++)
+            {
+                nodes.GetArrayElementAtIndex(i).FindPropertyRelative("position").vector2Value = P(Places[i].Stand);
+                nodes.GetArrayElementAtIndex(i).FindPropertyRelative("location").objectReferenceValue = locations[i];
+            }
+            nodes.GetArrayElementAtIndex(Places.Length).FindPropertyRelative("position").vector2Value = P(Junction);
+            SerializedProperty edges = serialized.FindProperty("edges");
+            edges.arraySize = Paths.Length;
+            for (int i = 0; i < Paths.Length; i++)
+            {
+                SerializedProperty edge = edges.GetArrayElementAtIndex(i);
+                edge.FindPropertyRelative("from").intValue = Paths[i].from;
+                edge.FindPropertyRelative("to").intValue = Paths[i].to;
+                SerializedProperty points = edge.FindPropertyRelative("points");
+                points.arraySize = Paths[i].points.Length;
+                for (int p = 0; p < Paths[i].points.Length; p++)
+                    points.GetArrayElementAtIndex(p).vector2Value = P(Paths[i].points[p]);
+            }
+            SerializedProperty order = serialized.FindProperty("locationOrder");
+            order.arraySize = Places.Length;
+            for (int i = 0; i < Places.Length; i++)
+                order.GetArrayElementAtIndex(i).intValue = i;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // ----- La ficha de Ulises -----
+            (Transform token, Transform visual, Animator animator) = CreateToken(level, P(Places[0].Stand));
+            MenuScenesBuilder.SetField(map, "token", token);
+            MenuScenesBuilder.SetField(map, "tokenVisual", visual);
+            if (animator != null)
+                MenuScenesBuilder.SetField(map, "tokenAnimator", animator);
+            MenuScenesBuilder.SetField(map, "panel", panel);
+            GameSoundsBuilder.SetSound(map, "footstep", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "paso"), 0.25f);
+
+            // ----- Cámara fija con todo el mapa, música y pausa -----
+            var camera = GameObject.Find("Main Camera");
+            camera.transform.position = new Vector3(0f, 0f, -10f);
+            var cam = camera.GetComponent<Camera>();
+            cam.orthographicSize = height / 2f;
+            cam.backgroundColor = PlayerSandboxBuilder.Cafe;
+
             string[] extensions = { ".ogg", ".mp3", ".wav" };
             string music = extensions.Any(ext => File.Exists(MapMusicPath + ext)) ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
-            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(Places[0].X + 5f, 1f), "San Blas", music,
-                showControls: false, background: TutorialBuilder.Paper);
-            player.AddComponent<MapArrival>();
-            // En el mapa no hay peligros: sin vidas ni ventajas en pantalla.
-            var hud = GameObject.Find("HUD");
-            if (hud != null)
-                Object.DestroyImmediate(hud);
-            MenuScenesBuilder.SetField(panel, "input", player.GetComponent<PlayerInputReader>());
-
-            var follow = Camera.main.GetComponent<CameraFollow2D>();
-            PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
-            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(LeftEdge + 12.5f, 2.5f));
-            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(RightEdge - 12.5f, 12f));
+            GameSoundsBuilder.CreateMusic("Música del mapa", music);
+            var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
+            if (pausePrefab != null)
+            {
+                var pause = (GameObject)PrefabUtility.InstantiatePrefab(pausePrefab);
+                PlayerSandboxBuilder.SetSerialized(pause.GetComponent<PauseMenu>(), "levelName", "San Blas");
+            }
 
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mapa creado en {ScenePath}.");
         }
 
-        // Edificio (detrás de Ulises), su letrero de madera a la izquierda, banderita de terminado y la puerta.
-        private static void CreateLocation(Place place, Transform root, Sprite square, Sprite circle,
-            PlayerSandboxBuilder.LevelContext level, LocationPanel panel, TMP_FontAsset titleFont, TMP_FontAsset bodyFont)
+        // Edificio sobre su claro, letrero con el nombre, banderita de terminado y el área de clic.
+        private static MapLocation CreateLocation(Place place, Transform root, Sprite square, Sprite circle)
         {
+            Vector2 center = P(place.Clearing);
             var go = new GameObject(place.Name);
             go.transform.SetParent(root, false);
-            go.transform.position = new Vector3(place.X, 0f, 0f);
+            go.transform.position = center;
 
             var tinted = new System.Collections.Generic.List<Object>();
+            float top;
             Sprite art = LoadTrimmedSprite(PlacesArtFolder, place.ArtName);
             if (art != null)
             {
-                // Su base de tierra queda hundida tras la orilla de la arena, como los letreros.
                 var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(go.transform, false);
                 float scale = PlaceArtWidth / art.bounds.size.x;
                 drawing.transform.localScale = Vector3.one * scale;
-                drawing.transform.localPosition = new Vector3(0f, -PlaceArtSink - art.bounds.min.y * scale, 0f);
+                drawing.transform.localPosition = new Vector3(0f, -PlaceBaseDrop - art.bounds.min.y * scale, 0f);
                 drawing.sprite = art;
-                drawing.sortingOrder = TutorialBuilder.BehindSandOrder;
+                drawing.sortingOrder = PlaceOrder;
                 tinted.Add(drawing);
+                top = -PlaceBaseDrop + art.bounds.size.y * scale;
             }
             else
             {
-                const int order = TutorialBuilder.BehindSandOrder;
-                tinted.Add(Rect("Pared", go.transform, square, new Vector2(0f, 1.7f), new Vector2(5f, 3.4f), place.Wall, order));
-                tinted.Add(Rect("Techo", go.transform, square, new Vector2(0f, 3.8f), new Vector2(5.6f, 1.2f), place.Roof, order + 1));
-                tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, 0.8f), new Vector2(1.2f, 1.6f),
-                    PlayerSandboxBuilder.Cafe, order + 1));
+                tinted.Add(Rect("Pared", go.transform, square, new Vector2(0f, -0.6f), new Vector2(4.4f, 3f), place.Wall, PlaceOrder));
+                tinted.Add(Rect("Techo", go.transform, square, new Vector2(0f, 1.3f), new Vector2(5f, 1.1f), place.Roof, PlaceOrder + 1));
+                tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, -1.4f), new Vector2(1f, 1.4f),
+                    PlayerSandboxBuilder.Cafe, PlaceOrder + 1));
+                top = 1.9f;
             }
 
-            float signX = place.X + SignOffset;
-            TutorialBuilder.CreateSign(root, square, titleFont, bodyFont, signX, place.SignTitle,
-                TutorialBuilder.Prompt.Text(place.SignHint));
+            CreateNamePlate(go.transform, place.Name, new Vector2(0f, top + 0.5f));
 
-            // Banderita amarilla de "terminado", clavada junto al letrero.
+            // Banderita amarilla de "terminado", a un lado del edificio.
             var flag = new GameObject("Terminado");
             flag.transform.SetParent(go.transform, false);
-            flag.transform.position = new Vector3(signX + 2.3f, 0f, 0f);
-            Rect("Asta", flag.transform, square, new Vector2(0f, 1f), new Vector2(0.12f, 2f), PlayerSandboxBuilder.Cafe, FlagOrder);
-            Rect("Bandera", flag.transform, circle, new Vector2(0.4f, 1.75f), new Vector2(0.8f, 0.55f),
-                new Color(0.96f, 0.72f, 0.19f), FlagOrder + 1);
+            flag.transform.localPosition = new Vector3(PlaceArtWidth / 2f - 0.3f, -PlaceBaseDrop + 1.2f, 0f);
+            Rect("Asta", flag.transform, square, new Vector2(0f, 0.7f), new Vector2(0.14f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
+            Rect("Bandera", flag.transform, circle, new Vector2(0.4f, 1.2f), new Vector2(0.8f, 0.55f),
+                new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
 
-            // Puerta: al pararse enfrente sale la ventanita; ahí aparece Ulises al volver.
-            var door = new GameObject("Puerta (entrada)");
-            door.transform.SetParent(go.transform, false);
-            door.transform.localPosition = new Vector3(0f, DoorSize.y / 2f, 0f);
-            door.AddComponent<BoxCollider2D>().size = DoorSize;
-            var arrival = new GameObject("Llegada").transform;
-            arrival.SetParent(go.transform, false);
-            arrival.localPosition = new Vector3(0f, 1f, 0f);
-
-            var location = door.AddComponent<MapLocation>();
+            go.AddComponent<BoxCollider2D>().size = ClickArea;
+            var location = go.AddComponent<MapLocation>();
             PlayerSandboxBuilder.SetSerialized(location, "id", place.Id);
             PlayerSandboxBuilder.SetSerialized(location, "displayName", place.Name);
             PlayerSandboxBuilder.SetSerialized(location, "subtitle", place.Subtitle);
@@ -178,11 +220,160 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(location, "introStory", place.Story);
             PlayerSandboxBuilder.SetSerialized(location, "requires", place.Requires);
             PlayerSandboxBuilder.SetSerialized(location, "requiresName", place.RequiresName);
-            PlayerSandboxBuilder.SetSerialized(location, "playerLayers", 1 << level.PlayerLayer);
-            MenuScenesBuilder.SetField(location, "arrival", arrival);
-            MenuScenesBuilder.SetField(location, "panel", panel);
             MenuScenesBuilder.SetField(location, "doneMark", flag);
             PlayerSandboxBuilder.SetSerialized(location, "tinted", tinted.ToArray());
+            return location;
+        }
+
+        // Tarjetita crema con borde café y el nombre: se lee bien sobre el dibujo.
+        private static void CreateNamePlate(Transform parent, string name, Vector2 position)
+        {
+            var plate = new GameObject("Nombre").transform;
+            plate.SetParent(parent, false);
+            plate.localPosition = position;
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+            var size = new Vector2(name.Length * 0.62f + 1.4f, 1.6f);
+            Plate("Borde", plate, rounded, size + new Vector2(0.16f, 0.16f), PlayerSandboxBuilder.Cafe, LabelOrder);
+            Plate("Fondo", plate, rounded, size, PlayerSandboxBuilder.Crema, LabelOrder + 1);
+
+            var label = new GameObject("Texto", typeof(RectTransform), typeof(TextMeshPro));
+            label.transform.SetParent(plate, false);
+            ((RectTransform)label.transform).sizeDelta = size;
+            var text = label.GetComponent<TextMeshPro>();
+            text.text = name;
+            text.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            text.fontSize = 9f;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = PlayerSandboxBuilder.Cafe;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.sortingOrder = LabelOrder + 2;
+        }
+
+        private static void Plate(string name, Transform parent, Sprite sprite, Vector2 size, Color color, int order)
+        {
+            var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
+            renderer.transform.SetParent(parent, false);
+            renderer.sprite = sprite;
+            renderer.drawMode = SpriteDrawMode.Sliced;
+            // El sprite redondeado es de UI (en píxeles): se achica para que sus esquinas queden proporcionadas.
+            const float cornerScale = 0.25f;
+            renderer.transform.localScale = Vector3.one * cornerScale;
+            renderer.size = size / cornerScale;
+            renderer.color = color;
+            renderer.sortingOrder = order;
+        }
+
+        // Ulises a tamaño de ficha, con su sombra; usa sus animaciones de reposo y de correr.
+        private static (Transform, Transform, Animator) CreateToken(PlayerSandboxBuilder.LevelContext level, Vector2 position)
+        {
+            var token = new GameObject("Ulises (ficha)").transform;
+            token.position = position;
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            Rect("Sombra", token, circle, new Vector2(0f, 0.05f), new Vector2(2.2f, 0.6f), new Color(0f, 0f, 0f, 0.3f), TokenOrder - 1);
+
+            var visual = new GameObject("Visual").transform;
+            visual.SetParent(token, false);
+            // Más grande que en los niveles: es la ficha del tablero y tiene que verse en el mapa completo.
+            visual.localScale = Vector3.one * 2f;
+            var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = TokenOrder;
+            Animator animator = null;
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.UlisesControllerPath);
+            if (controller != null)
+            {
+                animator = visual.gameObject.AddComponent<Animator>();
+                animator.runtimeAnimatorController = controller;
+            }
+            else
+            {
+                renderer.sprite = level.Square;
+                renderer.color = new Color(0.169f, 0.118f, 0.086f);
+                visual.localPosition = new Vector3(0f, 0.8f, 0f);
+                visual.localScale = new Vector3(0.8f, 1.6f, 1f);
+            }
+            return (token, visual, animator);
+        }
+
+        // ---------- HUD ----------
+
+        // Abajo: nombre del lugar, frase, estado y "Entrar". Arriba: cómo elegir lugar.
+        private static LocationPanel CreateLocationPanel()
+        {
+            Transform canvas = MenuScenesBuilder.CreateCanvas("HUD del mapa");
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+
+            var hint = new GameObject("Ayuda", typeof(RectTransform));
+            var hintRect = (RectTransform)hint.transform;
+            hintRect.SetParent(canvas, false);
+            // Arriba a la izquierda, sobre las colinas (al centro taparía el nombre del mercado).
+            hintRect.anchorMin = hintRect.anchorMax = new Vector2(0f, 1f);
+            hintRect.anchoredPosition = new Vector2(330f, -60f);
+            RectTransform hintCard = MenuScenesBuilder.CreateCard("Tarjeta", hintRect, rounded, new Vector2(560f, 64f), MenuScenesBuilder.Crema);
+            MenuScenesBuilder.CreateText("Texto", hintCard, "Flechas o clic: elegir lugar", font, 28, MenuScenesBuilder.Cafe, stretch: true);
+
+            var root = new GameObject("Ventanita del lugar", typeof(RectTransform), typeof(CanvasGroup));
+            var rootRect = (RectTransform)root.transform;
+            rootRect.SetParent(canvas, false);
+            // Abajo a la izquierda, sobre el mar (al centro tapaba El Horno).
+            rootRect.anchorMin = rootRect.anchorMax = new Vector2(0f, 0f);
+            rootRect.anchoredPosition = new Vector2(450f, 150f);
+            rootRect.sizeDelta = new Vector2(800f, 240f);
+
+            RectTransform card = MenuScenesBuilder.CreateCard("Tarjeta", rootRect, rounded, new Vector2(800f, 240f), MenuScenesBuilder.Crema);
+            TMP_Text title = MenuScenesBuilder.CreateText("Nombre", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 54,
+                MenuScenesBuilder.Cafe, position: new Vector2(0f, 68f), rectSize: new Vector2(780f, 72f));
+            TMP_Text subtitle = MenuScenesBuilder.CreateText("Frase", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
+                MenuScenesBuilder.TintaClara, position: new Vector2(0f, 16f), rectSize: new Vector2(780f, 40f));
+            TMP_Text status = MenuScenesBuilder.CreateText("Estado", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
+                MenuScenesBuilder.Cafe, position: new Vector2(0f, -30f), rectSize: new Vector2(780f, 40f));
+
+            var prompt = new GameObject("Entrar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var promptRect = (RectTransform)prompt.transform;
+            promptRect.SetParent(card, false);
+            promptRect.anchoredPosition = new Vector2(0f, -80f);
+            promptRect.sizeDelta = new Vector2(400f, 54f);
+            var layout = prompt.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 12f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            Image icon = MenuScenesBuilder.CreatePromptIcon(promptRect);
+            icon.GetComponent<LayoutElement>().preferredWidth = icon.GetComponent<LayoutElement>().preferredHeight = 50f;
+            MenuScenesBuilder.CreatePromptLabel(promptRect, font, "Entrar").fontSize = 36;
+            var bar = prompt.AddComponent<ButtonPromptBar>();
+            MenuScenesBuilder.SetField(bar, "confirmIcon", icon);
+            MenuScenesBuilder.SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_q", "kb_e");
+            MenuScenesBuilder.SetPromptSet(bar, "xbox", "xbox_a", "xbox_b", "xbox_lb", "xbox_rb");
+            MenuScenesBuilder.SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_l1", "ps_r1");
+
+            var panel = root.AddComponent<LocationPanel>();
+            MenuScenesBuilder.SetField(panel, "group", root.GetComponent<CanvasGroup>());
+            MenuScenesBuilder.SetField(panel, "card", card);
+            MenuScenesBuilder.SetField(panel, "title", title);
+            MenuScenesBuilder.SetField(panel, "subtitle", subtitle);
+            MenuScenesBuilder.SetField(panel, "status", status);
+            MenuScenesBuilder.SetField(panel, "enterPrompt", prompt);
+            return panel;
+        }
+
+        // ---------- Sprites ----------
+
+        // El dibujo del mapa es grande (~5500 px): se importa sin el tope normal de 2048 y comprimido en alta calidad.
+        private static Sprite LoadMapSprite(string path)
+        {
+            if (!File.Exists(path))
+                return null;
+            Sprite sprite = MenuScenesBuilder.LoadUiSprite(path);
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer &&
+                (importer.maxTextureSize != 8192 || importer.textureCompression != TextureImporterCompression.CompressedHQ))
+            {
+                importer.maxTextureSize = 8192;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                importer.SaveAndReimport();
+                sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+            return sprite;
         }
 
         /// <summary>
@@ -226,57 +417,6 @@ namespace Odisea.EditorTools
                 AssetDatabase.ImportAsset(target, ImportAssetOptions.ForceSynchronousImport);
             }
             return MenuScenesBuilder.LoadUiSprite(target);
-        }
-
-        // Arriba al centro: nombre del lugar, frase, estado y "Entrar" con arriba (W / stick / cruceta).
-        private static LocationPanel CreateLocationPanel()
-        {
-            Transform canvas = MenuScenesBuilder.CreateCanvas("HUD del mapa");
-            var root = new GameObject("Ventanita del lugar", typeof(RectTransform), typeof(CanvasGroup));
-            var rootRect = (RectTransform)root.transform;
-            rootRect.SetParent(canvas, false);
-            rootRect.anchorMin = rootRect.anchorMax = new Vector2(0.5f, 1f);
-            rootRect.anchoredPosition = new Vector2(0f, -170f);
-            rootRect.sizeDelta = new Vector2(860f, 250f);
-
-            RectTransform card = MenuScenesBuilder.CreateCard("Tarjeta", rootRect, UiAssetsBuilder.EnsureRoundedSprite(),
-                new Vector2(860f, 250f), MenuScenesBuilder.Crema);
-            TMP_Text title = MenuScenesBuilder.CreateText("Nombre", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 56,
-                MenuScenesBuilder.Cafe, position: new Vector2(0f, 70f), rectSize: new Vector2(800f, 76f));
-            TMP_Text subtitle = MenuScenesBuilder.CreateText("Frase", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 30,
-                MenuScenesBuilder.TintaClara, position: new Vector2(0f, 15f), rectSize: new Vector2(800f, 44f));
-            TMP_Text status = MenuScenesBuilder.CreateText("Estado", card, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 30,
-                MenuScenesBuilder.Cafe, position: new Vector2(0f, -35f), rectSize: new Vector2(800f, 44f));
-
-            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
-            var prompt = new GameObject("Entrar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            var promptRect = (RectTransform)prompt.transform;
-            promptRect.SetParent(card, false);
-            promptRect.anchoredPosition = new Vector2(0f, -85f);
-            promptRect.sizeDelta = new Vector2(400f, 56f);
-            var layout = prompt.GetComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = layout.childControlHeight = true;
-            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-            Image icon = MenuScenesBuilder.CreatePromptIcon(promptRect);
-            icon.GetComponent<LayoutElement>().preferredWidth = icon.GetComponent<LayoutElement>().preferredHeight = 52f;
-            MenuScenesBuilder.CreatePromptLabel(promptRect, font, "Entrar").fontSize = 38;
-            var bar = prompt.AddComponent<ButtonPromptBar>();
-            MenuScenesBuilder.SetField(bar, "confirmIcon", icon);
-            // Se entra con arriba, como a una puerta (A / Espacio es saltar).
-            MenuScenesBuilder.SetPromptSet(bar, "keyboard", "kb_w", "kb_esc", "kb_q", "kb_e");
-            MenuScenesBuilder.SetPromptSet(bar, "xbox", "xbox_stick_v", "xbox_b", "xbox_lb", "xbox_rb");
-            MenuScenesBuilder.SetPromptSet(bar, "playStation", "ps_stick_v", "ps_circle", "ps_l1", "ps_r1");
-
-            var panel = root.AddComponent<LocationPanel>();
-            MenuScenesBuilder.SetField(panel, "group", root.GetComponent<CanvasGroup>());
-            MenuScenesBuilder.SetField(panel, "card", card);
-            MenuScenesBuilder.SetField(panel, "title", title);
-            MenuScenesBuilder.SetField(panel, "subtitle", subtitle);
-            MenuScenesBuilder.SetField(panel, "status", status);
-            MenuScenesBuilder.SetField(panel, "enterPrompt", prompt);
-            return panel;
         }
 
         private static SpriteRenderer Rect(string name, Transform parent, Sprite sprite, Vector2 localPosition, Vector2 size,
