@@ -154,9 +154,12 @@ namespace Odisea.EditorTools
             cam.orthographicSize = height / 2f;
             cam.backgroundColor = PlayerSandboxBuilder.Cafe;
 
+            // Con música propia del mapa, esa; si no, la del menú, que sigue sin cortarse desde el menú.
             string[] extensions = { ".ogg", ".mp3", ".wav" };
-            string music = extensions.Any(ext => File.Exists(MapMusicPath + ext)) ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
-            GameSoundsBuilder.CreateMusic("Música del mapa", music);
+            if (extensions.Any(ext => File.Exists(MapMusicPath + ext)))
+                GameSoundsBuilder.CreateMusic("Música del mapa", MapMusicPath);
+            else
+                MenuScenesBuilder.CreateMenuMusic();
             var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
             if (pausePrefab != null)
             {

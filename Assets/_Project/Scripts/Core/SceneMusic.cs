@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -7,6 +8,8 @@ namespace Odisea.Core
     /// Música de fondo de una escena (el menú principal o un nivel): entra con un fundido suave, se repite en loop,
     /// sigue el volumen de música de Opciones y se desvanece en cuanto empieza un cambio de escena, mientras se
     /// cierra el iris. En un nivel, opcionalmente se apaga rápido cuando muere Ulises (para que se oiga la muerte).
+    /// Si va a una escena de <see cref="continueInto"/> (la del menú: partidas, historia, mapa) sigue sonando sin
+    /// cortarse, y esa escena, al traer la misma canción, deja la que ya sonaba.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public class SceneMusic : MonoBehaviour
@@ -17,6 +20,13 @@ namespace Odisea.Core
         [Tooltip("Opcional (niveles): la vida del jugador. Al morir, la música se apaga en deathFadeOut segundos.")]
         [SerializeField] private Health fadeOnDeath;
         [SerializeField, Min(0.01f)] private float deathFadeOut = 0.5f;
+        [Tooltip("Escenas a las que la canción pasa sin cortarse (por nombre). A las demás se desvanece.")]
+        [SerializeField] private string[] continueInto = Array.Empty<string>();
+
+        // La que está sonando ahora (puede venir de una escena anterior).
+        private static SceneMusic playing;
+        // Ya pasó a otra escena: sobrevive al cambio y se destruye al desvanecerse.
+        private bool carried;
 
         private AudioSource source;
         // Multiplicador del fundido (0 a 1); el volumen final es fundido × volumen de música.
@@ -26,6 +36,13 @@ namespace Odisea.Core
         private void Awake()
         {
             source = GetComponent<AudioSource>();
+            // Ya suena la misma canción desde la escena anterior: esta no hace nada y se quita.
+            if (playing != null && playing != this && playing.source.clip == source.clip && source.clip != null)
+            {
+                enabled = false;
+                Destroy(gameObject);
+                return;
+            }
             source.loop = true;
             source.playOnAwake = false;
             source.spatialBlend = 0f;
@@ -53,13 +70,33 @@ namespace Odisea.Core
         {
             if (source.clip == null)
                 return;
+            playing = this;
             source.Play();
             FadeTo(1f, fadeInDuration);
         }
 
+        private void OnDestroy()
+        {
+            if (playing == this)
+                playing = null;
+        }
+
         private void OnMusicVolumeChanged(float _) => ApplyVolume();
 
-        private void OnLoadStarted(string sceneName) => FadeTo(0f, fadeOutDuration);
+        private void OnLoadStarted(string sceneName)
+        {
+            if (Array.IndexOf(continueInto, sceneName) >= 0)
+            {
+                if (!carried)
+                {
+                    carried = true;
+                    transform.SetParent(null);
+                    DontDestroyOnLoad(gameObject);
+                }
+                return;
+            }
+            FadeTo(0f, fadeOutDuration);
+        }
 
         private void OnPlayerDied() => FadeTo(0f, deathFadeOut);
 
@@ -81,9 +118,14 @@ namespace Odisea.Core
             }
             fade = target;
             ApplyVolume();
-            if (target <= 0f)
-                source.Stop();
             fadeRoutine = null;
+            if (target <= 0f)
+            {
+                source.Stop();
+                // Venía de otra escena: ya no pertenece a ninguna.
+                if (carried)
+                    Destroy(gameObject);
+            }
         }
 
         private void ApplyVolume() => source.volume = fade * GameSettings.MusicVolume;

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Odisea.Core;
 using Odisea.UI;
 using TMPro;
 using UnityEditor;
@@ -22,8 +23,6 @@ namespace Odisea.EditorTools
     public static class MenuScenesBuilder
     {
         private const string SourceFolder = "Docs/Referencias/Menu";
-        // Versión que muestra el pie del menú y que lleva el build (Project Settings → Player → Version).
-        private const string GameVersion = "0.1.0";
         private const string SplashScenePath = "Assets/_Project/Scenes/Menus/Splash.unity";
         private const string TitleScenePath = "Assets/_Project/Scenes/Menus/Title.unity";
         private const string MenuScenePath = "Assets/_Project/Scenes/Menus/MainMenu.unity";
@@ -46,7 +45,6 @@ namespace Odisea.EditorTools
         [MenuItem("Odisea/Menús/Crear pantalla de inicio y menú principal")]
         public static void Build()
         {
-            PlayerSettings.bundleVersion = GameVersion;
             // Primero se importan y guardan los assets. Las referencias se vuelven a cargar después de crear
             // cada escena: NewScene descarga los assets en memoria y las referencias previas quedan inválidas.
             // Cada archivo se busca por su nombre en Docs/Referencias/Menu.
@@ -1429,8 +1427,23 @@ namespace Odisea.EditorTools
 
         internal const string MenuMusicPath = "Assets/_Project/Audio/Music/musica_menu";
 
-        /// <summary>Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio).</summary>
-        internal static void CreateMenuMusic() => GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
+        /// <summary>
+        /// Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio). Es la misma en el menú,
+        /// las partidas, las historietas y el mapa: pasa entre ellas sin cortarse y solo cambia al entrar a un nivel.
+        /// </summary>
+        internal static void CreateMenuMusic()
+        {
+            SceneMusic music = GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
+            if (music == null)
+                return;
+            var serialized = new SerializedObject(music);
+            SerializedProperty scenes = serialized.FindProperty("continueInto");
+            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Story, SceneFlow.Map };
+            scenes.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+                scenes.GetArrayElementAtIndex(i).stringValue = names[i];
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         private static void SetEnum(UnityEngine.Object target, string field, int value)
         {
