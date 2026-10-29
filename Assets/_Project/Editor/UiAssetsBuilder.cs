@@ -20,8 +20,11 @@ namespace Odisea.EditorTools
         public const string OutfitExtraBold = "Outfit/Outfit-ExtraBold";
         public const string RubikRegular = "Rubik/Rubik-Regular";
         public const string RubikMedium = "Rubik/Rubik-Medium";
+        // Libro de historietas: título de cartel antiguo y texto de libro viejo.
+        public const string RyeRegular = "Rye/Rye-Regular";
+        public const string ImFellEnglish = "IMFell/IMFellEnglish-Regular";
 
-        private static readonly string[] AllFonts = { OutfitBold, OutfitExtraBold, RubikRegular, RubikMedium };
+        private static readonly string[] AllFonts = { OutfitBold, OutfitExtraBold, RubikRegular, RubikMedium, RyeRegular, ImFellEnglish };
 
         [MenuItem("Odisea/UI/Crear font assets (TextMeshPro)")]
         public static void BuildFontAssets()

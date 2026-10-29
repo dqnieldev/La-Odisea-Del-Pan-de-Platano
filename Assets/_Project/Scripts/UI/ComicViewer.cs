@@ -145,7 +145,7 @@ namespace Odisea.UI
                 counter.text = title != null ? $"{index + 1} / {story.panels.Length}"
                     : $"{story.title}   ·   {index + 1} / {story.panels.Length}";
             if (title != null)
-                title.text = story.title;
+                title.text = string.IsNullOrEmpty(data.title) ? story.title : data.title;
             if (nextLabel != null)
                 nextLabel.text = index + 1 < story.panels.Length ? "Siguiente" : "Continuar";
         }

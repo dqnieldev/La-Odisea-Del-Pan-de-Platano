@@ -14,6 +14,8 @@ namespace Odisea.UI
         [Serializable]
         public class Panel
         {
+            [Tooltip("Título arriba de la viñeta; vacío usa el de la historieta.")]
+            public string title;
             [Tooltip("Dibujo de la viñeta (horizontal, 16:9). Sin dibujo se ve un recuadro con la descripción.")]
             public Sprite art;
             [Tooltip("Texto que se lee debajo del dibujo.")]
@@ -22,7 +24,7 @@ namespace Odisea.UI
             [TextArea(2, 4)] public string placeholderNote;
         }
 
-        [Tooltip("Arriba de la página, p. ej. \"Prólogo: El Decreto del Viejo Horno\".")]
+        [Tooltip("Título de las viñetas que no tienen uno propio, p. ej. \"El Decreto del Viejo Horno\".")]
         public string title;
         public Panel[] panels = Array.Empty<Panel>();
     }

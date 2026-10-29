@@ -22,18 +22,24 @@ namespace Odisea.EditorTools
         private const string ArtFolder = "Assets/_Project/Art/Comics";
         // Papel viejo opcional (toda la hoja) y la viñeta 16:9 grande, un poco arriba para dejar lugar al texto.
         private const string PaperPath = "Assets/_Project/Art/Comics/Papel.png";
-        // Libro abierto (como el de Cuphead): la viñeta en la página derecha; título y número en la izquierda.
-        // Las posiciones son para un dibujo 16:9 con la página derecha de ~22 % a ~91 % del ancho.
+        // Libro abierto (como el de Cuphead): en la página grande, el título arriba, la viñeta y el texto abajo.
+        // Las posiciones son para un dibujo 16:9 con la página grande de ~22 % a ~91 % del ancho.
         private const string BookPath = "Assets/_Project/Art/Comics/Libro.png";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
-        private static readonly Vector2 BookPanelCenter = new(125f, 75f);
-        private static readonly Vector2 BookPanelSize = new(1120f, 630f);
-        private const float BookLeftPageX = -765f;
+        private static readonly Vector2 BookPanelCenter = new(125f, 62f);
+        private static readonly Vector2 BookPanelSize = new(1000f, 563f);
+        private static readonly Color BookTitleInk = new(0.30f, 0.20f, 0.13f);
         private static readonly Color OldPaper = new(0.910f, 0.851f, 0.722f);
         private static readonly Color OldPaperLight = new(0.945f, 0.898f, 0.788f);
         private static readonly Color OldPaperEdge = new(0.749f, 0.635f, 0.459f);
         private static readonly Color Ink = new(0.12f, 0.09f, 0.07f);
+
+        private static readonly string[] PrologueTitles =
+        {
+            "El Decreto del Viejo Horno", "Un Panadero Terco", "Sin Atajos", "Madame Circe",
+            "Lo que Está en Juego", "La Ruta", "Juego Sucio", "Antes de Partir",
+        };
 
         private static readonly (string caption, string note)[] Prologue =
         {
@@ -62,7 +68,7 @@ namespace Odisea.EditorTools
         {
             // Primero la escena: abrirla descarga los assets recién creados y sus referencias quedarían vacías.
             var scene = MenuScenesBuilder.NewScene(ScenePath);
-            ComicSequence prologue = EnsureStory(SceneFlow.PrologueStory, "Prólogo: El Decreto del Viejo Horno", Prologue);
+            ComicSequence prologue = EnsureStory(SceneFlow.PrologueStory, "Prólogo", Prologue, PrologueTitles);
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
                 .Select(guid => AssetDatabase.LoadAssetAtPath<ComicSequence>(AssetDatabase.GUIDToAssetPath(guid)))
@@ -77,23 +83,25 @@ namespace Odisea.EditorTools
             RectTransform paper;
             RectTransform panel;
             Image art;
-            TMP_Text note, caption, counter, title = null, nextLabel;
+            TMP_Text note, caption, counter = null, title = null, nextLabel;
             if (book != null)
             {
-                // El libro llena la pantalla; la página izquierda lleva el título y el número de viñeta.
+                // El libro llena la pantalla; todo va en la página grande, como una página de cuento.
                 paper = (RectTransform)canvas;
                 MenuScenesBuilder.CreateImage("Libro", paper, book, Color.white, Vector2.zero, Vector2.zero, stretch: true);
-                (panel, art, note, caption) = CreatePanel(paper, BookPanelCenter, BookPanelSize, 34);
-                title = MenuScenesBuilder.CreateText("Título", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 46,
-                    Ink, position: new Vector2(BookLeftPageX, 150f), rectSize: new Vector2(300f, 460f));
-                counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 40,
-                    MenuScenesBuilder.TintaClara, position: new Vector2(BookLeftPageX, -330f), rectSize: new Vector2(300f, 60f));
-                nextLabel = CreatePromptBar(paper, new Vector2(560f, -470f));
+                (panel, art, note, caption) = CreatePanel(paper, BookPanelCenter, BookPanelSize, 38,
+                    UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish), storybook: true);
+                // El título va dentro de la viñeta para que entre y salga junto con ella.
+                title = MenuScenesBuilder.CreateText("Título", panel, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular), 62,
+                    BookTitleInk, position: new Vector2(0f, BookPanelCenter.y + BookPanelSize.y / 2f + 62f),
+                    rectSize: new Vector2(BookPanelSize.x + 80f, 90f));
+                nextLabel = CreatePromptBar(paper, new Vector2(450f, -482f));
             }
             else
             {
                 paper = CreatePaper((RectTransform)canvas);
-                (panel, art, note, caption) = CreatePanel(paper, new Vector2(0f, PanelOffsetY), PanelSize, 38);
+                (panel, art, note, caption) = CreatePanel(paper, new Vector2(0f, PanelOffsetY), PanelSize, 38,
+                    UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium));
                 counter = MenuScenesBuilder.CreateText("Contador", paper, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 28,
                     MenuScenesBuilder.TintaClara, position: new Vector2(-560f, -478f), rectSize: new Vector2(640f, 50f),
                     alignment: TextAlignmentOptions.MidlineLeft);
@@ -108,7 +116,8 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(viewer, "art", art);
             MenuScenesBuilder.SetField(viewer, "placeholder", note);
             MenuScenesBuilder.SetField(viewer, "caption", caption);
-            MenuScenesBuilder.SetField(viewer, "counter", counter);
+            if (counter != null)
+                MenuScenesBuilder.SetField(viewer, "counter", counter);
             if (title != null)
                 MenuScenesBuilder.SetField(viewer, "title", title);
             MenuScenesBuilder.SetField(viewer, "nextLabel", nextLabel);
@@ -123,7 +132,8 @@ namespace Odisea.EditorTools
         /// Si ya existe, conserva sus textos (diseño los puede corregir en el Inspector) y solo agrega las viñetas nuevas
         /// que falten al final.
         /// </summary>
-        private static ComicSequence EnsureStory(string name, string title, (string caption, string note)[] panels)
+        private static ComicSequence EnsureStory(string name, string title, (string caption, string note)[] panels,
+            string[] panelTitles = null)
         {
             PlayerSandboxBuilder.EnsureFolder(StoriesFolder);
             string path = $"{StoriesFolder}/{name}.asset";
@@ -142,6 +152,9 @@ namespace Odisea.EditorTools
             }
             for (int i = 0; i < story.panels.Length; i++)
             {
+                // Solo llena los títulos vacíos: los que diseño haya cambiado se quedan.
+                if (panelTitles != null && i < panelTitles.Length && string.IsNullOrEmpty(story.panels[i].title))
+                    story.panels[i].title = panelTitles[i];
                 Sprite art = LoadPanelArt(name, i + 1);
                 if (art != null)
                     story.panels[i].art = art;
@@ -184,8 +197,9 @@ namespace Odisea.EditorTools
         }
 
         // La viñeta grande (16:9) con marco negro y su texto debajo; todo junto entra y sale.
+        // En el libro (storybook) el marco es de papel claro con una línea fina, como una estampa pegada en la hoja.
         private static (RectTransform, Image, TMP_Text, TMP_Text) CreatePanel(RectTransform paper, Vector2 center, Vector2 panelSize,
-            float captionSize)
+            float captionSize, TMP_FontAsset captionFont, bool storybook = false)
         {
             var root = new GameObject("Viñeta", typeof(RectTransform), typeof(CanvasGroup));
             var rect = (RectTransform)root.transform;
@@ -203,16 +217,29 @@ namespace Odisea.EditorTools
             Image shadow = MenuScenesBuilder.CreateImage("Sombra", frameRect, null, new Color(0f, 0f, 0f, 0.3f), Vector2.zero,
                 Vector2.zero, stretch: true);
             shadow.rectTransform.offsetMin = shadow.rectTransform.offsetMax = new Vector2(10f, -12f);
-            MenuScenesBuilder.CreateImage("Borde", frameRect, null, Ink, Vector2.zero, Vector2.zero, stretch: true);
-            Image art = MenuScenesBuilder.CreateImage("Dibujo", frameRect, null, Color.white, Vector2.zero, Vector2.zero, stretch: true, inset: 10f);
+            Image art;
+            if (storybook)
+            {
+                shadow.color = new Color(0.25f, 0.16f, 0.08f, 0.25f);
+                MenuScenesBuilder.CreateImage("Borde", frameRect, null, OldPaperEdge, Vector2.zero, Vector2.zero, stretch: true);
+                MenuScenesBuilder.CreateImage("Paspartú", frameRect, null, OldPaperLight, Vector2.zero, Vector2.zero, stretch: true, inset: 3f);
+                MenuScenesBuilder.CreateImage("Línea", frameRect, null, OldPaperEdge, Vector2.zero, Vector2.zero, stretch: true, inset: 15f);
+                art = MenuScenesBuilder.CreateImage("Dibujo", frameRect, null, Color.white, Vector2.zero, Vector2.zero, stretch: true, inset: 17f);
+            }
+            else
+            {
+                MenuScenesBuilder.CreateImage("Borde", frameRect, null, Ink, Vector2.zero, Vector2.zero, stretch: true);
+                art = MenuScenesBuilder.CreateImage("Dibujo", frameRect, null, Color.white, Vector2.zero, Vector2.zero, stretch: true, inset: 10f);
+            }
             TMP_Text note = MenuScenesBuilder.CreateText("Descripción (sin dibujo)", frameRect, "",
                 UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 40, Ink, stretch: true);
             ((RectTransform)note.transform).offsetMin = new Vector2(120f, 80f);
             ((RectTransform)note.transform).offsetMax = new Vector2(-120f, -80f);
             note.fontStyle = FontStyles.Italic;
 
-            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", rect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), captionSize,
-                Ink, position: new Vector2(0f, center.y - panelSize.y / 2f - 72f), rectSize: new Vector2(panelSize.x, 110f),
+            TMP_Text caption = MenuScenesBuilder.CreateText("Texto", rect, "", captionFont, captionSize,
+                Ink, position: new Vector2(0f, center.y - panelSize.y / 2f - (storybook ? 92f : 72f)),
+                rectSize: new Vector2(storybook ? panelSize.x + 60f : panelSize.x, storybook ? 150f : 110f),
                 alignment: TextAlignmentOptions.Top);
             caption.lineSpacing = -8f;
             return (rect, art, note, caption);
