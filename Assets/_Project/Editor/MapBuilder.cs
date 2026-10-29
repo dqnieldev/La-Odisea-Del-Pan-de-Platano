@@ -144,6 +144,15 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(map, "tokenVisual", visual);
             if (animator != null)
                 MenuScenesBuilder.SetField(map, "tokenAnimator", animator);
+            // Ulises chibi (ulises_mapa.png importado con Odisea > Arte > Importar arte de la sandbox).
+            Sprite[] idle = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapIdlePath);
+            Sprite[] walk = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapWalkPath);
+            if (idle.Length > 0 && walk.Length > 0)
+            {
+                MenuScenesBuilder.SetField(map, "tokenRenderer", visual.GetComponent<SpriteRenderer>());
+                PlayerSandboxBuilder.SetSerialized(map, "idleFrames", idle.Cast<Object>().ToArray());
+                PlayerSandboxBuilder.SetSerialized(map, "walkFrames", walk.Cast<Object>().ToArray());
+            }
             MenuScenesBuilder.SetField(map, "panel", panel);
             GameSoundsBuilder.SetSound(map, "footstep", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "paso"), 0.25f);
 
@@ -278,14 +287,21 @@ namespace Odisea.EditorTools
 
             var visual = new GameObject("Visual").transform;
             visual.SetParent(token, false);
-            // Más grande que en los niveles: es la ficha del tablero y tiene que verse en el mapa completo.
-            visual.localScale = Vector3.one * 2f;
             var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = TokenOrder;
             Animator animator = null;
             var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.UlisesControllerPath);
-            if (controller != null)
+            Sprite[] chibi = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapIdlePath);
+            if (chibi.Length > 0)
             {
+                // Ulises chibi: del alto de la puerta de un edificio.
+                renderer.sprite = chibi[0];
+                visual.localScale = Vector3.one * (3.4f / chibi[0].bounds.size.y);
+            }
+            else if (controller != null)
+            {
+                // Más grande que en los niveles: es la ficha del tablero y tiene que verse en el mapa completo.
+                visual.localScale = Vector3.one * 2f;
                 animator = visual.gameObject.AddComponent<Animator>();
                 animator.runtimeAnimatorController = controller;
             }

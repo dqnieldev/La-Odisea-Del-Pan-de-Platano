@@ -40,7 +40,14 @@ namespace Odisea.Map
         [SerializeField] private Transform token;
         [Tooltip("El dibujo (hijo): se voltea según hacia dónde camina.")]
         [SerializeField] private Transform tokenVisual;
+        [Tooltip("Sin cuadros de la ficha: las animaciones de Ulises de los niveles.")]
         [SerializeField] private Animator tokenAnimator;
+        [Tooltip("Ulises chibi del mapa: sus cuadros de reposo y de caminar (si hay, se usan en vez del Animator).")]
+        [SerializeField] private SpriteRenderer tokenRenderer;
+        [SerializeField] private Sprite[] idleFrames = Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] walkFrames = Array.Empty<Sprite>();
+        [SerializeField, Min(0.1f)] private float idleFps = 2.5f;
+        [SerializeField, Min(0.1f)] private float walkFps = 9f;
         [SerializeField, Min(0.1f)] private float speed = 9f;
         [SerializeField] private LocationPanel panel;
         [SerializeField] private SoundEffect footstep = new();
@@ -76,8 +83,7 @@ namespace Odisea.Map
         {
             if (Walking)
                 Walk();
-            if (tokenAnimator != null)
-                tokenAnimator.SetFloat(SpeedId, Walking ? speed : 0f);
+            AnimateToken();
             if (entering || Walking || SceneFlow.IsLoading || Time.timeScale == 0f)
                 return;
 
@@ -94,6 +100,20 @@ namespace Odisea.Map
                 Step(step);
             else if (ConfirmPressed())
                 TryEnter();
+        }
+
+        private void AnimateToken()
+        {
+            Sprite[] frames = Walking ? walkFrames : idleFrames;
+            if (tokenRenderer != null && frames.Length > 0)
+            {
+                float fps = Walking ? walkFps : idleFps;
+                tokenRenderer.sprite = frames[(int)(Time.unscaledTime * fps) % frames.Length];
+            }
+            else if (tokenAnimator != null)
+            {
+                tokenAnimator.SetFloat(SpeedId, Walking ? speed : 0f);
+            }
         }
 
         // ← →: al lugar abierto anterior o siguiente en el orden de la historia (los bloqueados se saltan).
