@@ -24,6 +24,10 @@ namespace Odisea.EditorTools
         // Copias recortadas a lo dibujado (los PNG vienen con mucho margen transparente).
         private const string TrimmedFolder = "Assets/_Project/Art/Map/Recortes";
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
+        // Punto blanco difuso del ambiente (humo, polvo, destellos, sombras de nubes) y el aro del lugar elegido.
+        private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
+        private const string RingPath = "Assets/_Project/Art/Placeholders/Anillo.png";
+        private const string UnlockSoundPath = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
 
         // El mapa mide Width de ancho (el alto sale de la proporción del dibujo) y llena la pantalla.
         private const float Width = 64f;
@@ -33,6 +37,18 @@ namespace Odisea.EditorTools
         private const float PlaceBaseDrop = 2.7f;
         private static readonly Vector2 ClickArea = new(7f, 6.2f);
         private const int PlaceOrder = 10, LabelOrder = 40, TokenOrder = 100;
+        // Puntitos de los caminos: cada cuánto y qué tan lejos de los lugares empiezan.
+        private const float DotSpacing = 0.95f, DotMargin = 1.1f;
+
+        // Ambiente medido en el dibujo (px de la referencia): agua donde brillan los destellos y la punta de la
+        // chimenea de la panadería.
+        private static readonly Rect[] SeaAreas =
+        {
+            new(610f, 610f, 520f, 140f),
+            new(1120f, 680f, 130f, 70f),
+            new(20f, 575f, 560f, 30f),
+        };
+        private static readonly Vector2 Chimney = new(137f, 372f);
 
         private readonly struct Place
         {
@@ -155,6 +171,21 @@ namespace Odisea.EditorTools
             }
             MenuScenesBuilder.SetField(map, "panel", panel);
             GameSoundsBuilder.SetSound(map, "footstep", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "paso"), 0.25f);
+
+            // ----- Efectos: puntitos de los caminos, flecha y anillo del lugar elegido, ambiente -----
+            CreatePathDots(map, root, circle);
+            MenuScenesBuilder.SetField(map, "marker", CreateMarker(root, square));
+            var ring = AssetDatabase.LoadAssetAtPath<Sprite>(RingPath);
+            if (ring != null)
+            {
+                SpriteRenderer highlight = Rect("Anillo del lugar", root, ring, Vector2.zero, ring.bounds.size, Platano, PlaceOrder - 1);
+                MenuScenesBuilder.SetField(map, "highlight", highlight);
+            }
+            MenuScenesBuilder.SetField(map, "ambience", CreateAmbience(square));
+            GameSoundsBuilder.SetSound(map, "dotSound", new[] { UiAssetsBuilder.LoadUiSound("ui_hover") }, 0.25f);
+            var unlock = AssetDatabase.LoadAssetAtPath<AudioClip>(UnlockSoundPath);
+            if (unlock != null)
+                GameSoundsBuilder.SetSound(map, "unlockSound", new[] { unlock }, 0.6f);
 
             // ----- Cámara fija con todo el mapa, música y pausa -----
             var camera = GameObject.Find("Main Camera");
@@ -322,6 +353,116 @@ namespace Odisea.EditorTools
                 visual.localScale = new Vector3(0.8f, 1.6f, 1f);
             }
             return (token, visual, animator);
+        }
+
+        // ---------- Efectos ----------
+
+        private static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
+
+        // Puntitos crema con orilla café a lo largo de cada tramo (OverworldMap muestra solo los de tramos abiertos).
+        private static void CreatePathDots(OverworldMap map, Transform root, Sprite circle)
+        {
+            var serialized = new SerializedObject(map);
+            SerializedProperty edges = serialized.FindProperty("edges");
+            for (int i = 0; i < Paths.Length; i++)
+            {
+                var line = new System.Collections.Generic.List<Vector2> { Node(Paths[i].from) };
+                line.AddRange(Paths[i].points.Select(P));
+                line.Add(Node(Paths[i].to));
+                float length = 0f;
+                for (int k = 1; k < line.Count; k++)
+                    length += Vector2.Distance(line[k - 1], line[k]);
+
+                var group = new GameObject($"Camino {i + 1}").transform;
+                group.SetParent(root, false);
+                for (float d = DotMargin; d <= length - DotMargin; d += DotSpacing)
+                {
+                    var dot = new GameObject("Puntito").transform;
+                    dot.SetParent(group, false);
+                    dot.position = AlongLine(line, d);
+                    Rect("Orilla", dot, circle, Vector2.zero, new Vector2(0.42f, 0.42f), PlayerSandboxBuilder.Cafe, PlaceOrder - 2);
+                    Rect("Punto", dot, circle, Vector2.zero, new Vector2(0.28f, 0.28f), PlayerSandboxBuilder.Crema, PlaceOrder - 1);
+                }
+                edges.GetArrayElementAtIndex(i).FindPropertyRelative("dots").objectReferenceValue = group;
+            }
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Vector2 Node(int index) => index < Places.Length ? P(Places[index].Stand) : P(Junction);
+
+        private static Vector2 AlongLine(System.Collections.Generic.List<Vector2> line, float distance)
+        {
+            for (int k = 1; k < line.Count; k++)
+            {
+                float segment = Vector2.Distance(line[k - 1], line[k]);
+                if (distance <= segment)
+                    return Vector2.Lerp(line[k - 1], line[k], segment > 0f ? distance / segment : 0f);
+                distance -= segment;
+            }
+            return line[line.Count - 1];
+        }
+
+        // Flecha amarilla con orilla café que apunta hacia abajo (dos rombos estirados).
+        private static Transform CreateMarker(Transform root, Sprite square)
+        {
+            var marker = new GameObject("Flecha del lugar").transform;
+            marker.SetParent(root, false);
+            SpriteRenderer edge = Rect("Orilla", marker, square, Vector2.zero, new Vector2(1.05f, 1.05f), PlayerSandboxBuilder.Cafe,
+                LabelOrder + 5);
+            SpriteRenderer fill = Rect("Relleno", marker, square, new Vector2(0f, 0.05f), new Vector2(0.75f, 0.75f), Platano,
+                LabelOrder + 6);
+            edge.transform.localRotation = fill.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            marker.localScale = new Vector3(1.3f, 1.8f, 1f);
+            return marker;
+        }
+
+        private static MapAmbience CreateAmbience(Sprite square)
+        {
+            Sprite softDot = EnsureSoftDot();
+            var ambience = new GameObject("Ambiente").AddComponent<MapAmbience>();
+            MenuScenesBuilder.SetField(ambience, "softDot", softDot);
+            MenuScenesBuilder.SetField(ambience, "square", square);
+            var serialized = new SerializedObject(ambience);
+            serialized.FindProperty("bounds").rectValue = new UnityEngine.Rect(-Width / 2f, -height / 2f, Width, height);
+            SerializedProperty sea = serialized.FindProperty("seaAreas");
+            sea.arraySize = SeaAreas.Length;
+            for (int i = 0; i < SeaAreas.Length; i++)
+            {
+                Vector2 min = P(new Vector2(SeaAreas[i].xMin, SeaAreas[i].yMax));
+                Vector2 max = P(new Vector2(SeaAreas[i].xMax, SeaAreas[i].yMin));
+                sea.GetArrayElementAtIndex(i).rectValue = UnityEngine.Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            }
+            serialized.FindProperty("chimney").vector2Value = P(Chimney);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return ambience;
+        }
+
+        /// <summary>Punto blanco con orilla difusa, de 1 unidad de ancho.</summary>
+        private static Sprite EnsureSoftDot()
+        {
+            if (!File.Exists(SoftDotPath))
+            {
+                const int size = 128;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(size / 2f, size / 2f)) / (size / 2f);
+                    float alpha = Mathf.Clamp01(1f - d);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha * alpha * (3f - 2f * alpha)));
+                }
+                File.WriteAllBytes(SoftDotPath, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(SoftDotPath, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(SoftDotPath);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = size;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath);
         }
 
         // ---------- HUD ----------

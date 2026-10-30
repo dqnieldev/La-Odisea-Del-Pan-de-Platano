@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Odisea.Core;
 using Odisea.UI;
@@ -12,6 +13,8 @@ namespace Odisea.Map
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
     /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
     /// avisan qué hay que terminar antes.
+    /// Los caminos abiertos se ven con puntitos; al volver con un lugar recién abierto, su camino se dibuja punto por
+    /// punto y el lugar brinca. Sobre el lugar elegido rebota una flecha y brilla un anillo.
     /// </summary>
     public class OverworldMap : MonoBehaviour
     {
@@ -29,6 +32,8 @@ namespace Odisea.Map
             public int from, to;
             [Tooltip("Puntos intermedios, de from a to, siguiendo el camino dibujado.")]
             public Vector2[] points = Array.Empty<Vector2>();
+            [Tooltip("Puntitos del camino (hijos en orden de from a to); solo se ven si el tramo está abierto.")]
+            public Transform dots;
         }
 
         [SerializeField] private Node[] nodes = Array.Empty<Node>();
@@ -52,15 +57,33 @@ namespace Odisea.Map
         [SerializeField] private LocationPanel panel;
         [SerializeField] private SoundEffect footstep = new();
         [SerializeField, Min(0.05f)] private float footstepInterval = 0.28f;
+        [Tooltip("Cuánto brinca la ficha al caminar (unidades).")]
+        [SerializeField, Min(0f)] private float walkBounce = 0.22f;
+
+        [Header("Efectos")]
+        [Tooltip("Polvito de los pasos (opcional).")]
+        [SerializeField] private MapAmbience ambience;
+        [SerializeField] private Color dustColor = new(0.85f, 0.72f, 0.52f, 0.8f);
+        [Tooltip("Flecha que rebota sobre el letrero del lugar elegido.")]
+        [SerializeField] private Transform marker;
+        [Tooltip("Anillo que brilla en el claro del lugar elegido.")]
+        [SerializeField] private SpriteRenderer highlight;
+        [Tooltip("Al estrenar un lugar: tiempo entre un puntito del camino y el siguiente.")]
+        [SerializeField, Min(0.01f)] private float dotInterval = 0.07f;
+        [SerializeField] private SoundEffect dotSound = new();
+        [SerializeField] private SoundEffect unlockSound = new();
 
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
 
         private readonly List<Vector2> route = new();
         private int current, target = -1;
-        private bool entering;
+        private bool entering, revealing;
         private float stepTimer;
         private int lastHorizontal;
+        private Vector3 visualHome, markerScale = Vector3.one;
+        private Color highlightColor = Color.white;
+        private float focus;
 
         private bool Walking => route.Count > 0;
 
@@ -76,7 +99,14 @@ namespace Odisea.Map
             token.position = nodes[current].position;
             if (tokenAnimator != null)
                 tokenAnimator.SetBool(IsGroundedId, true);
+            if (tokenVisual != null)
+                visualHome = tokenVisual.localPosition;
+            if (marker != null)
+                markerScale = marker.localScale;
+            if (highlight != null)
+                highlightColor = highlight.color;
             ShowCurrent();
+            StartCoroutine(RevealPaths());
         }
 
         private void Update()
@@ -84,7 +114,8 @@ namespace Odisea.Map
             if (Walking)
                 Walk();
             AnimateToken();
-            if (entering || Walking || SceneFlow.IsLoading || Time.timeScale == 0f)
+            AnimateFocus();
+            if (entering || revealing || Walking || SceneFlow.IsLoading || Time.timeScale == 0f)
                 return;
 
             if (ClickedLocation(out int clicked))
@@ -114,6 +145,149 @@ namespace Odisea.Map
             {
                 tokenAnimator.SetFloat(SpeedId, Walking ? speed : 0f);
             }
+            // Brinquitos al caminar (uno por paso).
+            if (tokenVisual != null)
+            {
+                float hop = Walking ? Mathf.Abs(Mathf.Sin(Time.time * Mathf.PI / footstepInterval)) * walkBounce : 0f;
+                Vector3 position = tokenVisual.localPosition;
+                position.y = Mathf.MoveTowards(position.y, visualHome.y + hop, Time.deltaTime * 4f);
+                tokenVisual.localPosition = position;
+            }
+        }
+
+        // Flecha y anillo sobre el lugar donde está Ulises; su letrero crece un poco. Se apagan mientras camina.
+        private void AnimateFocus()
+        {
+            MapLocation location = nodes[current].location;
+            focus = Mathf.MoveTowards(focus, Walking || location == null ? 0f : 1f, Time.deltaTime * 4f);
+            foreach (Node node in nodes)
+            {
+                Transform plate = node.location != null ? node.location.transform.Find("Nombre") : null;
+                if (plate == null)
+                    continue;
+                float target = node.location == location && !Walking ? 1.12f : 1f;
+                plate.localScale = Vector3.one * Mathf.MoveTowards(plate.localScale.x, target, Time.deltaTime * 1.5f);
+            }
+            if (location == null)
+                return;
+
+            if (marker != null)
+                PlaceMarker(location);
+            if (highlight != null)
+            {
+                highlight.transform.position = location.transform.position;
+                float pulse = 0.75f + Mathf.Sin(Time.time * 3f) * 0.25f;
+                highlight.color = new Color(highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a * pulse * focus);
+                float size = HighlightSize / Mathf.Max(0.01f, highlight.sprite.bounds.size.x);
+                highlight.transform.localScale = Vector3.one * size * (1f + Mathf.Sin(Time.time * 3f) * 0.03f);
+            }
+        }
+
+        // Arriba del letrero, apuntando hacia abajo; si ahí se sale de la pantalla, a su izquierda apuntando a él.
+        private void PlaceMarker(MapLocation location)
+        {
+            float bounce = Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 0.45f;
+            Transform plate = location.transform.Find("Nombre");
+            var renderer = plate != null ? plate.GetComponentInChildren<SpriteRenderer>() : null;
+            Bounds bounds = renderer != null ? renderer.bounds : new Bounds(location.transform.position + Vector3.up * 4f, Vector3.one);
+            Camera view = Camera.main;
+            float top = view != null ? view.transform.position.y + view.orthographicSize : float.MaxValue;
+            Vector3 above = new(bounds.center.x, bounds.max.y + 0.9f + bounce, 0f);
+            if (above.y + 0.9f <= top)
+            {
+                marker.SetPositionAndRotation(above, Quaternion.identity);
+            }
+            else
+            {
+                marker.SetPositionAndRotation(new Vector3(bounds.min.x - 0.9f - bounce, bounds.center.y, 0f),
+                    Quaternion.Euler(0f, 0f, 90f));
+            }
+            marker.localScale = markerScale * focus;
+        }
+
+        // Ancho del anillo en el mundo: un poco más que el claro de un lugar.
+        private const float HighlightSize = 9f;
+
+        // ---------- Caminos abiertos y lugares nuevos ----------
+
+        // Lugar del tramo que lo abre: el más adelante en la historia de sus dos puntas (los cruces no cuentan).
+        private int Gate(Edge edge) => Mathf.Max(StoryIndex(edge.from), StoryIndex(edge.to));
+
+        private int StoryIndex(int node) => nodes[node].location != null ? Array.IndexOf(locationOrder, node) : -1;
+
+        private bool IsOpen(Edge edge)
+        {
+            int gate = Gate(edge);
+            return gate < 0 || !nodes[locationOrder[gate]].location.IsLocked;
+        }
+
+        // Muestra los puntitos de los tramos abiertos. Los de lugares recién abiertos se dibujan uno por uno, y al
+        // terminar cada uno el lugar brinca. Mientras tanto no se puede elegir lugar.
+        private IEnumerator RevealPaths()
+        {
+            int open = 0;
+            for (int i = 0; i < locationOrder.Length; i++)
+            {
+                if (!nodes[locationOrder[i]].location.IsLocked)
+                    open = i + 1;
+            }
+            int seen = GameProgress.MapRevealed;
+            var fresh = new List<Edge>();
+            foreach (Edge edge in edges)
+            {
+                if (edge.dots == null)
+                    continue;
+                bool isOpen = IsOpen(edge);
+                bool isNew = isOpen && Gate(edge) >= seen;
+                edge.dots.gameObject.SetActive(isOpen);
+                if (!isNew)
+                    continue;
+                fresh.Add(edge);
+                foreach (Transform dot in edge.dots)
+                    dot.localScale = Vector3.zero;
+            }
+            if (fresh.Count == 0)
+            {
+                GameProgress.MapRevealed = Mathf.Max(seen, open);
+                yield break;
+            }
+
+            revealing = true;
+            fresh.Sort((a, b) => Gate(a).CompareTo(Gate(b)));
+            yield return new WaitForSeconds(0.5f);
+            foreach (Edge edge in fresh)
+            {
+                // Se dibuja desde la punta que ya se conocía hacia el lugar nuevo.
+                bool forward = StoryIndex(edge.to) >= StoryIndex(edge.from);
+                int count = edge.dots.childCount;
+                for (int i = 0; i < count; i++)
+                {
+                    Transform dot = edge.dots.GetChild(forward ? i : count - 1 - i);
+                    StartCoroutine(Pop(dot, 1f, 0.2f));
+                    dotSound.Play();
+                    yield return new WaitForSeconds(dotInterval);
+                }
+                MapLocation opened = nodes[locationOrder[Gate(edge)]].location;
+                if (opened != null && Gate(edge) >= seen && Gate(edge) > 0)
+                {
+                    unlockSound.Play();
+                    yield return Pop(opened.transform, 1f, 0.35f);
+                }
+            }
+            GameProgress.MapRevealed = Mathf.Max(seen, open);
+            revealing = false;
+        }
+
+        // Crece de 0 con un rebote hasta su tamaño.
+        private static IEnumerator Pop(Transform target, float size, float duration)
+        {
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float p = t / duration;
+                target.localScale = Vector3.one * size * (p + Mathf.Sin(p * Mathf.PI) * 0.35f);
+                yield return null;
+            }
+            target.localScale = Vector3.one * size;
         }
 
         // ← →: al lugar abierto anterior o siguiente en el orden de la historia (los bloqueados se saltan).
@@ -183,6 +357,8 @@ namespace Odisea.Map
             if (stepTimer <= 0f)
             {
                 footstep.Play();
+                if (ambience != null)
+                    ambience.Puff(token.position, dustColor);
                 stepTimer = footstepInterval;
             }
             if (route.Count == 0)

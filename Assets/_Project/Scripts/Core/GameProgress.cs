@@ -77,6 +77,20 @@ namespace Odisea.Core
             }
         }
 
+        /// <summary>
+        /// Cuántos lugares abiertos ya vio dibujarse en el mapa la partida actual: los que pasen de ahí se
+        /// estrenan con su camino dibujándose.
+        /// </summary>
+        public static int MapRevealed
+        {
+            get => PlayerPrefs.GetInt(Key(Slot, "", "MapaRevelado"), 0);
+            set
+            {
+                PlayerPrefs.SetInt(Key(Slot, "", "MapaRevelado"), value);
+                PlayerPrefs.Save();
+            }
+        }
+
         // ---------- Partidas ----------
 
         /// <summary>La partida ya se empezó (aunque no haya terminado nada).</summary>
@@ -103,6 +117,7 @@ namespace Odisea.Core
             }
             PlayerPrefs.DeleteKey(Key(slot, "", "Conocidos"));
             PlayerPrefs.DeleteKey(Key(slot, "", "UltimoLugar"));
+            PlayerPrefs.DeleteKey(Key(slot, "", "MapaRevelado"));
             PlayerPrefs.DeleteKey(Key(slot, "", "Empezada"));
             PlayerPrefs.Save();
         }
