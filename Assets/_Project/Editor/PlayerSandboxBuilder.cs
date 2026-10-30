@@ -26,7 +26,6 @@ namespace Odisea.EditorTools
         private const string ScenePath = "Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity";
         internal const string SpritePath = "Assets/_Project/Art/Placeholders/Cuadro.png";
         private const string HeartFullPath = "Assets/_Project/Art/Placeholders/CorazonLleno.png";
-        private const string HeartEmptyPath = "Assets/_Project/Art/Placeholders/CorazonVacio.png";
 
         // Corazones del HUD dibujados en código (lisos, con contorno café); se rehacen si cambia HeartTextureWidth.
         private const int HeartTextureWidth = 256;
@@ -100,7 +99,7 @@ namespace Odisea.EditorTools
             public PhysicsMaterial2D NoFriction;
             public PlayerConfig Config;
             public InputActionAsset InputActions;
-            public Sprite FullHeart, EmptyHeart;
+            public Sprite FullHeart;
             public Projectile DoughBall;
         }
 
@@ -117,7 +116,6 @@ namespace Odisea.EditorTools
 
             EnsurePlaceholderSprite();
             EnsureHeartSprite(HeartFullPath, Chile, full: true);
-            EnsureHeartSprite(HeartEmptyPath, new Color(Cafe.r, Cafe.g, Cafe.b, 0.45f), full: false);
             EnsureVignetteSprite();
             EnsureRingSprite();
             EnsureNoFrictionMaterial();
@@ -157,7 +155,6 @@ namespace Odisea.EditorTools
                 Config = LoadRequired<PlayerConfig>(ConfigPath),
                 InputActions = LoadRequired<InputActionAsset>(InputPath),
                 FullHeart = LoadRequired<Sprite>(HeartFullPath),
-                EmptyHeart = LoadRequired<Sprite>(HeartEmptyPath),
             };
             context.DoughBall = EnsureProjectilePrefab(context.Square, playerLayer);
             return context;
@@ -173,7 +170,7 @@ namespace Odisea.EditorTools
             GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
             player.transform.position = spawn;
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
-            CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart, level.EmptyHeart,
+            CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart,
                 showControls);
 
             // Música de fondo; se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
@@ -605,7 +602,7 @@ namespace Odisea.EditorTools
             return dummy;
         }
 
-        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, Sprite emptyHeart, bool showControls)
+        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, bool showControls)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             var canvas = canvasObject.GetComponent<Canvas>();
@@ -620,7 +617,7 @@ namespace Odisea.EditorTools
             var rect = (RectTransform)lives.transform;
             rect.SetParent(canvasObject.transform, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(62f, -62f);
+            rect.anchoredPosition = new Vector2(48f, -48f);
             rect.sizeDelta = new Vector2(300f, 80f);
 
             // Orillas rojas de la última vida: detrás de todo el HUD.
@@ -637,22 +634,9 @@ namespace Odisea.EditorTools
             vignetteImage.raycastTarget = false;
             vignetteImage.enabled = false;
 
-            // Placa café translúcida detrás de los corazones (HeartsDisplay la ajusta al número de corazones).
-            var plate = new GameObject("Placa", typeof(RectTransform), typeof(Image));
-            var plateRect = (RectTransform)plate.transform;
-            plateRect.SetParent(rect, false);
-            var plateImage = plate.GetComponent<Image>();
-            plateImage.sprite = UiAssetsBuilder.EnsureRoundedSprite();
-            plateImage.type = Image.Type.Sliced;
-            plateImage.pixelsPerUnitMultiplier = 1.5f;
-            plateImage.color = new Color(0.30f, 0.20f, 0.13f, 0.72f);
-            plateImage.raycastTarget = false;
-
             var hearts = lives.AddComponent<HeartsDisplay>();
             SetSerialized(hearts, "health", playerHealth);
             SetSerialized(hearts, "fullHeart", fullHeart);
-            SetSerialized(hearts, "emptyHeart", emptyHeart);
-            SetSerialized(hearts, "plate", plateRect);
             SetSerialized(hearts, "shardSprite", LoadRequired<Sprite>(TutorialBuilder.CirclePath));
             SetSerialized(hearts, "ringSprite", LoadRequired<Sprite>(RingPath));
             SetSerialized(hearts, "lowHealthVignette", vignetteImage);

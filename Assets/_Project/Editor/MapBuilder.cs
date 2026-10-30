@@ -36,8 +36,6 @@ namespace Odisea.EditorTools
         private const float Width = 64f;
         private static readonly Vector2 Reference = new(1935f, 1080f);
         private const int PlaceOrder = 10, LabelOrder = 40, TokenOrder = 100;
-        // Puntitos de los caminos: cada cuánto y qué tan lejos de los lugares empiezan.
-        private const float DotSpacing = 0.95f, DotMargin = 1.4f;
         // Ancho de la base de piedra en el dibujo (px): la dorada de "alcanzado" se pone encima a ese tamaño.
         private const float PadWidth = 94f;
 
@@ -184,8 +182,7 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(map, "panel", panel);
             GameSoundsBuilder.SetSound(map, "footstep", GameSoundsBuilder.Load(GameSoundsBuilder.UlisesFolder, "paso"), 0.25f);
 
-            // ----- Efectos: puntitos de los caminos, flecha y anillo del lugar elegido, ambiente -----
-            CreatePathDots(map, root, circle);
+            // ----- Efectos: flecha y anillo del lugar elegido, ambiente -----
             MenuScenesBuilder.SetField(map, "marker", CreateMarker(root, square));
             var ring = AssetDatabase.LoadAssetAtPath<Sprite>(RingPath);
             if (ring != null)
@@ -194,7 +191,6 @@ namespace Odisea.EditorTools
                 MenuScenesBuilder.SetField(map, "highlight", highlight);
             }
             MenuScenesBuilder.SetField(map, "ambience", CreateAmbience(square));
-            GameSoundsBuilder.SetSound(map, "dotSound", new[] { UiAssetsBuilder.LoadUiSound("ui_hover") }, 0.25f);
             var unlock = AssetDatabase.LoadAssetAtPath<AudioClip>(UnlockSoundPath);
             if (unlock != null)
                 GameSoundsBuilder.SetSound(map, "unlockSound", new[] { unlock }, 0.6f);
@@ -379,49 +375,6 @@ namespace Odisea.EditorTools
         // ---------- Efectos ----------
 
         private static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
-
-        // Puntitos crema con orilla café a lo largo de cada tramo (OverworldMap muestra solo los de tramos abiertos).
-        private static void CreatePathDots(OverworldMap map, Transform root, Sprite circle)
-        {
-            var serialized = new SerializedObject(map);
-            SerializedProperty edges = serialized.FindProperty("edges");
-            for (int i = 0; i < Paths.Length; i++)
-            {
-                var line = new System.Collections.Generic.List<Vector2> { Node(Paths[i].from) };
-                line.AddRange(Paths[i].points.Select(P));
-                line.Add(Node(Paths[i].to));
-                float length = 0f;
-                for (int k = 1; k < line.Count; k++)
-                    length += Vector2.Distance(line[k - 1], line[k]);
-
-                var group = new GameObject($"Camino {i + 1}").transform;
-                group.SetParent(root, false);
-                for (float d = DotMargin; d <= length - DotMargin; d += DotSpacing)
-                {
-                    var dot = new GameObject("Puntito").transform;
-                    dot.SetParent(group, false);
-                    dot.position = AlongLine(line, d);
-                    Rect("Orilla", dot, circle, Vector2.zero, new Vector2(0.42f, 0.42f), PlayerSandboxBuilder.Cafe, PlaceOrder - 2);
-                    Rect("Punto", dot, circle, Vector2.zero, new Vector2(0.28f, 0.28f), PlayerSandboxBuilder.Crema, PlaceOrder - 1);
-                }
-                edges.GetArrayElementAtIndex(i).FindPropertyRelative("dots").objectReferenceValue = group;
-            }
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static Vector2 Node(int index) => P(Places[index].Stand);
-
-        private static Vector2 AlongLine(System.Collections.Generic.List<Vector2> line, float distance)
-        {
-            for (int k = 1; k < line.Count; k++)
-            {
-                float segment = Vector2.Distance(line[k - 1], line[k]);
-                if (distance <= segment)
-                    return Vector2.Lerp(line[k - 1], line[k], segment > 0f ? distance / segment : 0f);
-                distance -= segment;
-            }
-            return line[line.Count - 1];
-        }
 
         // Flecha amarilla con orilla café que apunta hacia abajo (dos rombos estirados).
         private static Transform CreateMarker(Transform root, Sprite square)

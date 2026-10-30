@@ -7,23 +7,17 @@ using UnityEngine.UI;
 namespace Odisea.UI
 {
     /// <summary>
-    /// Corazones del HUD: uno por cada punto de vida máximo de Ulises, sobre una placa café.
-    /// Al empezar entran uno por uno. El que se pierde destella, se rompe en trocitos y sacude la fila; el que se
-    /// recupera brinca con un anillo dorado. Con una sola vida el último late y las orillas de la pantalla se
+    /// Corazones del HUD: uno por cada punto de vida que le queda a Ulises (los perdidos no se ven).
+    /// Al empezar entran uno por uno. El que se pierde destella, se rompe en trocitos, sacude la fila y desaparece; el
+    /// que se recupera vuelve a aparecer con un brinco y un anillo dorado. Con una sola vida el último late y las orillas de la pantalla se
     /// ponen rojas. Todo en tiempo sin escala (sigue con la pausa o el tiempo lento).
     /// </summary>
     public class HeartsDisplay : MonoBehaviour
     {
         [SerializeField] private Health health;
         [SerializeField] private Sprite fullHeart;
-        [SerializeField] private Sprite emptyHeart;
         [SerializeField] private Vector2 heartSize = new(72f, 66f);
         [SerializeField, Min(0f)] private float spacing = 12f;
-
-        [Header("Placa")]
-        [Tooltip("Placa detrás de los corazones; se ajusta al número de corazones.")]
-        [SerializeField] private RectTransform plate;
-        [SerializeField, Min(0f)] private float platePadding = 14f;
 
         [Header("Efectos")]
         [SerializeField, Min(0.01f)] private float popDuration = 0.25f;
@@ -71,7 +65,7 @@ namespace Odisea.UI
             shownHealth = health.Current;
             Refresh(health.Current, animate: false);
             health.HealthChanged += OnHealthChanged;
-            for (int i = 0; i < hearts.Count; i++)
+            for (int i = 0; i < shownHealth; i++)
                 StartCoroutine(Entrance(i, i * entranceStagger));
             if (lowHealthVignette != null)
                 SetVignette(0f);
@@ -116,14 +110,6 @@ namespace Odisea.UI
                 punch.Add(0f);
                 appear.Add(1f);
             }
-
-            if (plate != null)
-            {
-                plate.anchorMin = plate.anchorMax = plate.pivot = new Vector2(0f, 1f);
-                plate.anchoredPosition = new Vector2(-platePadding, platePadding);
-                plate.sizeDelta = new Vector2(count * heartSize.x + Mathf.Max(0, count - 1) * spacing + platePadding * 2f,
-                    heartSize.y + platePadding * 2f);
-            }
         }
 
         private void Refresh(int current, bool animate)
@@ -131,16 +117,26 @@ namespace Odisea.UI
             for (int i = 0; i < hearts.Count; i++)
             {
                 bool full = i < current;
-                hearts[i].sprite = full ? fullHeart : emptyHeart;
+                hearts[i].sprite = fullHeart;
+                if (!animate)
+                {
+                    appear[i] = full ? 1f : 0f;
+                    continue;
+                }
 
                 // Solo se animan los corazones que cambiaron.
                 bool changed = (i < shownHealth) != full;
-                if (!animate || !changed)
+                if (!changed)
                     continue;
                 if (full)
+                {
+                    StartCoroutine(Entrance(i, 0f));
                     StartCoroutine(Gain(hearts[i].rectTransform));
+                }
                 else
+                {
                     Lose(i);
+                }
             }
             shownHealth = current;
         }
@@ -208,10 +204,24 @@ namespace Odisea.UI
             punch[index] = popScale;
             shakeUntil = Time.unscaledTime + 0.3f;
             StartCoroutine(Flash(heart));
+            StartCoroutine(Vanish(index));
             if (shardSprite == null)
                 return;
             for (int i = 0; i < shardCount; i++)
                 StartCoroutine(Shard(heart.anchoredPosition, i));
+        }
+
+        // Se encoge hasta desaparecer (deja de ocupar su lugar en la fila: los que quedan son los de la izquierda).
+        private IEnumerator Vanish(int index)
+        {
+            const float duration = 0.22f;
+            for (float t = 0f; t < duration && index < appear.Count; t += Time.unscaledDeltaTime)
+            {
+                appear[index] = 1f - t / duration;
+                yield return null;
+            }
+            if (index < appear.Count)
+                appear[index] = 0f;
         }
 
         private IEnumerator Gain(RectTransform heart)

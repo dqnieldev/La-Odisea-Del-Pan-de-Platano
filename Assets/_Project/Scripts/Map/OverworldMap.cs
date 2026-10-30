@@ -13,8 +13,8 @@ namespace Odisea.Map
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
     /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
     /// avisan qué hay que terminar antes.
-    /// Los caminos abiertos se ven con puntitos; al volver con un lugar recién abierto, su camino se dibuja punto por
-    /// punto y el lugar brinca. Sobre el lugar elegido rebota una flecha y brilla un anillo.
+    /// Al volver con un lugar recién abierto, le vuelve el color. Sobre el lugar elegido rebota una flecha, brilla un
+    /// anillo y aparece su letrero (los demás letreros no se ven).
     /// </summary>
     public class OverworldMap : MonoBehaviour
     {
@@ -32,8 +32,6 @@ namespace Odisea.Map
             public int from, to;
             [Tooltip("Puntos intermedios, de from a to, siguiendo el camino dibujado.")]
             public Vector2[] points = Array.Empty<Vector2>();
-            [Tooltip("Puntitos del camino (hijos en orden de from a to); solo se ven si el tramo está abierto.")]
-            public Transform dots;
         }
 
         [SerializeField] private Node[] nodes = Array.Empty<Node>();
@@ -68,9 +66,6 @@ namespace Odisea.Map
         [SerializeField] private Transform marker;
         [Tooltip("Anillo que brilla en el claro del lugar elegido.")]
         [SerializeField] private SpriteRenderer highlight;
-        [Tooltip("Al estrenar un lugar: tiempo entre un puntito del camino y el siguiente.")]
-        [SerializeField, Min(0.01f)] private float dotInterval = 0.07f;
-        [SerializeField] private SoundEffect dotSound = new();
         [SerializeField] private SoundEffect unlockSound = new();
 
         private static readonly int SpeedId = Animator.StringToHash("Speed");
@@ -105,8 +100,15 @@ namespace Odisea.Map
                 markerScale = marker.localScale;
             if (highlight != null)
                 highlightColor = highlight.color;
+            // Los letreros empiezan escondidos: solo crece el del lugar elegido.
+            foreach (Node node in nodes)
+            {
+                Transform plate = node.location != null ? node.location.transform.Find("Nombre") : null;
+                if (plate != null)
+                    plate.localScale = Vector3.zero;
+            }
             ShowCurrent();
-            StartCoroutine(RevealPaths());
+            StartCoroutine(RevealPlaces());
         }
 
         private void Update()
@@ -155,7 +157,8 @@ namespace Odisea.Map
             }
         }
 
-        // Flecha y anillo sobre el lugar donde está Ulises; su letrero crece un poco. Se apagan mientras camina.
+        // Flecha, anillo y letrero del lugar donde está Ulises; los letreros de los demás se esconden. Todo se apaga
+        // mientras camina.
         private void AnimateFocus()
         {
             MapLocation location = nodes[current].location;
@@ -165,8 +168,8 @@ namespace Odisea.Map
                 Transform plate = node.location != null ? node.location.transform.Find("Nombre") : null;
                 if (plate == null)
                     continue;
-                float target = node.location == location && !Walking ? 1.12f : 1f;
-                plate.localScale = Vector3.one * Mathf.MoveTowards(plate.localScale.x, target, Time.deltaTime * 1.5f);
+                float target = node.location == location && !Walking ? 1f : 0f;
+                plate.localScale = Vector3.one * Mathf.MoveTowards(plate.localScale.x, target, Time.deltaTime * 6f);
             }
             if (location == null)
                 return;
@@ -208,23 +211,11 @@ namespace Odisea.Map
         // Ancho del anillo en el mundo: un poco más que la base de piedra de un lugar.
         private const float HighlightSize = 4.6f;
 
-        // ---------- Caminos abiertos y lugares nuevos ----------
+        // ---------- Lugares nuevos ----------
 
-        // Lugar del tramo que lo abre: el más adelante en la historia de sus dos puntas (los cruces no cuentan).
-        private int Gate(Edge edge) => Mathf.Max(StoryIndex(edge.from), StoryIndex(edge.to));
-
-        private int StoryIndex(int node) => nodes[node].location != null ? Array.IndexOf(locationOrder, node) : -1;
-
-        private bool IsOpen(Edge edge)
-        {
-            int gate = Gate(edge);
-            return gate < 0 || !nodes[locationOrder[gate]].location.IsLocked;
-        }
-
-        // Muestra los puntitos de los tramos abiertos y los lugares abiertos en color (los cerrados, en blanco y
-        // negro). Los lugares recién abiertos se estrenan en orden: su camino se dibuja punto por punto y luego les
+        // Los lugares abiertos en color (los cerrados, en blanco y negro). Los recién abiertos se estrenan en orden: les
         // vuelve el color. Mientras tanto no se puede elegir lugar.
-        private IEnumerator RevealPaths()
+        private IEnumerator RevealPlaces()
         {
             int open = 0;
             for (int i = 0; i < locationOrder.Length; i++)
@@ -235,17 +226,6 @@ namespace Odisea.Map
             int seen = GameProgress.MapRevealed;
             for (int i = 0; i < locationOrder.Length; i++)
                 nodes[locationOrder[i]].location.ShowColor(i < Mathf.Min(seen, open));
-            foreach (Edge edge in edges)
-            {
-                if (edge.dots == null)
-                    continue;
-                edge.dots.gameObject.SetActive(IsOpen(edge));
-                if (Gate(edge) >= seen)
-                {
-                    foreach (Transform dot in edge.dots)
-                        dot.localScale = Vector3.zero;
-                }
-            }
             if (seen >= open)
             {
                 GameProgress.MapRevealed = Mathf.Max(seen, open);
@@ -256,39 +236,12 @@ namespace Odisea.Map
             yield return new WaitForSeconds(0.6f);
             for (int index = seen; index < open; index++)
             {
-                foreach (Edge edge in edges)
-                {
-                    if (edge.dots == null || Gate(edge) != index)
-                        continue;
-                    // Se dibuja desde la punta que ya se conocía hacia el lugar nuevo.
-                    bool forward = StoryIndex(edge.to) >= StoryIndex(edge.from);
-                    int count = edge.dots.childCount;
-                    for (int i = 0; i < count; i++)
-                    {
-                        Transform dot = edge.dots.GetChild(forward ? i : count - 1 - i);
-                        StartCoroutine(Pop(dot, 1f, 0.2f));
-                        dotSound.Play();
-                        yield return new WaitForSeconds(dotInterval);
-                    }
-                }
                 unlockSound.Play();
                 yield return nodes[locationOrder[index]].location.RevealColor();
                 // Se guarda en cuanto se estrena cada uno, por si sale del mapa a la mitad.
                 GameProgress.MapRevealed = index + 1;
             }
             revealing = false;
-        }
-
-        // Crece de 0 con un rebote hasta su tamaño.
-        private static IEnumerator Pop(Transform target, float size, float duration)
-        {
-            for (float t = 0f; t < duration; t += Time.deltaTime)
-            {
-                float p = t / duration;
-                target.localScale = Vector3.one * size * (p + Mathf.Sin(p * Mathf.PI) * 0.35f);
-                yield return null;
-            }
-            target.localScale = Vector3.one * size;
         }
 
         // ← →: al lugar abierto anterior o siguiente en el orden de la historia (los bloqueados se saltan).

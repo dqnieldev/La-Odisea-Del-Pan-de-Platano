@@ -7,7 +7,8 @@ namespace Odisea.Level
 {
     /// <summary>
     /// Algo con lo que Ulises interactúa al pararse enfrente (Don Lupe, una puerta): arriba sale un globito con el
-    /// botón de interactuar (E / ↑, B o Círculo, según el control) y al presionarlo se llama <see cref="Interact"/>.
+    /// botón de interactuar (E / ↑, B o Círculo, según el control) y lo que hace ("Ir a la playa"); al presionarlo se
+    /// llama <see cref="Interact"/>.
     /// Su collider (trigger) es el área donde se puede interactuar.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
@@ -24,7 +25,7 @@ namespace Odisea.Level
         [SerializeField] private Sprite playStationIcon;
 
         private PlayerInputReader player;
-        private Vector3 bubbleScale = Vector3.one;
+        private Vector3 bubbleScale = Vector3.one, iconHome;
         private float bubbleShown;
 
         /// <summary>Ulises, mientras está en el área.</summary>
@@ -38,6 +39,8 @@ namespace Odisea.Level
                 bubbleScale = bubble.localScale;
                 bubble.localScale = Vector3.zero;
             }
+            if (bubbleIcon != null)
+                iconHome = bubbleIcon.transform.localPosition;
         }
 
         private void OnEnable()
@@ -91,7 +94,7 @@ namespace Odisea.Level
             float pop = bubbleShown < 1f && visible ? Mathf.Sin(bubbleShown * Mathf.PI) * 0.25f : 0f;
             bubble.localScale = bubbleScale * (bubbleShown + pop);
             if (bubbleIcon != null)
-                bubbleIcon.transform.localPosition = new Vector3(0f, Mathf.Sin(Time.unscaledTime * 4f) * 0.06f, 0f);
+                bubbleIcon.transform.localPosition = iconHome + new Vector3(0f, Mathf.Sin(Time.unscaledTime * 4f) * 0.06f, 0f);
         }
 
         private void ApplyIcon(InputScheme scheme)

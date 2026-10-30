@@ -208,7 +208,7 @@ namespace Odisea.EditorTools
             var dialogue = npc.AddComponent<NpcDialogue>();
             PlayerSandboxBuilder.SetSerialized(dialogue, "playerLayers", 1 << playerLayer);
             MenuScenesBuilder.SetField(dialogue, "visual", visual);
-            AddBubble(npc.transform, dialogue, height + 0.5f);
+            AddBubble(npc.transform, dialogue, new Vector2(0f, height + 0.5f), "Hablar");
 
             var serialized = new SerializedObject(dialogue);
             SerializedProperty conversations = serialized.FindProperty("conversations");
@@ -238,7 +238,6 @@ namespace Odisea.EditorTools
                 Rect("Perilla", door.transform, PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath),
                     new Vector2(0.75f, 1.9f), new Vector2(0.24f, 0.24f), Platano, FurnitureOrder + 3);
             }
-            CreateNamePlate(door.transform, "Al mapa", new Vector2(0.35f, DoorTop + 0.35f), 0.42f);
 
             var component = door.AddComponent<SceneDoor>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
@@ -248,7 +247,7 @@ namespace Odisea.EditorTools
             SetStrings(component, "lockedLines", ExitLockedLines);
             PlayerSandboxBuilder.SetSerialized(component, "mapLocation", GameProgress.Tutorial);
             GameSoundsBuilder.SetSound(component, "openSound", new[] { UiAssetsBuilder.LoadUiSound("ui_click") }, 0.7f);
-            AddBubble(door.transform, component, DoorTop - 0.5f);
+            AddBubble(door.transform, component, new Vector2(0.7f, DoorTop - 0.5f), "Ir al mapa");
         }
 
         // Puerta a la playa, a la derecha: abierta, con el mar y la luz del muelle.
@@ -260,13 +259,12 @@ namespace Odisea.EditorTools
                 Rect("Cielo", door.transform, square, new Vector2(0f, 2.3f), new Vector2(2.2f, 3f), Sky, FurnitureOrder + 1);
                 Rect("Mar", door.transform, square, new Vector2(0f, 1.1f), new Vector2(2.2f, 0.7f), Sea, FurnitureOrder + 2);
             }
-            CreateNamePlate(door.transform, "A la playa", new Vector2(-0.45f, DoorTop + 0.35f), 0.42f);
 
             var component = door.AddComponent<SceneDoor>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "targetScene", SceneFlow.Tutorial);
             GameSoundsBuilder.SetSound(component, "openSound", new[] { UiAssetsBuilder.LoadUiSound("ui_click") }, 0.7f);
-            AddBubble(door.transform, component, DoorTop - 0.5f);
+            AddBubble(door.transform, component, new Vector2(-0.8f, DoorTop - 0.5f), "Ir a la playa");
         }
 
         private static GameObject DoorFrame(string name, Transform root, Sprite square, float x, bool drawn)
@@ -282,19 +280,38 @@ namespace Odisea.EditorTools
             return door;
         }
 
-        // ---------- Globito de "interactuar" y letreros ----------
+        // ---------- Globito de "interactuar" ----------
 
-        private static void AddBubble(Transform parent, Interactable target, float height)
+        // Tarjetita crema con borde café: el botón (cambia según el control) y lo que hace, p. ej. "[E] Ir a la playa".
+        private static void AddBubble(Transform parent, Interactable target, Vector2 position, string action)
         {
             var bubble = new GameObject("Globito").transform;
             bubble.SetParent(parent, false);
-            bubble.localPosition = new Vector3(0f, height, 0f);
+            bubble.localPosition = position;
             bubble.localScale = Vector3.one * 0.6f;
+
+            var label = new GameObject("Acción", typeof(RectTransform), typeof(TextMeshPro));
+            label.transform.SetParent(bubble, false);
+            var text = label.GetComponent<TextMeshPro>();
+            text.text = action;
+            text.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            text.fontSize = 6f;
+            text.color = Cafe;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.sortingOrder = FrontOrder + 2;
+            float textWidth = text.GetPreferredValues(action).x;
+            const float iconSlot = 1.1f, padding = 0.3f;
+            float width = iconSlot + textWidth + padding;
+            ((RectTransform)label.transform).sizeDelta = new Vector2(textWidth + 0.1f, 1f);
+            label.transform.localPosition = new Vector3(-width / 2f + iconSlot + textWidth / 2f, 0f, 0f);
+
             Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
-            Plate("Borde", bubble, rounded, new Vector2(1.1f, 1.1f), Cafe, FrontOrder);
-            Plate("Fondo", bubble, rounded, new Vector2(0.96f, 0.96f), Crema, FrontOrder + 1);
+            Plate("Borde", bubble, rounded, new Vector2(width + 0.14f, 1.1f), Cafe, FrontOrder);
+            Plate("Fondo", bubble, rounded, new Vector2(width, 0.96f), Crema, FrontOrder + 1);
             var icon = new GameObject("Botón").AddComponent<SpriteRenderer>();
             icon.transform.SetParent(bubble, false);
+            icon.transform.localPosition = new Vector3(-width / 2f + iconSlot / 2f + 0.05f, 0f, 0f);
             icon.sortingOrder = FrontOrder + 2;
             // Los íconos de Kenney son blancos: café, como en la ayuda de botones de los menús.
             icon.color = Cafe;
@@ -311,30 +328,6 @@ namespace Odisea.EditorTools
         }
 
         private static Sprite PromptIcon(string name) => MenuScenesBuilder.LoadUiSprite($"{MenuScenesBuilder.UiFolder}/Botones/{name}.png");
-
-        // Tarjetita crema con borde café y el nombre (como los del mapa).
-        private static void CreateNamePlate(Transform parent, string text, Vector2 position, float height)
-        {
-            var plate = new GameObject("Letrero").transform;
-            plate.SetParent(parent, false);
-            plate.localPosition = position;
-            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
-            var size = new Vector2(text.Length * height * 0.36f + height, height);
-            Plate("Borde", plate, rounded, size + new Vector2(0.1f, 0.1f), Cafe, FrontOrder - 3);
-            Plate("Fondo", plate, rounded, size, Crema, FrontOrder - 2);
-
-            var label = new GameObject("Texto", typeof(RectTransform), typeof(TextMeshPro));
-            label.transform.SetParent(plate, false);
-            ((RectTransform)label.transform).sizeDelta = size;
-            var tmp = label.GetComponent<TextMeshPro>();
-            tmp.text = text;
-            tmp.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
-            tmp.fontSize = height * 5.2f;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = Cafe;
-            tmp.textWrappingMode = TextWrappingModes.NoWrap;
-            tmp.sortingOrder = FrontOrder - 1;
-        }
 
         private static void Plate(string name, Transform parent, Sprite sprite, Vector2 size, Color color, int order)
         {
