@@ -13,8 +13,8 @@ namespace Odisea.Map
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
     /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
     /// avisan qué hay que terminar antes.
-    /// Al volver con un lugar recién abierto, le vuelve el color. Sobre el lugar elegido rebota una flecha, brilla un
-    /// anillo y aparece su letrero (los demás letreros no se ven).
+    /// Al volver con un lugar recién abierto, le vuelve el color. Sobre el lugar elegido rebota una flecha y brilla un
+    /// anillo; su nombre sale en la ventanita de abajo.
     /// </summary>
     public class OverworldMap : MonoBehaviour
     {
@@ -100,13 +100,6 @@ namespace Odisea.Map
                 markerScale = marker.localScale;
             if (highlight != null)
                 highlightColor = highlight.color;
-            // Los letreros empiezan escondidos: solo crece el del lugar elegido.
-            foreach (Node node in nodes)
-            {
-                Transform plate = node.location != null ? node.location.transform.Find("Nombre") : null;
-                if (plate != null)
-                    plate.localScale = Vector3.zero;
-            }
             ShowCurrent();
             StartCoroutine(RevealPlaces());
         }
@@ -157,25 +150,20 @@ namespace Odisea.Map
             }
         }
 
-        // Flecha, anillo y letrero del lugar donde está Ulises; los letreros de los demás se esconden. Todo se apaga
-        // mientras camina.
+        // Flecha y anillo del lugar donde está Ulises. Se apagan mientras camina.
         private void AnimateFocus()
         {
             MapLocation location = nodes[current].location;
             focus = Mathf.MoveTowards(focus, Walking || location == null ? 0f : 1f, Time.deltaTime * 4f);
-            foreach (Node node in nodes)
-            {
-                Transform plate = node.location != null ? node.location.transform.Find("Nombre") : null;
-                if (plate == null)
-                    continue;
-                float target = node.location == location && !Walking ? 1f : 0f;
-                plate.localScale = Vector3.one * Mathf.MoveTowards(plate.localScale.x, target, Time.deltaTime * 6f);
-            }
             if (location == null)
                 return;
 
             if (marker != null)
-                PlaceMarker(location);
+            {
+                float bounce = Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 0.45f;
+                marker.position = (Vector3)nodes[current].position + Vector3.up * (MarkerHeight + bounce);
+                marker.localScale = markerScale * focus;
+            }
             if (highlight != null)
             {
                 highlight.transform.position = nodes[current].position;
@@ -186,27 +174,8 @@ namespace Odisea.Map
             }
         }
 
-        // Arriba del letrero, apuntando hacia abajo; si ahí se sale de la pantalla, a su izquierda apuntando a él.
-        private void PlaceMarker(MapLocation location)
-        {
-            float bounce = Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 0.45f;
-            Transform plate = location.transform.Find("Nombre");
-            var renderer = plate != null ? plate.GetComponentInChildren<SpriteRenderer>() : null;
-            Bounds bounds = renderer != null ? renderer.bounds : new Bounds(location.transform.position + Vector3.up * 4f, Vector3.one);
-            Camera view = Camera.main;
-            float top = view != null ? view.transform.position.y + view.orthographicSize : float.MaxValue;
-            Vector3 above = new(bounds.center.x, bounds.max.y + 0.9f + bounce, 0f);
-            if (above.y + 0.9f <= top)
-            {
-                marker.SetPositionAndRotation(above, Quaternion.identity);
-            }
-            else
-            {
-                marker.SetPositionAndRotation(new Vector3(bounds.min.x - 0.9f - bounce, bounds.center.y, 0f),
-                    Quaternion.Euler(0f, 0f, 90f));
-            }
-            marker.localScale = markerScale * focus;
-        }
+        // Altura de la flecha sobre la base del lugar: un poco arriba de la cabeza de Ulises.
+        private const float MarkerHeight = 4.9f;
 
         // Ancho del anillo en el mundo: un poco más que la base de piedra de un lugar.
         private const float HighlightSize = 4.6f;

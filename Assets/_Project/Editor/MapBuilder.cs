@@ -51,16 +51,16 @@ namespace Odisea.EditorTools
         private readonly struct Place
         {
             public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, Cutout;
-            // Stand: centro de la base de piedra (ahí se para Ulises). Plate: centro del letrero. Click: área (x, y, w, h).
-            public readonly Vector2 Stand, Plate, CutoutOrigin;
+            // Stand: centro de la base de piedra (ahí se para Ulises). Click: área (x, y, w, h).
+            public readonly Vector2 Stand, CutoutOrigin;
             public readonly Rect Click;
             public readonly float CutoutScale;
 
             public Place(string id, string name, string subtitle, string scene, string story, string requires, string requiresName,
-                Vector2 stand, Vector2 plate, Rect click, string cutout, float cutoutScale, Vector2 cutoutOrigin)
+                Vector2 stand, Rect click, string cutout, float cutoutScale, Vector2 cutoutOrigin)
             {
                 Id = id; Name = name; Subtitle = subtitle; Scene = scene; Story = story; Requires = requires;
-                RequiresName = requiresName; Stand = stand; Plate = plate; Click = click;
+                RequiresName = requiresName; Stand = stand; Click = click;
                 Cutout = cutout; CutoutScale = cutoutScale; CutoutOrigin = cutoutOrigin;
             }
         }
@@ -70,19 +70,19 @@ namespace Odisea.EditorTools
         private static readonly Place[] Places =
         {
             new(GameProgress.Tutorial, "Panadería de Don Lupe", "Habla con Don Lupe", SceneFlow.Bakery, "", "", "",
-                new Vector2(452f, 693f), new Vector2(330f, 290f), new Rect(130f, 300f, 410f, 440f),
+                new Vector2(452f, 693f), new Rect(130f, 300f, 410f, 440f),
                 "Lugares_Panaderia", 0.495f, new Vector2(-149.1f, 243.4f)),
             new(GameProgress.Mercado, "El Mercado", "Acto I · La cueva del mercado", "Mercado", "Mercado", GameProgress.Tutorial,
-                "el tutorial", new Vector2(796f, 400f), new Vector2(985f, 458f), new Rect(570f, 10f, 590f, 430f),
+                "el tutorial", new Vector2(796f, 400f), new Rect(570f, 10f, 590f, 430f),
                 "Lugares_mercado", 0.585f, new Vector2(297.5f, -98.7f)),
             new(GameProgress.Horno, "El Horno", "Acto II · El asedio a la panadería", "Horno", "Horno", GameProgress.Mercado,
-                "El Mercado", new Vector2(889f, 870f), new Vector2(1010f, 955f), new Rect(840f, 560f, 310f, 350f),
+                "El Mercado", new Vector2(889f, 870f), new Rect(840f, 560f, 310f, 350f),
                 "Lugares_horno", 0.465f, new Vector2(552.4f, 453f)),
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
-                "El Horno", new Vector2(1380f, 565f), new Vector2(1290f, 470f), new Rect(1165f, 120f, 455f, 500f),
+                "El Horno", new Vector2(1380f, 565f), new Rect(1165f, 120f, 455f, 500f),
                 "Lugares_tovara", 0.865f, new Vector2(474.3f, -89.8f)),
             new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", "Festival", "Festival",
-                GameProgress.Tovara, "La Tovara", new Vector2(1760f, 557f), new Vector2(1760f, 650f),
+                GameProgress.Tovara, "La Tovara", new Vector2(1760f, 557f),
                 new Rect(1630f, 190f, 305f, 500f), "Lugares_festival", 0.63f, new Vector2(1167.5f, 100f)),
         };
 
@@ -231,7 +231,7 @@ namespace Odisea.EditorTools
             Debug.Log($"[Odisea] Mapa creado en {ScenePath}.");
         }
 
-        // Lugar sobre su base de piedra: letrero, banderita de terminado, base dorada de "alcanzado", su copia en gris
+        // Lugar sobre su base de piedra: banderita de terminado, base dorada de "alcanzado", su copia en gris
         // (mientras no se abra) y el área de clic.
         private static MapLocation CreateLocation(Place place, int index, Transform root, Sprite square, Sprite circle, Sprite reached)
         {
@@ -239,8 +239,6 @@ namespace Odisea.EditorTools
             var go = new GameObject(place.Name);
             go.transform.SetParent(root, false);
             go.transform.position = stand;
-
-            CreateNamePlate(go.transform, place.Name, P(place.Plate) - stand);
 
             // Banderita amarilla de "terminado", junto a la base.
             var flag = new GameObject("Terminado");
@@ -294,44 +292,6 @@ namespace Odisea.EditorTools
                     MenuScenesBuilder.SetField(location, "revealRing", ring);
             }
             return location;
-        }
-
-        // Tarjetita crema con borde café y el nombre: se lee bien sobre el dibujo.
-        private static void CreateNamePlate(Transform parent, string name, Vector2 position)
-        {
-            var plate = new GameObject("Nombre").transform;
-            plate.SetParent(parent, false);
-            plate.localPosition = position;
-            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
-            var size = new Vector2(name.Length * 0.62f + 1.4f, 1.6f);
-            Plate("Borde", plate, rounded, size + new Vector2(0.16f, 0.16f), PlayerSandboxBuilder.Cafe, LabelOrder);
-            Plate("Fondo", plate, rounded, size, PlayerSandboxBuilder.Crema, LabelOrder + 1);
-
-            var label = new GameObject("Texto", typeof(RectTransform), typeof(TextMeshPro));
-            label.transform.SetParent(plate, false);
-            ((RectTransform)label.transform).sizeDelta = size;
-            var text = label.GetComponent<TextMeshPro>();
-            text.text = name;
-            text.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
-            text.fontSize = 9f;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = PlayerSandboxBuilder.Cafe;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.sortingOrder = LabelOrder + 2;
-        }
-
-        private static void Plate(string name, Transform parent, Sprite sprite, Vector2 size, Color color, int order)
-        {
-            var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
-            renderer.transform.SetParent(parent, false);
-            renderer.sprite = sprite;
-            renderer.drawMode = SpriteDrawMode.Sliced;
-            // El sprite redondeado es de UI (en píxeles): se achica para que sus esquinas queden proporcionadas.
-            const float cornerScale = 0.25f;
-            renderer.transform.localScale = Vector3.one * cornerScale;
-            renderer.size = size / cornerScale;
-            renderer.color = color;
-            renderer.sortingOrder = order;
         }
 
         // Ulises a tamaño de ficha, con su sombra; usa sus animaciones de reposo y de correr.
@@ -441,21 +401,15 @@ namespace Odisea.EditorTools
 
         // ---------- HUD ----------
 
-        // Abajo: nombre del lugar, frase, estado y "Entrar". Arriba: cómo elegir lugar.
+        // Abajo a la izquierda: nombre del lugar, frase, estado y "Entrar". Abajo a la derecha, como en las demás
+        // pantallas, la ayuda de botones: [← →] Elegir  [Aceptar] Entrar.
         private static LocationPanel CreateLocationPanel()
         {
             Transform canvas = MenuScenesBuilder.CreateCanvas("HUD del mapa");
             TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
             Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
 
-            var hint = new GameObject("Ayuda", typeof(RectTransform));
-            var hintRect = (RectTransform)hint.transform;
-            hintRect.SetParent(canvas, false);
-            // Arriba a la izquierda, sobre las colinas (al centro taparía el nombre del mercado).
-            hintRect.anchorMin = hintRect.anchorMax = new Vector2(0f, 1f);
-            hintRect.anchoredPosition = new Vector2(330f, -60f);
-            RectTransform hintCard = MenuScenesBuilder.CreateCard("Tarjeta", hintRect, rounded, new Vector2(560f, 64f), MenuScenesBuilder.Crema);
-            MenuScenesBuilder.CreateText("Texto", hintCard, "Flechas o clic: elegir lugar", font, 28, MenuScenesBuilder.Cafe, stretch: true);
+            CreatePromptBar(canvas, font, rounded);
 
             var root = new GameObject("Ventanita del lugar", typeof(RectTransform), typeof(CanvasGroup));
             var rootRect = (RectTransform)root.transform;
@@ -500,6 +454,51 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(panel, "status", status);
             MenuScenesBuilder.SetField(panel, "enterPrompt", prompt);
             return panel;
+        }
+
+        // Pastilla café translúcida (se lee sobre cualquier parte del dibujo) con los íconos y textos en crema.
+        private static void CreatePromptBar(Transform canvas, TMP_FontAsset font, Sprite rounded)
+        {
+            var go = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(canvas, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0f);
+            rect.anchoredPosition = new Vector2(-40f, 36f);
+            var background = go.GetComponent<Image>();
+            background.sprite = rounded;
+            background.type = Image.Type.Sliced;
+            background.color = new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.75f);
+            background.raycastTarget = false;
+            var layout = go.GetComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(22, 26, 8, 8);
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            go.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            go.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            Image choose = MenuScenesBuilder.CreatePromptIcon(rect);
+            Light(MenuScenesBuilder.CreatePromptLabel(rect, font, "Elegir"));
+            MenuScenesBuilder.CreatePromptSpacer(rect);
+            Image enter = MenuScenesBuilder.CreatePromptIcon(rect);
+            Light(MenuScenesBuilder.CreatePromptLabel(rect, font, "Entrar"));
+            choose.color = enter.color = PlayerSandboxBuilder.Crema;
+            // Las flechas son más anchas que un botón.
+            choose.GetComponent<LayoutElement>().preferredWidth = 64f;
+
+            var bar = go.AddComponent<ButtonPromptBar>();
+            MenuScenesBuilder.SetField(bar, "confirmIcon", enter);
+            MenuScenesBuilder.SetField(bar, "pageLeftIcon", choose);
+            MenuScenesBuilder.SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_arrows", "kb_e");
+            MenuScenesBuilder.SetPromptSet(bar, "xbox", "xbox_a", "xbox_b", "xbox_stick_h", "xbox_rb");
+            MenuScenesBuilder.SetPromptSet(bar, "playStation", "ps_cross", "ps_circle", "ps_stick_h", "ps_r1");
+        }
+
+        private static void Light(TMP_Text label)
+        {
+            label.color = PlayerSandboxBuilder.Crema;
+            label.fontSize = 30;
         }
 
         // ---------- Sprites ----------

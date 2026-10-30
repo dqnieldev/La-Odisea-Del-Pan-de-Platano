@@ -131,8 +131,11 @@ namespace Odisea.EditorTools
             // ----- Ulises, HUD, música, pausa y cámara -----
             string music = new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(MapMusicPath + ext))
                 ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
-            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe", music,
-                showControls: false, background: Color.black);
+            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe",
+                music, showControls: false, background: Color.black);
+            // Aquí no hay peligro: sin corazones en pantalla y sin golpear ni lanzar masa (solo caminar, saltar y platicar).
+            Object.DestroyImmediate(GameObject.Find("HUD"));
+            player.GetComponent<Odisea.Player.PlayerCombat>().enabled = false;
             // La canción del mapa sigue sin cortarse al ir y venir entre el mapa y la panadería (las veces que sea).
             SceneMusic sceneMusic = Object.FindAnyObjectByType<SceneMusic>();
             if (sceneMusic != null)
