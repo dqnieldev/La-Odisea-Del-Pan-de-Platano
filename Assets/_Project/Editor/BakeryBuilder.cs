@@ -11,42 +11,41 @@ using UnityEngine.UI;
 namespace Odisea.EditorTools
 {
     /// <summary>
-    /// Crea la Panadería de Don Lupe: un cuarto visto de lado (mostrador, horno de piedra, repisas con pan) donde
-    /// Don Lupe espera a Ulises y platica un poco. La puerta de la derecha da a la playa (el tutorial) y la de la
-    /// izquierda sale al mapa (solo después del tutorial). Mientras no haya arte (Art/Environment/Panaderia/Fondo.png,
-    /// Art/Characters/DonLupe/DonLupe_Reposo.png) todo es de rectángulos de color.
+    /// Crea la Panadería de Don Lupe: el cuarto completo en una sola pantalla, como la casa del abuelo en Cuphead
+    /// (Art/Environment/Panaderia/Fondo.png, con su viñeta), y Don Lupe junto al horno, apoyado en su bastón, que
+    /// platica un poco. La puerta de la derecha da a la playa (el tutorial) y la de la izquierda sale al mapa (solo
+    /// después del tutorial). Sin el dibujo, el cuarto y Don Lupe son de rectángulos de color.
     /// Menú: Odisea > Niveles > Crear panadería.
     /// </summary>
     public static class BakeryBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Panaderia.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Panaderia/Fondo.png";
-        private const string DonLupeArtPath = "Assets/_Project/Art/Characters/DonLupe/DonLupe_Reposo.png";
-        private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
+                private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
 
-        // El cuarto: de LeftEdge a RightEdge, con el piso en y = 0 y el techo en Ceiling.
-        private const float LeftEdge = -15f;
-        private const float RightEdge = 15f;
-        private const float Ceiling = 10f;
-        private const float ExitDoorX = -12.5f;
-        private const float BeachDoorX = 12.5f;
-        private const float DonLupeX = -2.6f;
+        // El cuarto mide RoomHeight de alto (la cámara lo muestra completo) y el piso donde se camina queda en y = 0:
+        // en el dibujo, esa línea está a FloorLine del alto, contando desde arriba. Las puertas y Don Lupe están
+        // medidos en el dibujo.
+        private const float RoomHeight = 8f;
+        private const float FloorLine = 0.853f;
+        private const float RoomWidth = RoomHeight * 2752f / 1536f;
+        private const float LeftEdge = -RoomWidth / 2f + 0.5f;
+        private const float RightEdge = RoomWidth / 2f - 0.5f;
+        private const float ExitDoorX = -6.2f;
+        private const float BeachDoorX = 6.2f;
+        private const float DonLupeX = 2.5f;
+        private const float DoorTop = 4.5f;
+        private static float CameraY => (FloorLine - 0.5f) * RoomHeight;
 
         private const int BackOrder = -20, FurnitureOrder = -10, NpcOrder = 8, FrontOrder = 30;
 
-        // Colores de boceto del interior (cálidos, de horno).
+        // Colores de boceto del interior, mientras no esté el dibujo.
         private static readonly Color Plaster = new(0.929f, 0.827f, 0.643f);
-        private static readonly Color PlasterDark = new(0.851f, 0.729f, 0.529f);
         private static readonly Color Wood = new(0.545f, 0.353f, 0.169f);
         private static readonly Color WoodDark = new(0.396f, 0.247f, 0.122f);
         private static readonly Color WoodLight = new(0.690f, 0.482f, 0.282f);
-        private static readonly Color Stone = new(0.718f, 0.631f, 0.533f);
-        private static readonly Color StoneDark = new(0.541f, 0.463f, 0.384f);
-        private static readonly Color Ember = new(0.973f, 0.537f, 0.180f);
         private static readonly Color Sky = new(0.643f, 0.835f, 0.878f);
         private static readonly Color Sea = new(0.184f, 0.561f, 0.627f);
-        private static readonly Color Bread = new(0.851f, 0.584f, 0.271f);
-        private static readonly Color BreadDark = new(0.659f, 0.400f, 0.180f);
         private static readonly Color Platano = new(0.961f, 0.718f, 0.192f);
 
         // Don Lupe (de Docs/Referencias/Personajes/Don Lupe): camisa azul, mandil café, boina gris, barba blanca.
@@ -95,46 +94,45 @@ namespace Odisea.EditorTools
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
             int ground = level.GroundLayer;
 
-            // ----- Piso, paredes y techo (lo que se pisa) -----
-            float width = RightEdge - LeftEdge;
-            GameObject floor = PlayerSandboxBuilder.CreateBlock("Piso", root, square, new Vector2(0f, -3f), new Vector2(width + 4f, 6f),
-                Wood, ground);
-            floor.GetComponent<SpriteRenderer>().sortingOrder = -5;
-            Rect("Orilla del piso", root, square, new Vector2(0f, -0.12f), new Vector2(width + 4f, 0.24f), WoodDark, -4);
-            for (float x = LeftEdge + 1.5f; x < RightEdge; x += 3f)
-                Rect("Junta", root, square, new Vector2(x, -1.5f), new Vector2(0.08f, 2.8f), WoodDark, -4);
-            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(LeftEdge - 0.5f, 5f), new Vector2(1f, 20f),
-                WoodDark, ground);
-            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(RightEdge + 0.5f, 5f), new Vector2(1f, 20f),
-                WoodDark, ground);
-
-            // ----- Cuarto: el dibujo del fondo o, mientras no exista, el boceto de color -----
+            // ----- Cuarto: el dibujo completo en pantalla o, mientras no exista, una pared y un piso de color -----
             var art = File.Exists(BackgroundArtPath) ? MenuScenesBuilder.LoadUiSprite(BackgroundArtPath) : null;
             if (art != null)
             {
                 var drawing = new GameObject("Fondo (dibujo)").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(root, false);
                 drawing.sprite = art;
-                float scale = (width + 2f) / art.bounds.size.x;
-                drawing.transform.localScale = Vector3.one * scale;
-                drawing.transform.localPosition = new Vector3(0f, -art.bounds.min.y * scale - 1f, 0f);
+                drawing.transform.localScale = Vector3.one * (RoomHeight / art.bounds.size.y);
+                drawing.transform.localPosition = new Vector3(0f, CameraY, 0f);
                 drawing.sortingOrder = BackOrder;
             }
             else
             {
-                CreateRoom(root, square, circle);
+                Rect("Pared", root, square, new Vector2(0f, CameraY), new Vector2(RoomWidth, RoomHeight), Plaster, BackOrder);
+                Rect("Lambrín", root, square, new Vector2(0f, 1f), new Vector2(RoomWidth, 2f), WoodLight, BackOrder + 1);
             }
+
+            // ----- Lo que se pisa: piso y paredes (invisibles sobre el dibujo) -----
+            GameObject floor = PlayerSandboxBuilder.CreateBlock("Piso", root, square, new Vector2(0f, -3f), new Vector2(RoomWidth + 4f, 6f),
+                Wood, ground);
+            floor.GetComponent<SpriteRenderer>().sortingOrder = -5;
+            foreach (float x in new[] { LeftEdge - 0.5f, RightEdge + 0.5f })
+            {
+                GameObject wall = PlayerSandboxBuilder.CreateBlock(x < 0f ? "Pared izquierda" : "Pared derecha", root, square,
+                    new Vector2(x, 5f), new Vector2(1f, 20f), WoodDark, ground);
+                wall.GetComponent<SpriteRenderer>().enabled = art == null;
+            }
+            floor.GetComponent<SpriteRenderer>().enabled = art == null;
 
             // ----- Puertas -----
             NpcDialogue donLupe = CreateDonLupe(root, square, circle, level.PlayerLayer);
-            CreateExitDoor(root, square, donLupe, level.PlayerLayer);
-            CreateBeachDoor(root, square, level.PlayerLayer);
+            CreateExitDoor(root, square, donLupe, level.PlayerLayer, drawn: art == null);
+            CreateBeachDoor(root, square, level.PlayerLayer, drawn: art == null);
 
             // ----- Ulises, HUD, música, pausa y cámara -----
             string music = new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(MapMusicPath + ext))
                 ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
-            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 2.5f, 1f), "Panadería de Don Lupe", music,
-                showControls: false, background: WoodDark);
+            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe", music,
+                showControls: false, background: Color.black);
             // La canción del mapa sigue sin cortarse al ir y venir entre el mapa y la panadería (las veces que sea).
             SceneMusic sceneMusic = Object.FindAnyObjectByType<SceneMusic>();
             if (sceneMusic != null)
@@ -143,101 +141,16 @@ namespace Odisea.EditorTools
             if (pause != null)
                 PlayerSandboxBuilder.SetSerialized(pause, "allowRestart", false);
 
-            var follow = Camera.main.GetComponent<CameraFollow2D>();
-            PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
-            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(LeftEdge + 12.4f, 5.4f));
-            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(RightEdge - 12.4f, 5.4f));
-            Camera.main.transform.position = new Vector3(LeftEdge + 12.4f, 5.4f, -10f);
+            // Cámara fija con todo el cuarto (no sigue a Ulises).
+            Camera.main.orthographicSize = RoomHeight / 2f;
+            Camera.main.transform.position = new Vector3(0f, CameraY, -10f);
+            Object.DestroyImmediate(Camera.main.GetComponent<CameraFollow2D>());
 
             CreateDialogueBox();
 
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Panadería creada en {ScenePath}.");
-        }
-
-        // ---------- Cuarto (boceto) ----------
-
-        private static void CreateRoom(Transform root, Sprite square, Sprite circle)
-        {
-            var room = new GameObject("Cuarto (boceto)").transform;
-            room.SetParent(root, false);
-            float width = RightEdge - LeftEdge;
-
-            // Pared de yeso, lambrín de madera abajo y vigas en el techo.
-            Rect("Pared", room, square, new Vector2(0f, Ceiling / 2f), new Vector2(width + 2f, Ceiling + 2f), Plaster, BackOrder);
-            Rect("Lambrín", room, square, new Vector2(0f, 1.1f), new Vector2(width + 2f, 2.2f), WoodLight, BackOrder + 1);
-            Rect("Moldura", room, square, new Vector2(0f, 2.25f), new Vector2(width + 2f, 0.18f), WoodDark, BackOrder + 2);
-            for (float x = LeftEdge + 2f; x < RightEdge; x += 2f)
-                Rect("Tabla del lambrín", room, square, new Vector2(x, 1.1f), new Vector2(0.06f, 2.1f), Wood, BackOrder + 2);
-            Rect("Techo", room, square, new Vector2(0f, Ceiling + 0.6f), new Vector2(width + 2f, 1.4f), WoodDark, BackOrder + 3);
-            for (float x = LeftEdge + 3f; x < RightEdge; x += 6f)
-                Rect("Viga", room, square, new Vector2(x, Ceiling - 0.35f), new Vector2(0.6f, 0.7f), Wood, BackOrder + 4);
-            // Cenefa de azulejos bajo el techo.
-            for (float x = LeftEdge + 0.5f; x < RightEdge; x += 1f)
-                Rect("Azulejo", room, square, new Vector2(x, Ceiling - 1.05f), new Vector2(0.7f, 0.7f),
-                    Mathf.RoundToInt(x - LeftEdge) % 2 == 0 ? PlasterDark : new Color(0.278f, 0.471f, 0.576f, 0.55f), BackOrder + 1);
-
-            // Ventanas con el mar y su haz de luz.
-            CreateWindow(room, square, new Vector2(-3.4f, 6.2f));
-            CreateWindow(room, square, new Vector2(4.6f, 6.2f));
-
-            // Repisas con pan, entre la salida y Don Lupe.
-            for (int i = 0; i < 2; i++)
-            {
-                float y = 3.6f + i * 1.8f;
-                Rect("Repisa", room, square, new Vector2(-7.6f, y), new Vector2(3.8f, 0.22f), WoodDark, FurnitureOrder);
-                Rect("Ménsula", room, square, new Vector2(-9f, y - 0.35f), new Vector2(0.18f, 0.6f), WoodDark, FurnitureOrder);
-                Rect("Ménsula", room, square, new Vector2(-6.2f, y - 0.35f), new Vector2(0.18f, 0.6f), WoodDark, FurnitureOrder);
-                for (int b = 0; b < 4; b++)
-                    Loaf(room, circle, new Vector2(-8.9f + b * 0.88f, y + 0.3f), 0.78f, FurnitureOrder + 1);
-            }
-
-            // Mostrador con panes y un letrerito.
-            Rect("Mostrador", room, square, new Vector2(1.5f, 1.05f), new Vector2(6f, 2.1f), Wood, FurnitureOrder);
-            Rect("Tablero", room, square, new Vector2(1.5f, 2.2f), new Vector2(6.6f, 0.28f), WoodDark, FurnitureOrder + 1);
-            for (float x = -0.6f; x < 4f; x += 2.1f)
-                Rect("Panel", room, square, new Vector2(x, 1f), new Vector2(1.6f, 1.4f), WoodLight, FurnitureOrder + 1);
-            Loaf(room, circle, new Vector2(0.2f, 2.6f), 1.2f, FurnitureOrder + 2);
-            Loaf(room, circle, new Vector2(1.5f, 2.62f), 1.3f, FurnitureOrder + 2);
-            Loaf(room, circle, new Vector2(2.8f, 2.6f), 1.1f, FurnitureOrder + 2);
-
-            // Horno de piedra con su boca encendida y la chimenea al techo.
-            Rect("Chimenea", room, square, new Vector2(8f, 7.6f), new Vector2(1.6f, 5f), StoneDark, FurnitureOrder);
-            Rect("Base del horno", room, square, new Vector2(8f, 0.7f), new Vector2(5.6f, 1.4f), StoneDark, FurnitureOrder + 1);
-            Rect("Cúpula", room, circle, new Vector2(8f, 2.4f), new Vector2(5f, 4.4f), Stone, FurnitureOrder);
-            Rect("Boca", room, circle, new Vector2(8f, 1.9f), new Vector2(2.2f, 1.8f), Cafe, FurnitureOrder + 2);
-            Rect("Brasas", room, circle, new Vector2(8f, 1.6f), new Vector2(1.6f, 0.9f), Ember, FurnitureOrder + 3);
-            Rect("Resplandor", room, circle, new Vector2(8f, 1.7f), new Vector2(3.2f, 2.4f), new Color(Ember.r, Ember.g, 0.3f, 0.25f),
-                FurnitureOrder + 4);
-            Rect("Leña", room, square, new Vector2(10.4f, 0.25f), new Vector2(0.9f, 0.5f), Wood, FurnitureOrder + 2);
-
-            // Costales de harina junto a la salida.
-            Rect("Costal", room, circle, new Vector2(-6.8f, 0.7f), new Vector2(1.4f, 1.5f), new Color(0.90f, 0.86f, 0.76f), FurnitureOrder);
-            Rect("Costal", room, circle, new Vector2(-5.7f, 0.55f), new Vector2(1.2f, 1.2f), new Color(0.86f, 0.82f, 0.70f), FurnitureOrder + 1);
-        }
-
-        private static void CreateWindow(Transform room, Sprite square, Vector2 center)
-        {
-            var size = new Vector2(3f, 2.4f);
-            Rect("Marco", room, square, center, size + new Vector2(0.4f, 0.4f), WoodDark, BackOrder + 5);
-            Rect("Cielo", room, square, center + new Vector2(0f, 0.25f), new Vector2(size.x, size.y - 0.5f), Sky, BackOrder + 6);
-            Rect("Mar", room, square, center + new Vector2(0f, -0.95f), new Vector2(size.x, 0.5f), Sea, BackOrder + 6);
-            Rect("Cruz", room, square, center, new Vector2(0.14f, size.y), WoodDark, BackOrder + 7);
-            Rect("Cruz", room, square, center, new Vector2(size.x, 0.14f), WoodDark, BackOrder + 7);
-            Rect("Alféizar", room, square, center - new Vector2(0f, size.y / 2f + 0.25f), new Vector2(size.x + 0.9f, 0.2f), WoodDark,
-                BackOrder + 7);
-            // Haz de luz inclinado hacia el piso.
-            SpriteRenderer light = Rect("Luz", room, square, center + new Vector2(1f, -3.2f), new Vector2(2.2f, 6f),
-                new Color(1f, 0.95f, 0.75f, 0.09f), FurnitureOrder + 5);
-            light.transform.localRotation = Quaternion.Euler(0f, 0f, 18f);
-        }
-
-        // Pan de plátano: óvalo dorado con su raya tostada.
-        private static void Loaf(Transform parent, Sprite circle, Vector2 center, float width, int order)
-        {
-            Rect("Pan", parent, circle, center, new Vector2(width, width * 0.55f), Bread, order);
-            Rect("Raya", parent, circle, center + new Vector2(0f, 0.06f), new Vector2(width * 0.6f, width * 0.12f), BreadDark, order + 1);
         }
 
         // ---------- Don Lupe ----------
@@ -250,17 +163,22 @@ namespace Odisea.EditorTools
             var visual = new GameObject("Visual").transform;
             visual.SetParent(npc.transform, false);
 
-            Sprite[] frames = File.Exists(DonLupeArtPath) ? ArtImportBuilder.LoadStrip(DonLupeArtPath) : new Sprite[0];
+            Sprite[] frames = File.Exists(ArtImportBuilder.DonLupeIdlePath)
+                ? ArtImportBuilder.LoadStrip(ArtImportBuilder.DonLupeIdlePath) : new Sprite[0];
             float height;
             if (frames.Length > 0)
             {
-                // Arte real: los pies en el pivote, de la estatura de un señor junto a Ulises.
+                // Arte real (Odisea > Arte > Importar a Don Lupe): ya viene a su estatura, con los pies en el pivote.
+                // Respira y parpadea en loop, despacio.
                 var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(visual, false);
                 drawing.sprite = frames[0];
-                height = 2.7f;
-                drawing.transform.localScale = Vector3.one * (height / frames[0].bounds.size.y);
                 drawing.sortingOrder = NpcOrder;
+                var flipbook = drawing.gameObject.AddComponent<SpriteFlipbook>();
+                MenuScenesBuilder.SetField(flipbook, "target", drawing);
+                PlayerSandboxBuilder.SetSerialized(flipbook, "frames", frames.Cast<Object>().ToArray());
+                PlayerSandboxBuilder.SetSerialized(flipbook, "framesPerSecond", 6f);
+                height = frames[0].bounds.size.y;
             }
             else
             {
@@ -290,7 +208,7 @@ namespace Odisea.EditorTools
             var dialogue = npc.AddComponent<NpcDialogue>();
             PlayerSandboxBuilder.SetSerialized(dialogue, "playerLayers", 1 << playerLayer);
             MenuScenesBuilder.SetField(dialogue, "visual", visual);
-            AddBubble(npc.transform, dialogue, height + 0.8f);
+            AddBubble(npc.transform, dialogue, height + 0.5f);
 
             var serialized = new SerializedObject(dialogue);
             SerializedProperty conversations = serialized.FindProperty("conversations");
@@ -311,15 +229,16 @@ namespace Odisea.EditorTools
         // ---------- Puertas ----------
 
         // Salida al mapa, a la izquierda: puerta de madera cerrada. Solo abre después del tutorial.
-        private static void CreateExitDoor(Transform root, Sprite square, NpcDialogue keeper, int playerLayer)
+        private static void CreateExitDoor(Transform root, Sprite square, NpcDialogue keeper, int playerLayer, bool drawn)
         {
-            GameObject door = DoorFrame("Salida al mapa", root, square, ExitDoorX);
-            Rect("Hoja", door.transform, square, new Vector2(0f, 1.9f), new Vector2(2.2f, 3.8f), Wood, FurnitureOrder + 1);
-            Rect("Tablero", door.transform, square, new Vector2(0f, 2.8f), new Vector2(1.6f, 1.2f), WoodLight, FurnitureOrder + 2);
-            Rect("Tablero", door.transform, square, new Vector2(0f, 1.1f), new Vector2(1.6f, 1.4f), WoodLight, FurnitureOrder + 2);
-            Rect("Perilla", door.transform, PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath),
-                new Vector2(0.75f, 1.9f), new Vector2(0.24f, 0.24f), Platano, FurnitureOrder + 3);
-            CreateNamePlate(door.transform, "Al mapa", new Vector2(0f, 4.75f), 0.75f);
+            GameObject door = DoorFrame("Salida al mapa", root, square, ExitDoorX, drawn);
+            if (drawn)
+            {
+                Rect("Hoja", door.transform, square, new Vector2(0f, 1.9f), new Vector2(2.2f, 3.8f), Wood, FurnitureOrder + 1);
+                Rect("Perilla", door.transform, PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath),
+                    new Vector2(0.75f, 1.9f), new Vector2(0.24f, 0.24f), Platano, FurnitureOrder + 3);
+            }
+            CreateNamePlate(door.transform, "Al mapa", new Vector2(0.35f, DoorTop + 0.35f), 0.42f);
 
             var component = door.AddComponent<SceneDoor>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
@@ -329,38 +248,34 @@ namespace Odisea.EditorTools
             SetStrings(component, "lockedLines", ExitLockedLines);
             PlayerSandboxBuilder.SetSerialized(component, "mapLocation", GameProgress.Tutorial);
             GameSoundsBuilder.SetSound(component, "openSound", new[] { UiAssetsBuilder.LoadUiSound("ui_click") }, 0.7f);
-            AddBubble(door.transform, component, 5.9f);
+            AddBubble(door.transform, component, DoorTop - 0.5f);
         }
 
         // Puerta a la playa, a la derecha: abierta, con el mar y la luz del muelle.
-        private static void CreateBeachDoor(Transform root, Sprite square, int playerLayer)
+        private static void CreateBeachDoor(Transform root, Sprite square, int playerLayer, bool drawn)
         {
-            GameObject door = DoorFrame("Puerta a la playa", root, square, BeachDoorX);
-            Rect("Cielo", door.transform, square, new Vector2(0f, 2.3f), new Vector2(2.2f, 3f), Sky, FurnitureOrder + 1);
-            Rect("Mar", door.transform, square, new Vector2(0f, 1.1f), new Vector2(2.2f, 0.7f), Sea, FurnitureOrder + 2);
-            Rect("Arena", door.transform, square, new Vector2(0f, 0.38f), new Vector2(2.2f, 0.76f), TutorialBuilder.Sand,
-                FurnitureOrder + 2);
-            Rect("Hoja abierta", door.transform, square, new Vector2(-1.45f, 1.9f), new Vector2(0.5f, 3.8f), Wood, FurnitureOrder + 3);
-            // Luz que entra y cae en el piso.
-            Rect("Luz", door.transform, square, new Vector2(-1.6f, 0.03f), new Vector2(3.6f, 0.08f), new Color(1f, 0.95f, 0.75f, 0.5f),
-                FrontOrder);
-            Rect("Brillo", door.transform, PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath),
-                new Vector2(0f, 2f), new Vector2(3.4f, 4.4f), new Color(1f, 0.95f, 0.75f, 0.12f), FurnitureOrder + 4);
-            CreateNamePlate(door.transform, "A la playa", new Vector2(0f, 4.75f), 0.75f);
+            GameObject door = DoorFrame("Puerta a la playa", root, square, BeachDoorX, drawn);
+            if (drawn)
+            {
+                Rect("Cielo", door.transform, square, new Vector2(0f, 2.3f), new Vector2(2.2f, 3f), Sky, FurnitureOrder + 1);
+                Rect("Mar", door.transform, square, new Vector2(0f, 1.1f), new Vector2(2.2f, 0.7f), Sea, FurnitureOrder + 2);
+            }
+            CreateNamePlate(door.transform, "A la playa", new Vector2(-0.45f, DoorTop + 0.35f), 0.42f);
 
             var component = door.AddComponent<SceneDoor>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "targetScene", SceneFlow.Tutorial);
             GameSoundsBuilder.SetSound(component, "openSound", new[] { UiAssetsBuilder.LoadUiSound("ui_click") }, 0.7f);
-            AddBubble(door.transform, component, 5.9f);
+            AddBubble(door.transform, component, DoorTop - 0.5f);
         }
 
-        private static GameObject DoorFrame(string name, Transform root, Sprite square, float x)
+        private static GameObject DoorFrame(string name, Transform root, Sprite square, float x, bool drawn)
         {
             var door = new GameObject(name);
             door.transform.SetParent(root, false);
             door.transform.position = new Vector3(x, 0f, 0f);
-            Rect("Marco", door.transform, square, new Vector2(0f, 2.05f), new Vector2(2.8f, 4.1f), WoodDark, FurnitureOrder);
+            if (drawn)
+                Rect("Marco", door.transform, square, new Vector2(0f, 2.05f), new Vector2(2.8f, 4.1f), WoodDark, FurnitureOrder);
             var area = door.AddComponent<BoxCollider2D>();
             area.size = new Vector2(2.4f, 3.5f);
             area.offset = new Vector2(0f, 1.75f);
@@ -374,6 +289,7 @@ namespace Odisea.EditorTools
             var bubble = new GameObject("Globito").transform;
             bubble.SetParent(parent, false);
             bubble.localPosition = new Vector3(0f, height, 0f);
+            bubble.localScale = Vector3.one * 0.6f;
             Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
             Plate("Borde", bubble, rounded, new Vector2(1.1f, 1.1f), Cafe, FrontOrder);
             Plate("Fondo", bubble, rounded, new Vector2(0.96f, 0.96f), Crema, FrontOrder + 1);

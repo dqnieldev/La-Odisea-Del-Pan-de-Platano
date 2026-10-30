@@ -90,8 +90,36 @@ namespace Odisea.EditorTools
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
             ImportItems();
+            ImportDonLupe();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
+        }
+
+        // ---------- Don Lupe ----------
+
+        public const string DonLupeFolder = "Assets/_Project/Art/Characters/DonLupe";
+        /// <summary>Tira de Don Lupe en reposo (apoyado en el bastón, respira y parpadea); pivote en los pies.</summary>
+        public const string DonLupeIdlePath = DonLupeFolder + "/DonLupe_Reposo.png";
+        private const string DonLupeSource = "Personajes/sprite en png/don lupe/donlupe_reposo.png";
+        // Estatura en el juego: un poco más alto que Ulises aunque va encorvado.
+        private const float DonLupeHeight = 2.35f;
+
+        /// <summary>
+        /// Hoja de una fila con fondo blanco (barba y guantes son blanco hueso, más oscuros que el fondo): cada
+        /// cuadro con los pies en el mismo punto.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar a Don Lupe")]
+        public static void ImportDonLupe()
+        {
+            Sheet sheet = LoadSheet(DonLupeSource, whiteThreshold: 248, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 20).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            float ppu = MedianCoreHeight(frames) / DonLupeHeight;
+            EnsureFolder(DonLupeFolder);
+            WriteStrip(sheet, frames, DonLupeIdlePath, ppu, "DonLupe_Reposo");
+            Debug.Log($"[Odisea] Don Lupe: {frames.Count} cuadros.");
         }
 
         // ---------- Ítems ----------
