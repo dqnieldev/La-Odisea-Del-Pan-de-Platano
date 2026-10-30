@@ -175,7 +175,7 @@ namespace Odisea.Map
                 PlaceMarker(location);
             if (highlight != null)
             {
-                highlight.transform.position = location.transform.position;
+                highlight.transform.position = nodes[current].position;
                 float pulse = 0.75f + Mathf.Sin(Time.time * 3f) * 0.25f;
                 highlight.color = new Color(highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a * pulse * focus);
                 float size = HighlightSize / Mathf.Max(0.01f, highlight.sprite.bounds.size.x);
@@ -205,8 +205,8 @@ namespace Odisea.Map
             marker.localScale = markerScale * focus;
         }
 
-        // Ancho del anillo en el mundo: un poco más que el claro de un lugar.
-        private const float HighlightSize = 9f;
+        // Ancho del anillo en el mundo: un poco más que la base de piedra de un lugar.
+        private const float HighlightSize = 4.6f;
 
         // ---------- Caminos abiertos y lugares nuevos ----------
 
@@ -221,8 +221,9 @@ namespace Odisea.Map
             return gate < 0 || !nodes[locationOrder[gate]].location.IsLocked;
         }
 
-        // Muestra los puntitos de los tramos abiertos. Los de lugares recién abiertos se dibujan uno por uno, y al
-        // terminar cada uno el lugar brinca. Mientras tanto no se puede elegir lugar.
+        // Muestra los puntitos de los tramos abiertos y los lugares abiertos en color (los cerrados, en blanco y
+        // negro). Los lugares recién abiertos se estrenan en orden: su camino se dibuja punto por punto y luego les
+        // vuelve el color. Mientras tanto no se puede elegir lugar.
         private IEnumerator RevealPaths()
         {
             int open = 0;
@@ -232,49 +233,49 @@ namespace Odisea.Map
                     open = i + 1;
             }
             int seen = GameProgress.MapRevealed;
-            var fresh = new List<Edge>();
+            for (int i = 0; i < locationOrder.Length; i++)
+                nodes[locationOrder[i]].location.ShowColor(i < Mathf.Min(seen, open));
             foreach (Edge edge in edges)
             {
                 if (edge.dots == null)
                     continue;
-                bool isOpen = IsOpen(edge);
-                bool isNew = isOpen && Gate(edge) >= seen;
-                edge.dots.gameObject.SetActive(isOpen);
-                if (!isNew)
-                    continue;
-                fresh.Add(edge);
-                foreach (Transform dot in edge.dots)
-                    dot.localScale = Vector3.zero;
+                edge.dots.gameObject.SetActive(IsOpen(edge));
+                if (Gate(edge) >= seen)
+                {
+                    foreach (Transform dot in edge.dots)
+                        dot.localScale = Vector3.zero;
+                }
             }
-            if (fresh.Count == 0)
+            if (seen >= open)
             {
                 GameProgress.MapRevealed = Mathf.Max(seen, open);
                 yield break;
             }
 
             revealing = true;
-            fresh.Sort((a, b) => Gate(a).CompareTo(Gate(b)));
-            yield return new WaitForSeconds(0.5f);
-            foreach (Edge edge in fresh)
+            yield return new WaitForSeconds(0.6f);
+            for (int index = seen; index < open; index++)
             {
-                // Se dibuja desde la punta que ya se conocía hacia el lugar nuevo.
-                bool forward = StoryIndex(edge.to) >= StoryIndex(edge.from);
-                int count = edge.dots.childCount;
-                for (int i = 0; i < count; i++)
+                foreach (Edge edge in edges)
                 {
-                    Transform dot = edge.dots.GetChild(forward ? i : count - 1 - i);
-                    StartCoroutine(Pop(dot, 1f, 0.2f));
-                    dotSound.Play();
-                    yield return new WaitForSeconds(dotInterval);
+                    if (edge.dots == null || Gate(edge) != index)
+                        continue;
+                    // Se dibuja desde la punta que ya se conocía hacia el lugar nuevo.
+                    bool forward = StoryIndex(edge.to) >= StoryIndex(edge.from);
+                    int count = edge.dots.childCount;
+                    for (int i = 0; i < count; i++)
+                    {
+                        Transform dot = edge.dots.GetChild(forward ? i : count - 1 - i);
+                        StartCoroutine(Pop(dot, 1f, 0.2f));
+                        dotSound.Play();
+                        yield return new WaitForSeconds(dotInterval);
+                    }
                 }
-                MapLocation opened = nodes[locationOrder[Gate(edge)]].location;
-                if (opened != null && Gate(edge) >= seen && Gate(edge) > 0)
-                {
-                    unlockSound.Play();
-                    yield return Pop(opened.transform, 1f, 0.35f);
-                }
+                unlockSound.Play();
+                yield return nodes[locationOrder[index]].location.RevealColor();
+                // Se guarda en cuanto se estrena cada uno, por si sale del mapa a la mitad.
+                GameProgress.MapRevealed = index + 1;
             }
-            GameProgress.MapRevealed = Mathf.Max(seen, open);
             revealing = false;
         }
 

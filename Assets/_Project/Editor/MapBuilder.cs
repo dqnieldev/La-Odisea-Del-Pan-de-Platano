@@ -11,18 +11,21 @@ using UnityEngine.UI;
 namespace Odisea.EditorTools
 {
     /// <summary>
-    /// Mapa de San Blas como el de Mario: el dibujo completo en pantalla (Art/Map/Mapa.png, visto desde arriba), los
-    /// cuatro lugares sobre sus claros (Art/Map/Lugares/&lt;Lugar&gt;.png) y la ficha de Ulises que camina por los
-    /// caminos dibujados (<see cref="OverworldMap"/>). Las coordenadas de claros y caminos se midieron en el dibujo
-    /// (en píxeles de una imagen de 1376 × 768; sirven para cualquier tamaño con la misma proporción).
+    /// Mapa de San Blas como el de Mario: el dibujo completo en pantalla (Art/Map/Mapa.png, con los cinco lugares y
+    /// sus bases de piedra ya dibujados) y la ficha de Ulises que camina por los caminos y el muelle
+    /// (<see cref="OverworldMap"/>). Los lugares que todavía no se abren se ven en blanco y negro: una copia en gris
+    /// del dibujo con la silueta del recorte de cada lugar (Art/Map/Recortes), que al abrirse se borra como pintura
+    /// que se extiende desde la base. Las coordenadas se midieron en el dibujo (píxeles de 1935 × 1080) y la escala y
+    /// posición de cada recorte se encontraron comparándolo con el mapa.
     /// </summary>
     public static class MapBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Mapa.unity";
         private const string MapArtPath = "Assets/_Project/Art/Map/Mapa.png";
-        private const string PlacesArtFolder = "Assets/_Project/Art/Map/Lugares";
-        // Copias recortadas a lo dibujado (los PNG vienen con mucho margen transparente).
-        private const string TrimmedFolder = "Assets/_Project/Art/Map/Recortes";
+        private const string CutoutsFolder = "Assets/_Project/Art/Map/Recortes";
+        // Lo que este generador hace a partir del mapa y los recortes (grises y la base dorada).
+        private const string GeneratedFolder = "Assets/_Project/Art/Map/Generados";
+        private const string ReachedCutout = "Lugar_alcanzado";
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
         // Punto blanco difuso del ambiente (humo, polvo, destellos, sombras de nubes) y el aro del lugar elegido.
         private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
@@ -31,67 +34,76 @@ namespace Odisea.EditorTools
 
         // El mapa mide Width de ancho (el alto sale de la proporción del dibujo) y llena la pantalla.
         private const float Width = 64f;
-        private static readonly Vector2 Reference = new(1376f, 768f);
-        private const float PlaceArtWidth = 6.6f;
-        // Base del dibujo de cada lugar: la orilla de abajo de su claro.
-        private const float PlaceBaseDrop = 2.7f;
-        private static readonly Vector2 ClickArea = new(7f, 6.2f);
+        private static readonly Vector2 Reference = new(1935f, 1080f);
         private const int PlaceOrder = 10, LabelOrder = 40, TokenOrder = 100;
         // Puntitos de los caminos: cada cuánto y qué tan lejos de los lugares empiezan.
-        private const float DotSpacing = 0.95f, DotMargin = 1.1f;
+        private const float DotSpacing = 0.95f, DotMargin = 1.4f;
+        // Ancho de la base de piedra en el dibujo (px): la dorada de "alcanzado" se pone encima a ese tamaño.
+        private const float PadWidth = 94f;
 
-        // Ambiente medido en el dibujo (px de la referencia): agua donde brillan los destellos y la punta de la
-        // chimenea de la panadería.
+        // Ambiente medido en el dibujo (px): agua donde brillan los destellos y la punta de la chimenea de la panadería.
         private static readonly Rect[] SeaAreas =
         {
-            new(610f, 610f, 520f, 140f),
-            new(1120f, 680f, 130f, 70f),
-            new(20f, 575f, 560f, 30f),
+            new(320f, 965f, 780f, 70f),
+            new(1150f, 730f, 760f, 300f),
+            new(30f, 600f, 70f, 380f),
         };
-        private static readonly Vector2 Chimney = new(137f, 372f);
+        private static readonly Vector2 Chimney = new(235f, 418f);
 
         private readonly struct Place
         {
-            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, ArtName;
-            public readonly Vector2 Clearing, Stand;
-            public readonly Color Wall, Roof;
+            public readonly string Id, Name, Subtitle, Scene, Story, Requires, RequiresName, Cutout;
+            // Stand: centro de la base de piedra (ahí se para Ulises). Plate: centro del letrero. Click: área (x, y, w, h).
+            public readonly Vector2 Stand, Plate, CutoutOrigin;
+            public readonly Rect Click;
+            public readonly float CutoutScale;
 
             public Place(string id, string name, string subtitle, string scene, string story, string requires, string requiresName,
-                Vector2 clearing, Vector2 stand, Color wall, Color roof)
+                Vector2 stand, Vector2 plate, Rect click, string cutout, float cutoutScale, Vector2 cutoutOrigin)
             {
                 Id = id; Name = name; Subtitle = subtitle; Scene = scene; Story = story; Requires = requires;
-                RequiresName = requiresName; Clearing = clearing; Stand = stand; Wall = wall; Roof = roof;
-                ArtName = id == GameProgress.Tutorial ? "Panaderia" : char.ToUpperInvariant(id[0]) + id.Substring(1);
+                RequiresName = requiresName; Stand = stand; Plate = plate; Click = click;
+                Cutout = cutout; CutoutScale = cutoutScale; CutoutOrigin = cutoutOrigin;
             }
         }
 
-        // En orden de la historia. Clearing: centro del claro; Stand: dónde se para Ulises (frente a la puerta).
+        // En orden de la historia. El recorte va a CutoutScale de su tamaño, con su esquina de arriba a la izquierda en
+        // CutoutOrigin (px del mapa).
         private static readonly Place[] Places =
         {
             new(GameProgress.Tutorial, "Panadería de Don Lupe", "Habla con Don Lupe", SceneFlow.Bakery, "", "", "",
-                new Vector2(187f, 427f), new Vector2(187f, 470f), new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
+                new Vector2(452f, 693f), new Vector2(330f, 290f), new Rect(130f, 300f, 410f, 440f),
+                "Lugares_Panaderia", 0.495f, new Vector2(-149.1f, 243.4f)),
             new(GameProgress.Mercado, "El Mercado", "Acto I · La cueva del mercado", "Mercado", "Mercado", GameProgress.Tutorial,
-                "el tutorial", new Vector2(627f, 148f), new Vector2(627f, 195f), new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
+                "el tutorial", new Vector2(796f, 400f), new Vector2(985f, 458f), new Rect(570f, 10f, 590f, 430f),
+                "Lugares_mercado", 0.585f, new Vector2(297.5f, -98.7f)),
             new(GameProgress.Horno, "El Horno", "Acto II · El asedio a la panadería", "Horno", "Horno", GameProgress.Mercado,
-                "El Mercado", new Vector2(727f, 522f), new Vector2(727f, 565f), new Color(0.85f, 0.62f, 0.45f), new Color(0.55f, 0.30f, 0.20f)),
+                "El Mercado", new Vector2(889f, 870f), new Vector2(1010f, 955f), new Rect(840f, 560f, 310f, 350f),
+                "Lugares_horno", 0.465f, new Vector2(552.4f, 453f)),
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
-                "El Horno", new Vector2(1199f, 388f), new Vector2(1199f, 430f), new Color(0.55f, 0.70f, 0.45f), new Color(0.30f, 0.45f, 0.28f)),
+                "El Horno", new Vector2(1380f, 565f), new Vector2(1290f, 470f), new Rect(1165f, 120f, 455f, 500f),
+                "Lugares_tovara", 0.865f, new Vector2(474.3f, -89.8f)),
+            new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", "Festival", "Festival",
+                GameProgress.Tovara, "La Tovara", new Vector2(1760f, 557f), new Vector2(1760f, 650f),
+                new Rect(1630f, 190f, 305f, 500f), "Lugares_festival", 0.63f, new Vector2(1167.5f, 100f)),
         };
 
-        // Cruce de caminos (nodo 4) y los tramos entre nodos, con puntos que siguen los caminos dibujados.
-        // Nodos: 0 Panadería, 1 Mercado, 2 Horno, 3 Tovara, 4 cruce.
-        private static readonly Vector2 Junction = new(560f, 468f);
+        // Tramos entre lugares, con puntos que siguen los caminos de tierra y el muelle (nodo = índice del lugar).
         private static readonly (int from, int to, Vector2[] points)[] Paths =
         {
-            (0, 4, new Vector2[] { new(265f, 440f), new(340f, 438f), new(420f, 448f), new(490f, 465f) }),
-            (4, 1, new Vector2[] { new(565f, 420f), new(600f, 375f), new(650f, 335f), new(690f, 300f), new(700f, 250f), new(670f, 215f) }),
-            (4, 2, new Vector2[] { new(610f, 490f), new(660f, 525f), new(700f, 560f) }),
-            (2, 3, new Vector2[] { new(800f, 540f), new(870f, 505f), new(960f, 497f), new(1050f, 478f), new(1110f, 450f), new(1150f, 430f) }),
+            (0, 1, new Vector2[] { new(520f, 650f), new(590f, 585f), new(650f, 505f), new(705f, 445f), new(750f, 415f) }),
+            (1, 2, new Vector2[] { new(830f, 470f), new(810f, 560f), new(780f, 650f), new(770f, 740f), new(800f, 815f), new(850f, 855f) }),
+            (2, 3, new Vector2[]
+            {
+                new(970f, 885f), new(1060f, 885f), new(1130f, 860f), new(1235f, 820f), new(1355f, 770f), new(1415f, 715f),
+                new(1405f, 655f), new(1360f, 610f),
+            }),
+            (3, 4, new Vector2[] { new(1430f, 595f), new(1500f, 640f), new(1585f, 650f), new(1660f, 620f), new(1725f, 595f) }),
         };
 
         private static float height = Width * 9f / 16f;
 
-        // Píxel del dibujo (en la referencia de 1376 × 768) → unidades del mundo, con el mapa centrado en el origen.
+        // Píxel del dibujo (en la referencia de 1935 × 1080) → unidades del mundo, con el mapa centrado en el origen.
         private static Vector2 P(Vector2 pixel) =>
             new((pixel.x / Reference.x - 0.5f) * Width, (0.5f - pixel.y / Reference.y) * height);
 
@@ -125,17 +137,17 @@ namespace Odisea.EditorTools
 
             // ----- Lugares y caminos -----
             LocationPanel panel = CreateLocationPanel();
-            var locations = Places.Select(place => CreateLocation(place, root, square, circle)).ToArray();
+            Sprite reached = EnsureReachedPad();
+            var locations = Places.Select((place, i) => CreateLocation(place, i, root, square, circle, reached)).ToArray();
             var map = new GameObject("Mapa (control)").AddComponent<OverworldMap>();
             var serialized = new SerializedObject(map);
             SerializedProperty nodes = serialized.FindProperty("nodes");
-            nodes.arraySize = Places.Length + 1;
+            nodes.arraySize = Places.Length;
             for (int i = 0; i < Places.Length; i++)
             {
                 nodes.GetArrayElementAtIndex(i).FindPropertyRelative("position").vector2Value = P(Places[i].Stand);
                 nodes.GetArrayElementAtIndex(i).FindPropertyRelative("location").objectReferenceValue = locations[i];
             }
-            nodes.GetArrayElementAtIndex(Places.Length).FindPropertyRelative("position").vector2Value = P(Junction);
             SerializedProperty edges = serialized.FindProperty("edges");
             edges.arraySize = Paths.Length;
             for (int i = 0; i < Paths.Length; i++)
@@ -223,49 +235,49 @@ namespace Odisea.EditorTools
             Debug.Log($"[Odisea] Mapa creado en {ScenePath}.");
         }
 
-        // Edificio sobre su claro, letrero con el nombre, banderita de terminado y el área de clic.
-        private static MapLocation CreateLocation(Place place, Transform root, Sprite square, Sprite circle)
+        // Lugar sobre su base de piedra: letrero, banderita de terminado, base dorada de "alcanzado", su copia en gris
+        // (mientras no se abra) y el área de clic.
+        private static MapLocation CreateLocation(Place place, int index, Transform root, Sprite square, Sprite circle, Sprite reached)
         {
-            Vector2 center = P(place.Clearing);
+            Vector2 stand = P(place.Stand);
             var go = new GameObject(place.Name);
             go.transform.SetParent(root, false);
-            go.transform.position = center;
+            go.transform.position = stand;
 
-            var tinted = new System.Collections.Generic.List<Object>();
-            float top;
-            Sprite art = LoadTrimmedSprite(PlacesArtFolder, place.ArtName);
-            if (art != null)
-            {
-                var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
-                drawing.transform.SetParent(go.transform, false);
-                float scale = PlaceArtWidth / art.bounds.size.x;
-                drawing.transform.localScale = Vector3.one * scale;
-                drawing.transform.localPosition = new Vector3(0f, -PlaceBaseDrop - art.bounds.min.y * scale, 0f);
-                drawing.sprite = art;
-                drawing.sortingOrder = PlaceOrder;
-                tinted.Add(drawing);
-                top = -PlaceBaseDrop + art.bounds.size.y * scale;
-            }
-            else
-            {
-                tinted.Add(Rect("Pared", go.transform, square, new Vector2(0f, -0.6f), new Vector2(4.4f, 3f), place.Wall, PlaceOrder));
-                tinted.Add(Rect("Techo", go.transform, square, new Vector2(0f, 1.3f), new Vector2(5f, 1.1f), place.Roof, PlaceOrder + 1));
-                tinted.Add(Rect("Puerta", go.transform, square, new Vector2(0f, -1.4f), new Vector2(1f, 1.4f),
-                    PlayerSandboxBuilder.Cafe, PlaceOrder + 1));
-                top = 1.9f;
-            }
+            CreateNamePlate(go.transform, place.Name, P(place.Plate) - stand);
 
-            CreateNamePlate(go.transform, place.Name, new Vector2(0f, top + 0.5f));
-
-            // Banderita amarilla de "terminado", a un lado del edificio.
+            // Banderita amarilla de "terminado", junto a la base.
             var flag = new GameObject("Terminado");
             flag.transform.SetParent(go.transform, false);
-            flag.transform.localPosition = new Vector3(PlaceArtWidth / 2f - 0.3f, -PlaceBaseDrop + 1.2f, 0f);
+            flag.transform.localPosition = new Vector3(1.8f, 0f, 0f);
             Rect("Asta", flag.transform, square, new Vector2(0f, 0.7f), new Vector2(0.14f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
             Rect("Bandera", flag.transform, circle, new Vector2(0.4f, 1.2f), new Vector2(0.8f, 0.55f),
                 new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
 
-            go.AddComponent<BoxCollider2D>().size = ClickArea;
+            GameObject pad = null;
+            if (reached != null)
+            {
+                SpriteRenderer gold = Rect("Base dorada", go.transform, reached, Vector2.zero,
+                    reached.bounds.size * (PadWidth / Reference.x * Width / reached.bounds.size.x), Color.white, PlaceOrder + 8);
+                pad = gold.gameObject;
+            }
+
+            // Copia en gris del lugar (cada una en su propio orden, para que la máscara del revelado solo la toque a ella).
+            SpriteRenderer gray = null;
+            (Sprite graySprite, Vector2 grayCenter) = EnsureGrayOverlay(place);
+            if (graySprite != null)
+            {
+                gray = new GameObject("En gris").AddComponent<SpriteRenderer>();
+                gray.transform.SetParent(go.transform, false);
+                gray.transform.position = P(grayCenter);
+                gray.sprite = graySprite;
+                gray.sortingOrder = PlaceOrder + 1 + index;
+            }
+
+            var area = go.AddComponent<BoxCollider2D>();
+            Vector2 clickMin = P(new Vector2(place.Click.xMin, place.Click.yMax)), clickMax = P(new Vector2(place.Click.xMax, place.Click.yMin));
+            area.size = clickMax - clickMin;
+            area.offset = (clickMin + clickMax) / 2f - stand;
             var location = go.AddComponent<MapLocation>();
             PlayerSandboxBuilder.SetSerialized(location, "id", place.Id);
             PlayerSandboxBuilder.SetSerialized(location, "displayName", place.Name);
@@ -275,7 +287,16 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(location, "requires", place.Requires);
             PlayerSandboxBuilder.SetSerialized(location, "requiresName", place.RequiresName);
             MenuScenesBuilder.SetField(location, "doneMark", flag);
-            PlayerSandboxBuilder.SetSerialized(location, "tinted", tinted.ToArray());
+            if (pad != null)
+                MenuScenesBuilder.SetField(location, "reachedMark", pad);
+            if (gray != null)
+            {
+                MenuScenesBuilder.SetField(location, "grayOverlay", gray);
+                MenuScenesBuilder.SetField(location, "revealShape", circle);
+                var ring = AssetDatabase.LoadAssetAtPath<Sprite>(RingPath);
+                if (ring != null)
+                    MenuScenesBuilder.SetField(location, "revealRing", ring);
+            }
             return location;
         }
 
@@ -388,7 +409,7 @@ namespace Odisea.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static Vector2 Node(int index) => index < Places.Length ? P(Places[index].Stand) : P(Junction);
+        private static Vector2 Node(int index) => P(Places[index].Stand);
 
         private static Vector2 AlongLine(System.Collections.Generic.List<Vector2> line, float distance)
         {
@@ -548,46 +569,123 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>
-        /// Sprite de folder/name.png recortado a lo dibujado: los generadores dejan mucho margen transparente y así
-        /// el tamaño en el mapa corresponde al dibujo. La copia recortada va en Art/Map/Recortes y se rehace si el
-        /// original cambia.
+        /// Copia en gris del dibujo del mapa con la silueta del recorte del lugar (un poco engordada, para cubrir sus
+        /// orillas), y su centro en px del mapa. Se rehace si cambian el mapa o el recorte.
         /// </summary>
-        private static Sprite LoadTrimmedSprite(string folder, string name)
+        private static (Sprite, Vector2) EnsureGrayOverlay(Place place)
         {
-            string source = $"{folder}/{name}.png";
+            string cutoutPath = $"{CutoutsFolder}/{place.Cutout}.png";
+            string target = $"{GeneratedFolder}/{place.Cutout}_gris.png";
+            if (!File.Exists(cutoutPath) || !File.Exists(MapArtPath))
+                return (null, Vector2.zero);
+
+            Texture2D cutout = ReadTexture(cutoutPath);
+            float s = place.CutoutScale;
+            Vector2 o = place.CutoutOrigin;
+            // Lo dibujado del recorte (en px de arriba hacia abajo) llevado al mapa.
+            RectInt drawn = OpaqueBounds(cutout);
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(o.x + drawn.xMin * s) - 4);
+            int y0 = Mathf.Max(0, Mathf.FloorToInt(o.y + drawn.yMin * s) - 4);
+            int x1 = Mathf.Min((int)Reference.x, Mathf.CeilToInt(o.x + drawn.xMax * s) + 4);
+            int y1 = Mathf.Min((int)Reference.y, Mathf.CeilToInt(o.y + drawn.yMax * s) + 4);
+            var center = new Vector2((x0 + x1) / 2f, (y0 + y1) / 2f);
+
+            bool stale = !File.Exists(target) || File.GetLastWriteTimeUtc(MapArtPath) > File.GetLastWriteTimeUtc(target) ||
+                         File.GetLastWriteTimeUtc(cutoutPath) > File.GetLastWriteTimeUtc(target);
+            if (stale)
+            {
+                Texture2D map = ReadTexture(MapArtPath);
+                int w = x1 - x0, h = y1 - y0;
+                var pixels = new Color32[w * h];
+                for (int my = y0; my < y1; my++)
+                for (int mx = x0; mx < x1; mx++)
+                {
+                    // Silueta: lo más opaco del recorte alrededor del punto (2 px del mapa a cada lado).
+                    float alpha = 0f;
+                    for (int k = 0; k < 5; k++)
+                    {
+                        int dx = k == 1 ? -2 : k == 2 ? 2 : 0, dy = k == 3 ? -2 : k == 4 ? 2 : 0;
+                        float u = (mx + 0.5f + dx - o.x) / s, v = (my + 0.5f + dy - o.y) / s;
+                        if (u >= 0f && v >= 0f && u < cutout.width && v < cutout.height)
+                            alpha = Mathf.Max(alpha, cutout.GetPixelBilinear(u / cutout.width, 1f - v / cutout.height).a);
+                    }
+                    Color32 c = map.GetPixel(mx, map.height - 1 - my);
+                    // Gris de foto vieja: luminancia, un poco cálida y apagada.
+                    float g = (0.3f * c.r + 0.59f * c.g + 0.11f * c.b) / 255f * 0.92f;
+                    pixels[(y1 - 1 - my) * w + (mx - x0)] = new Color(g * 1.03f, g, g * 0.95f, alpha);
+                }
+                var output = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                output.SetPixels32(pixels);
+                PlayerSandboxBuilder.EnsureFolder(GeneratedFolder);
+                File.WriteAllBytes(target, output.EncodeToPNG());
+                Object.DestroyImmediate(output);
+                Object.DestroyImmediate(map);
+                ImportPixelSprite(target, Reference.x / Width);
+            }
+            Object.DestroyImmediate(cutout);
+            return (AssetDatabase.LoadAssetAtPath<Sprite>(target), center);
+        }
+
+        /// <summary>Base dorada de "lugar alcanzado": el recorte, recortado a lo dibujado.</summary>
+        private static Sprite EnsureReachedPad()
+        {
+            string source = $"{CutoutsFolder}/{ReachedCutout}.png";
+            string target = $"{GeneratedFolder}/Base_dorada.png";
             if (!File.Exists(source))
                 return null;
-            string target = $"{TrimmedFolder}/{Path.GetFileName(folder)}_{name}.png";
             if (!File.Exists(target) || File.GetLastWriteTimeUtc(source) > File.GetLastWriteTimeUtc(target))
             {
-                var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                texture.LoadImage(File.ReadAllBytes(source));
-                Color32[] pixels = texture.GetPixels32();
-                int w = texture.width, h = texture.height, minX = w, minY = h, maxX = -1, maxY = -1;
-                for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    if (pixels[y * w + x].a <= 10)
-                        continue;
-                    minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
-                    minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
-                }
-                if (maxX < 0)
-                {
-                    Object.DestroyImmediate(texture);
-                    return null;
-                }
-                int cw = maxX - minX + 1, ch = maxY - minY + 1;
-                var cropped = new Texture2D(cw, ch, TextureFormat.RGBA32, false);
-                cropped.SetPixels(texture.GetPixels(minX, minY, cw, ch));
+                Texture2D texture = ReadTexture(source);
+                RectInt drawn = OpaqueBounds(texture);
+                // OpaqueBounds está de arriba hacia abajo; GetPixels, de abajo hacia arriba.
+                var cropped = new Texture2D(drawn.width, drawn.height, TextureFormat.RGBA32, false);
+                cropped.SetPixels(texture.GetPixels(drawn.xMin, texture.height - drawn.yMax, drawn.width, drawn.height));
                 cropped.Apply();
-                PlayerSandboxBuilder.EnsureFolder(TrimmedFolder);
+                PlayerSandboxBuilder.EnsureFolder(GeneratedFolder);
                 File.WriteAllBytes(target, cropped.EncodeToPNG());
                 Object.DestroyImmediate(texture);
                 Object.DestroyImmediate(cropped);
-                AssetDatabase.ImportAsset(target, ImportAssetOptions.ForceSynchronousImport);
+                ImportPixelSprite(target, 100f);
             }
-            return MenuScenesBuilder.LoadUiSprite(target);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(target);
+        }
+
+        private static Texture2D ReadTexture(string path)
+        {
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            texture.LoadImage(File.ReadAllBytes(path));
+            return texture;
+        }
+
+        // Lo dibujado (alfa > 10), en px de arriba hacia abajo.
+        private static RectInt OpaqueBounds(Texture2D texture)
+        {
+            Color32[] pixels = texture.GetPixels32();
+            int w = texture.width, h = texture.height, minX = w, minY = h, maxX = -1, maxY = -1;
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                if (pixels[y * w + x].a <= 10)
+                    continue;
+                int top = h - 1 - y;
+                minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, top); maxY = Mathf.Max(maxY, top);
+            }
+            return maxX < 0 ? new RectInt(0, 0, w, h) : new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+
+        private static void ImportPixelSprite(string path, float pixelsPerUnit)
+        {
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.maxTextureSize = 2048;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.SaveAndReimport();
         }
 
         private static SpriteRenderer Rect(string name, Transform parent, Sprite sprite, Vector2 localPosition, Vector2 size,

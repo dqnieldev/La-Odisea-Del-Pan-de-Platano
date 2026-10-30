@@ -16,6 +16,8 @@ namespace Odisea.Core
         public const string Mercado = "mercado";
         public const string Horno = "horno";
         public const string Tovara = "tovara";
+        /// <summary>El final (el festival): está en el mapa pero no cuenta entre los lugares de la partida.</summary>
+        public const string Festival = "festival";
         /// <summary>Lugares del mapa, en orden de la historia.</summary>
         public static readonly string[] Locations = { Tutorial, Mercado, Horno, Tovara };
 

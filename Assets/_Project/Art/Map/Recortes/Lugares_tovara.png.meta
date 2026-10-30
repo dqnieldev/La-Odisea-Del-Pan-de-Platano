@@ -3,8 +3,8 @@ guid: c3cd6798677c8ce46b5fb88ed53c3152
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5605957573251425330
-    second: Lugares_Tovara_0
+      213: -8140903679590083795
+    second: Lugares_tovara_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -102,13 +102,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Lugares_Tovara_0
+      name: Lugares_tovara_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 754
-        height: 644
+        x: 727
+        y: 133
+        width: 605
+        height: 761
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -117,8 +117,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ecb107ce943a332b0800000000000000
-      internalID: -5605957573251425330
+      spriteID: d23dc5b5c33b50f80800000000000000
+      internalID: -8140903679590083795
       vertices: []
       indices: 
       edges: []
@@ -127,7 +127,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -137,7 +137,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Lugares_Tovara_0: -5605957573251425330
+      Lugares_tovara_0: -8140903679590083795
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

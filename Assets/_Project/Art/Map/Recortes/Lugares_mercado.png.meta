@@ -3,8 +3,8 @@ guid: eb3ef54407a4a6e4bbb696d4c083a976
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -3355266692908064710
-    second: Lugares_Mercado_0
+      213: 16286865386603999
+    second: Lugares_mercado_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -102,13 +102,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Lugares_Mercado_0
+      name: Lugares_mercado_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 682
-        height: 711
+        x: 475
+        y: 196
+        width: 987
+        height: 689
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -117,8 +117,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a30e38248b2bf61d0800000000000000
-      internalID: -3355266692908064710
+      spriteID: fd58fd951dcd93000800000000000000
+      internalID: 16286865386603999
       vertices: []
       indices: 
       edges: []
@@ -127,7 +127,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -137,7 +137,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Lugares_Mercado_0: -3355266692908064710
+      Lugares_mercado_0: 16286865386603999
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
