@@ -52,7 +52,7 @@ namespace Odisea.EditorTools
         // En orden de la historia. Clearing: centro del claro; Stand: dónde se para Ulises (frente a la puerta).
         private static readonly Place[] Places =
         {
-            new(GameProgress.Tutorial, "Panadería de Don Lupe", "Aprende el oficio con Don Lupe", SceneFlow.Tutorial, "", "", "",
+            new(GameProgress.Tutorial, "Panadería de Don Lupe", "Habla con Don Lupe", SceneFlow.Bakery, "", "", "",
                 new Vector2(187f, 427f), new Vector2(187f, 470f), new Color(0.95f, 0.80f, 0.55f), new Color(0.70f, 0.33f, 0.20f)),
             new(GameProgress.Mercado, "El Mercado", "Acto I · La cueva del mercado", "Mercado", "Mercado", GameProgress.Tutorial,
                 "el tutorial", new Vector2(627f, 148f), new Vector2(627f, 195f), new Color(0.98f, 0.70f, 0.40f), new Color(0.80f, 0.25f, 0.20f)),
@@ -166,7 +166,16 @@ namespace Odisea.EditorTools
             // Con música propia del mapa, esa; si no, la del menú, que sigue sin cortarse desde el menú.
             string[] extensions = { ".ogg", ".mp3", ".wav" };
             if (extensions.Any(ext => File.Exists(MapMusicPath + ext)))
-                GameSoundsBuilder.CreateMusic("Música del mapa", MapMusicPath);
+            {
+                // Sigue sin cortarse al ir y venir entre el mapa y la panadería (que tiene la misma canción).
+                SceneMusic music = GameSoundsBuilder.CreateMusic("Música del mapa", MapMusicPath);
+                var musicSettings = new SerializedObject(music);
+                SerializedProperty scenes = musicSettings.FindProperty("continueInto");
+                scenes.arraySize = 2;
+                scenes.GetArrayElementAtIndex(0).stringValue = SceneFlow.Bakery;
+                scenes.GetArrayElementAtIndex(1).stringValue = SceneFlow.Map;
+                musicSettings.ApplyModifiedPropertiesWithoutUndo();
+            }
             else
                 MenuScenesBuilder.CreateMenuMusic();
             var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");

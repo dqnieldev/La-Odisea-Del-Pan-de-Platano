@@ -23,7 +23,9 @@ namespace Odisea.Core
         public const string Slots = "Partidas";
         /// <summary>Mapa de San Blas: Ulises camina y entra a cada lugar (tutorial y niveles).</summary>
         public const string Map = "Mapa";
-        /// <summary>Historieta del principio (antes del tutorial).</summary>
+        /// <summary>Panadería de Don Lupe: después del prólogo y desde el mapa. Su puerta lleva a la playa (tutorial).</summary>
+        public const string Bakery = "Panaderia";
+        /// <summary>Historieta del principio (antes de la panadería).</summary>
         public const string PrologueStory = "Prologo";
 
         /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
@@ -86,8 +88,8 @@ namespace Odisea.Core
         }
 
         /// <summary>
-        /// Entra a una partida: si es nueva o no ha terminado el tutorial, la historieta del prólogo y el tutorial;
-        /// si ya lo terminó, directo al mapa.
+        /// Entra a una partida: si es nueva o no ha terminado el tutorial, la historieta del prólogo y la panadería
+        /// (Don Lupe lo manda a la playa, al tutorial); si ya lo terminó, directo al mapa.
         /// </summary>
         public static void PlaySlot(int slot)
         {
@@ -96,7 +98,7 @@ namespace Odisea.Core
             if (GameProgress.TutorialDone)
                 Load(Map);
             else
-                PlayStory(PrologueStory, Tutorial);
+                PlayStory(PrologueStory, Bakery);
         }
 
         /// <summary>

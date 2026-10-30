@@ -1459,7 +1459,7 @@ namespace Odisea.EditorTools
             EditorBuildSettings.scenes = new[]
                 {
                     SplashScenePath, TitleScenePath, MenuScenePath, SlotSelectBuilder.ScenePath, StoryBuilder.ScenePath,
-                    MapBuilder.ScenePath,
+                    MapBuilder.ScenePath, BakeryBuilder.ScenePath,
                     TutorialBuilder.ScenePath, SandboxScenePath,
                 }
                 .Where(File.Exists)
