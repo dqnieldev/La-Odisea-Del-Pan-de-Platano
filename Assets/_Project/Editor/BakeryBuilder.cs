@@ -21,7 +21,9 @@ namespace Odisea.EditorTools
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Panaderia.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Panaderia/Fondo.png";
-                private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
+        // Música propia de la panadería; sin ella, la del mapa.
+        private const string BakeryMusicPath = "Assets/_Project/Audio/Music/musica_panaderia";
+        private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
 
         // El cuarto mide RoomHeight de alto (la cámara lo muestra completo) y el piso donde se camina queda en y = 0:
         // en el dibujo, esa línea está a FloorLine del alto, contando desde arriba. Las puertas y Don Lupe están
@@ -129,17 +131,13 @@ namespace Odisea.EditorTools
             CreateBeachDoor(root, square, level.PlayerLayer, drawn: art == null);
 
             // ----- Ulises, HUD, música, pausa y cámara -----
-            string music = new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(MapMusicPath + ext))
-                ? MapMusicPath : MenuScenesBuilder.MenuMusicPath;
+            string music = new[] { BakeryMusicPath, MapMusicPath, MenuScenesBuilder.MenuMusicPath }
+                .First(path => new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(path + ext)));
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe",
                 music, showControls: false, background: Color.black);
             // Aquí no hay peligro: sin corazones en pantalla y sin golpear ni lanzar masa (solo caminar, saltar y platicar).
             Object.DestroyImmediate(GameObject.Find("HUD"));
             player.GetComponent<Odisea.Player.PlayerCombat>().enabled = false;
-            // La canción del mapa sigue sin cortarse al ir y venir entre el mapa y la panadería (las veces que sea).
-            SceneMusic sceneMusic = Object.FindAnyObjectByType<SceneMusic>();
-            if (sceneMusic != null)
-                SetStrings(sceneMusic, "continueInto", SceneFlow.Map, SceneFlow.Bakery);
             var pause = Object.FindAnyObjectByType<PauseMenu>();
             if (pause != null)
                 PlayerSandboxBuilder.SetSerialized(pause, "allowRestart", false);

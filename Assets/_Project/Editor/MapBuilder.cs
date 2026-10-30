@@ -205,16 +205,7 @@ namespace Odisea.EditorTools
             // Con música propia del mapa, esa; si no, la del menú, que sigue sin cortarse desde el menú.
             string[] extensions = { ".ogg", ".mp3", ".wav" };
             if (extensions.Any(ext => File.Exists(MapMusicPath + ext)))
-            {
-                // Sigue sin cortarse al ir y venir entre el mapa y la panadería (que tiene la misma canción).
-                SceneMusic music = GameSoundsBuilder.CreateMusic("Música del mapa", MapMusicPath);
-                var musicSettings = new SerializedObject(music);
-                SerializedProperty scenes = musicSettings.FindProperty("continueInto");
-                scenes.arraySize = 2;
-                scenes.GetArrayElementAtIndex(0).stringValue = SceneFlow.Bakery;
-                scenes.GetArrayElementAtIndex(1).stringValue = SceneFlow.Map;
-                musicSettings.ApplyModifiedPropertiesWithoutUndo();
-            }
+                GameSoundsBuilder.CreateMusic("Música del mapa", MapMusicPath);
             else
                 MenuScenesBuilder.CreateMenuMusic();
             var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
