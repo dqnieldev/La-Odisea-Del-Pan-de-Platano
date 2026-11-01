@@ -367,6 +367,89 @@ namespace Odisea.EditorTools
         /// Tarjeta de nivel completado (se crea dentro de la escena del nivel; la abre la meta): el juego oscurecido
         /// detrás, una tarjeta crema con el título y la frase, y "Continuar" con el botón del dispositivo actual.
         /// </summary>
+        /// <summary>
+        /// Game Over de un nivel: tarjeta "¡Se quemó el pan!" con la barra de qué tan lejos llegó Ulises (él encima, en
+        /// chibi) y los botones Reintentar, Reiniciar nivel y salir. Empieza apagada; la muestra la muerte de Ulises.
+        /// </summary>
+        internal static GameOverScreen CreateGameOverScreen(Health player, Vector2 levelStart)
+        {
+            var root = new GameObject("Game Over", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 600; // Encima del HUD y de la pausa; debajo del iris de transición.
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            root.AddComponent<GraphicRaycaster>();
+            var rootRect = (RectTransform)root.transform;
+
+            var panel = new GameObject("Tarjeta y fondo", typeof(RectTransform), typeof(CanvasGroup));
+            var panelRect = (RectTransform)panel.transform;
+            panelRect.SetParent(rootRect, false);
+            Stretch(panelRect);
+            CreateImage("Oscurecer", panelRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.8f), Vector2.zero, Vector2.zero,
+                stretch: true).raycastTarget = true;
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+            RectTransform card = CreateCard("Tarjeta", panelRect, rounded, new Vector2(980f, 740f), Crema);
+            CreateText("Título", card, "¡SE QUEMÓ EL PAN!", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 80, Cafe,
+                position: new Vector2(0f, 285f), rectSize: new Vector2(920f, 110f));
+
+            // Qué tan lejos llegó: barra de plátano con Ulises encima y la meta al final.
+            var progress = new GameObject("Avance", typeof(RectTransform));
+            var progressRect = (RectTransform)progress.transform;
+            progressRect.SetParent(card, false);
+            TMP_Text label = CreateText("Texto", progressRect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 34,
+                TintaClara, position: new Vector2(0f, 95f), rectSize: new Vector2(900f, 50f));
+            Image track = CreateImage("Barra", progressRect, rounded, BeigeMasa, new Vector2(0f, 145f), new Vector2(700f, 34f),
+                stretch: false);
+            Image fill = CreateImage("Relleno", track.rectTransform, rounded, Platano, Vector2.zero, Vector2.zero, stretch: true,
+                inset: 4f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillAmount = 0f;
+            Image goalMark = CreateImage("Meta", track.rectTransform, AssetDatabase.LoadAssetAtPath<Sprite>(TutorialBuilder.CirclePath),
+                Cafe, Vector2.zero, new Vector2(30f, 30f), stretch: false);
+            goalMark.rectTransform.anchorMin = goalMark.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+            Sprite[] chibi = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapIdlePath);
+            Image marker = CreateImage("Ulises", track.rectTransform, chibi.Length > 0 ? chibi[0] : null, Color.white,
+                Vector2.zero, new Vector2(72f, 82f), stretch: false);
+            marker.preserveAspect = true;
+            marker.rectTransform.anchorMin = marker.rectTransform.anchorMax = new Vector2(0f, 1f);
+            marker.rectTransform.pivot = new Vector2(0.5f, 0f);
+            marker.rectTransform.anchoredPosition = new Vector2(0f, -4f);
+
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            Button retry = CreateMenuButton("REINTENTAR", card, rounded, font, new Vector2(620f, 86f), 40);
+            ((RectTransform)retry.transform).anchoredPosition = new Vector2(0f, -25f);
+            Button restart = CreateMenuButton("REINICIAR NIVEL", card, rounded, font, new Vector2(620f, 86f), 40);
+            ((RectTransform)restart.transform).anchoredPosition = new Vector2(0f, -135f);
+            Button exit = CreateMenuButton("VOLVER AL MAPA", card, rounded, font, new Vector2(620f, 86f), 40);
+            ((RectTransform)exit.transform).anchoredPosition = new Vector2(0f, -245f);
+            foreach (Button button in new[] { retry, restart, exit })
+                button.navigation = new Navigation { mode = Navigation.Mode.Vertical };
+
+            foreach (Button button in new[] { retry, restart, exit })
+                button.GetComponentInChildren<TMP_Text>().textWrappingMode = TextWrappingModes.NoWrap;
+
+            var screen = root.AddComponent<GameOverScreen>();
+            SetField(screen, "player", player);
+            var serialized = new SerializedObject(screen);
+            serialized.FindProperty("levelStart").vector2Value = levelStart;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            SetField(screen, "panel", panel.GetComponent<CanvasGroup>());
+            SetField(screen, "card", card);
+            SetField(screen, "progressFill", fill);
+            SetField(screen, "progressMarker", marker.rectTransform);
+            SetField(screen, "progressLabel", label);
+            SetField(screen, "progressGroup", progress);
+            SetField(screen, "retryButton", retry);
+            SetField(screen, "restartButton", restart);
+            SetField(screen, "exitButton", exit);
+            SetField(screen, "exitLabel", exit.GetComponentInChildren<TMP_Text>());
+            return screen;
+        }
+
         internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)
         {
             var root = new GameObject("Nivel completado", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
