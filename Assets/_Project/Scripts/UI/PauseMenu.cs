@@ -65,7 +65,7 @@ namespace Odisea.UI
             Time.timeScale = 0f;
 
             // Sin esto, un salto o golpe presionado en el menú se ejecutaría al continuar.
-            disabledInputs = FindObjectsByType<PlayerInputReader>(FindObjectsSortMode.None);
+            disabledInputs = FindObjectsByType<PlayerInputReader>(FindObjectsInactive.Exclude);
             foreach (PlayerInputReader input in disabledInputs)
                 input.enabled = false;
 
