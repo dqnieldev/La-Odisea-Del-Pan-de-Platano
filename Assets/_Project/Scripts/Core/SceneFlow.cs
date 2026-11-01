@@ -14,9 +14,31 @@ namespace Odisea.Core
         public const string Splash = "Splash";
         public const string Title = "Title";
         public const string MainMenu = "MainMenu";
-        // Mientras no exista el nivel 1, Jugar abre la escena de prueba del jugador.
+        /// <summary>Escena de pruebas del jugador (ya no la abre Jugar; queda para probar mecánicas).</summary>
         public const string Play = "PlayerSandbox";
         public const string Tutorial = "Tutorial";
+        /// <summary>Visor de historietas: muestra la que se pidió con <see cref="PlayStory"/> y luego sigue.</summary>
+        public const string Story = "Historia";
+        /// <summary>Elegir una de las tres partidas (la abre Jugar).</summary>
+        public const string Slots = "Partidas";
+        /// <summary>Mapa de San Blas: Ulises camina y entra a cada lugar (tutorial y niveles).</summary>
+        public const string Map = "Mapa";
+        /// <summary>Panadería de Don Lupe: después del prólogo y desde el mapa. Su puerta lleva a la playa (tutorial).</summary>
+        public const string Bakery = "Panaderia";
+        /// <summary>Créditos (los abre el menú principal).</summary>
+        public const string Credits = "Creditos";
+        /// <summary>Historieta del principio (antes de la panadería).</summary>
+        public const string PrologueStory = "Prologo";
+
+        /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
+        public static string PendingStory { get; private set; }
+        public static string AfterStory { get; private set; }
+
+        /// <summary>
+        /// El tutorial se abrió con el botón Tutorial del menú (de práctica): al terminarlo regresa al menú y no
+        /// cuenta para ninguna partida.
+        /// </summary>
+        public static bool TutorialFromMenu { get; private set; }
 
         public static bool IsLoading => ScreenFader.Instance.IsBusy;
 
@@ -55,6 +77,54 @@ namespace Odisea.Core
             Time.timeScale = 1f;
             LoadStarted?.Invoke(sceneName);
             UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+        }
+
+        /// <summary>Jugar: abre la pantalla de partidas.</summary>
+        public static void StartGame() => Load(Slots);
+
+        /// <summary>Botón Tutorial del menú: el tutorial de práctica, que al terminar regresa al menú.</summary>
+        public static void PlayTutorialFromMenu()
+        {
+            TutorialFromMenu = true;
+            Load(Tutorial);
+        }
+
+        /// <summary>
+        /// Entra a una partida: si es nueva o no ha terminado el tutorial, la historieta del prólogo y la panadería
+        /// (Don Lupe lo manda a la playa, al tutorial); si ya lo terminó, directo al mapa.
+        /// </summary>
+        public static void PlaySlot(int slot)
+        {
+            TutorialFromMenu = false;
+            GameProgress.Begin(slot);
+            if (GameProgress.TutorialDone)
+                Load(Map);
+            else
+                PlayStory(PrologueStory, Bakery);
+        }
+
+        /// <summary>
+        /// Muestra una historieta (por su nombre, en la escena <see cref="Story"/>) y después carga nextScene.
+        /// Sin historieta, carga nextScene directo.
+        /// </summary>
+        public static void PlayStory(string storyName, string nextScene, Vector2? viewportCenter = null)
+        {
+            if (string.IsNullOrEmpty(storyName) || !Application.CanStreamedLevelBeLoaded(Story))
+            {
+                Load(nextScene, viewportCenter);
+                return;
+            }
+            PendingStory = storyName;
+            AfterStory = nextScene;
+            Load(Story, viewportCenter);
+        }
+
+        /// <summary>El visor toma la historieta pendiente (y la borra para que no se repita).</summary>
+        public static (string story, string next) TakeStoryRequest()
+        {
+            var request = (PendingStory, AfterStory);
+            PendingStory = AfterStory = null;
+            return request;
         }
 
         /// <summary>Vuelve a cargar la escena actual (reiniciar nivel).</summary>

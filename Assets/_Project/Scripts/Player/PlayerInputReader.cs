@@ -18,12 +18,14 @@ namespace Odisea.Player
         private InputAction attack;
         private InputAction throwAction;
         private InputAction crouch;
+        private InputAction interact;
 
         // Las pulsaciones se guardan desde el callback "performed" hasta que alguien las consume.
         // Así no se pierden toques muy rápidos ni dependen de en qué ciclo de Unity llegó el evento.
         private bool jumpQueued;
         private bool attackQueued;
         private bool throwQueued;
+        private bool interactQueued;
 
         /// <summary>
         /// Movimiento dictado por código en lugar del jugador: cinemáticas (Ulises camina solo) y pruebas.
@@ -31,11 +33,17 @@ namespace Odisea.Player
         /// </summary>
         public Vector2? ScriptedMove { get; set; }
 
-        public Vector2 Move => ScriptedMove ?? (move != null ? move.ReadValue<Vector2>() : Vector2.zero);
+        /// <summary>
+        /// Ulises no se mueve, ni salta, ni ataca (mientras habla o mientras se cierra una puerta). Interactuar sí
+        /// funciona, para pasar las líneas del diálogo.
+        /// </summary>
+        public bool InputLocked { get; set; }
+
+        public Vector2 Move => InputLocked ? Vector2.zero : ScriptedMove ?? (move != null ? move.ReadValue<Vector2>() : Vector2.zero);
         /// <summary>Si tiene valor, reemplaza al botón de salto mantenido (pruebas o escenas guiadas), como ScriptedMove.</summary>
         public bool? ScriptedJumpHeld { get; set; }
 
-        public bool JumpHeld => ScriptedJumpHeld ?? (jump != null && jump.IsPressed());
+        public bool JumpHeld => !InputLocked && (ScriptedJumpHeld ?? (jump != null && jump.IsPressed()));
         public bool CrouchHeld => crouch != null && crouch.IsPressed();
 
         private void Awake()
@@ -52,6 +60,7 @@ namespace Odisea.Player
             attack = map.FindAction("Attack", throwIfNotFound: true);
             throwAction = map.FindAction("Throw", throwIfNotFound: true);
             crouch = map.FindAction("Crouch");
+            interact = map.FindAction("Interact");
         }
 
         private void OnEnable()
@@ -61,6 +70,8 @@ namespace Odisea.Player
             jump.performed += OnJumpPerformed;
             attack.performed += OnAttackPerformed;
             throwAction.performed += OnThrowPerformed;
+            if (interact != null)
+                interact.performed += OnInteractPerformed;
             map.Enable();
         }
 
@@ -71,16 +82,19 @@ namespace Odisea.Player
             jump.performed -= OnJumpPerformed;
             attack.performed -= OnAttackPerformed;
             throwAction.performed -= OnThrowPerformed;
+            if (interact != null)
+                interact.performed -= OnInteractPerformed;
             map.Disable();
             jumpQueued = false;
             attackQueued = false;
             throwQueued = false;
+            interactQueued = false;
         }
 
         /// <summary>true una sola vez por cada pulsación de salto.</summary>
         public bool ConsumeJumpPressed()
         {
-            bool pressed = jumpQueued;
+            bool pressed = jumpQueued && !InputLocked;
             jumpQueued = false;
             return pressed;
         }
@@ -88,7 +102,7 @@ namespace Odisea.Player
         /// <summary>true una sola vez por cada pulsación de golpe.</summary>
         public bool ConsumeAttackPressed()
         {
-            bool pressed = attackQueued;
+            bool pressed = attackQueued && !InputLocked;
             attackQueued = false;
             return pressed;
         }
@@ -96,8 +110,16 @@ namespace Odisea.Player
         /// <summary>true una sola vez por cada pulsación de lanzar.</summary>
         public bool ConsumeThrowPressed()
         {
-            bool pressed = throwQueued;
+            bool pressed = throwQueued && !InputLocked;
             throwQueued = false;
+            return pressed;
+        }
+
+        /// <summary>true una sola vez por cada pulsación de interactuar (hablar, abrir una puerta).</summary>
+        public bool ConsumeInteractPressed()
+        {
+            bool pressed = interactQueued;
+            interactQueued = false;
             return pressed;
         }
 
@@ -106,5 +128,7 @@ namespace Odisea.Player
         private void OnAttackPerformed(InputAction.CallbackContext _) => attackQueued = true;
 
         private void OnThrowPerformed(InputAction.CallbackContext _) => throwQueued = true;
+
+        private void OnInteractPerformed(InputAction.CallbackContext _) => interactQueued = true;
     }
 }

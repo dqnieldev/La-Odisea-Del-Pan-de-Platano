@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 namespace Odisea.Core
@@ -25,6 +26,18 @@ namespace Odisea.Core
         public Color color = new(0.169f, 0.118f, 0.086f, 1f);
         [Tooltip("Qué tan difuminado es el borde del círculo: 0.004 casi nítido, 0.05 muy suave.")]
         [Range(0f, 0.1f)] public float edgeSoftness = 0.004f;
+
+        [Header("Signo de carga (abajo a la derecha, con la pantalla cubierta)")]
+        [Tooltip("Cuadros de Ulises caminando. Sin cuadros no se muestra el signo.")]
+        public Sprite[] loadingFrames = new Sprite[0];
+        [Min(0.1f)] public float loadingFps = 9f;
+        [Tooltip("Alto del dibujo, en píxeles de una pantalla de 1080.")]
+        [Min(1f)] public float loadingHeight = 160f;
+        [Tooltip("Letra del \"Cargando…\"; sin letra solo se ve Ulises.")]
+        public TMP_FontAsset loadingFont;
+        public Color loadingTextColor = new(0.96f, 0.91f, 0.80f, 1f);
+        [Tooltip("Lo menos que se ve el signo, para que no parpadee en las cargas rápidas.")]
+        [Min(0f)] public float minLoadingTime = 0.6f;
 
         [Header("Aceleración")]
         [Tooltip("Avance del cierre en el tiempo (0 = abierto, 1 = cerrado). Por defecto empieza lento y acelera.")]

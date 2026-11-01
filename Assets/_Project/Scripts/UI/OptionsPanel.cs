@@ -140,6 +140,38 @@ namespace Odisea.UI
                 exitToMenuButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.MainMenu)));
         }
 
+        /// <summary>
+        /// Quita "Reiniciar nivel" del índice (en el mapa) y une los botones de arriba y de abajo para que el teclado y el
+        /// mando lo salten.
+        /// </summary>
+        public void HideRestart()
+        {
+            if (restartButton == null)
+                return;
+            Navigation skipped = restartButton.navigation;
+            foreach (Selectable selectable in GetComponentsInChildren<Selectable>(true))
+            {
+                Navigation navigation = selectable.navigation;
+                if (navigation.mode != Navigation.Mode.Explicit)
+                    continue;
+                if (navigation.selectOnDown == restartButton)
+                    navigation.selectOnDown = skipped.selectOnDown;
+                if (navigation.selectOnUp == restartButton)
+                    navigation.selectOnUp = skipped.selectOnUp;
+                selectable.navigation = navigation;
+            }
+            // El de arriba (Continuar) baja a medio camino, para que no quede un hueco solo debajo de él.
+            if (skipped.selectOnUp != null)
+            {
+                var above = (RectTransform)skipped.selectOnUp.transform;
+                var removed = (RectTransform)restartButton.transform;
+                above.anchoredPosition = new Vector2(above.anchoredPosition.x,
+                    (above.anchoredPosition.y + removed.anchoredPosition.y) / 2f);
+            }
+            restartButton.gameObject.SetActive(false);
+            restartButton = null;
+        }
+
         public void Open(Action onClosed)
         {
             closed = onClosed;

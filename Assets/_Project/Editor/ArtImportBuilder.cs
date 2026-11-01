@@ -42,6 +42,11 @@ namespace Odisea.EditorTools
         private const string Level1Folder = "Assets/_Project/Art/Environment/Nivel1";
 
         public const string UlisesControllerPath = UlisesFolder + "/Ulises.controller";
+        // Ficha del mapa: Ulises chibi (ulises_mapa.png), reposo y caminar, sin Animator (lo pasa OverworldMap).
+        public const string MapIdlePath = UlisesFolder + "/Ulises_Mapa_Reposo.png";
+        public const string MapWalkPath = UlisesFolder + "/Ulises_Mapa_Camina.png";
+        // Alto de la ficha en el mapa (unidades), medido en su primer cuadro de reposo.
+        private const float MapTokenHeight = 2.4f;
         public const string CrocodileControllerPath = CrocodileFolder + "/Cocodrilo.controller";
         public const string PostPath = Level1Folder + "/Viga.png";
         public const string LadderPath = Level1Folder + "/Escalera.png";
@@ -85,8 +90,36 @@ namespace Odisea.EditorTools
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
             ImportItems();
+            ImportDonLupe();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
+        }
+
+        // ---------- Don Lupe ----------
+
+        public const string DonLupeFolder = "Assets/_Project/Art/Characters/DonLupe";
+        /// <summary>Tira de Don Lupe en reposo (apoyado en el bastón, respira y parpadea); pivote en los pies.</summary>
+        public const string DonLupeIdlePath = DonLupeFolder + "/DonLupe_Reposo.png";
+        private const string DonLupeSource = "Personajes/sprite en png/don lupe/donlupe_reposo.png";
+        // Estatura en el juego: un poco más alto que Ulises aunque va encorvado.
+        private const float DonLupeHeight = 2.35f;
+
+        /// <summary>
+        /// Hoja de una fila con fondo blanco (barba y guantes son blanco hueso, más oscuros que el fondo): cada
+        /// cuadro con los pies en el mismo punto.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar a Don Lupe")]
+        public static void ImportDonLupe()
+        {
+            Sheet sheet = LoadSheet(DonLupeSource, whiteThreshold: 248, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 20).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            float ppu = MedianCoreHeight(frames) / DonLupeHeight;
+            EnsureFolder(DonLupeFolder);
+            WriteStrip(sheet, frames, DonLupeIdlePath, ppu, "DonLupe_Reposo");
+            Debug.Log($"[Odisea] Don Lupe: {frames.Count} cuadros.");
         }
 
         // ---------- Ítems ----------
@@ -197,6 +230,14 @@ namespace Odisea.EditorTools
                 clips["Climb"] = StripClip(climbSheet, PickFrames(climb, 0, 1, 2), idlePpu, "Climb", 8f, loop: true);
             else
                 clips["Climb"] = StripClip(sheet, Pick(rows, 3, 2), ppu, "Climb", 8f, loop: true);
+
+            // Ficha del mapa (opcional, ulises_mapa.png con fondo transparente): 2 cuadros de reposo y 4 de caminar.
+            if (TryLoadRow("ulises_mapa.png", attachDistance: 20, minFrames: 6, out Sheet mapSheet, out List<Frame> map))
+            {
+                float mapPpu = map[0].Body.Height / MapTokenHeight;
+                WriteStrip(mapSheet, PickFrames(map, 0, 1), MapIdlePath, mapPpu, "Ulises_Mapa_Reposo");
+                WriteStrip(mapSheet, PickFrames(map, 2, 3, 4, 5), MapWalkPath, mapPpu, "Ulises_Mapa_Camina");
+            }
 
             // Tomar café (opcional, ulises_cafe.png con fondo transparente): sin la hoja, el juego dibuja un jarrito
             // que Ulises se empina (PlayerBuffs).

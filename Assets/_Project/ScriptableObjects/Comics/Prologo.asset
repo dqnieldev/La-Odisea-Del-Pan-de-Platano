@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: Prologo
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: "Pr\xF3logo: El Decreto del Viejo Horno"
+  music: {fileID: 8300000, guid: 5ef0d719ee6423f42bae2fdd1fe6bb59, type: 3}
+  panels:
+  - title: El Decreto del Viejo Horno
+    art: {fileID: 21300000, guid: 0244545404005304a8bc93a14228d1a8, type: 3}
+    caption: "Don Lupe re\xFAne a sus panaderos: \xABQuien hornee el pan de pl\xE1tano definitivo y lo lleve al Festival ser\xE1 Empleado del Mes\u2026 y guardi\xE1n de la pala de oro.\xBB"
+    placeholderNote: "Don Lupe, cansado, frente al viejo horno de piedra de su panader\xEDa en San Blas, habl\xE1ndoles a sus panaderos."
+  - title: Un Panadero Terco
+    art: {fileID: 21300000, guid: 644145890bee68943a89d0f0248badb8, type: 3}
+    caption: "Ulises, tan h\xE1bil con la masa como terco, se ata el delantal: esa receta ser\xE1 suya."
+    placeholderNote: "Ulises at\xE1ndose el delantal gastado, decidido, con el rodillo a la mano. Don Lupe lo mira de reojo."
+  - title: Sin Atajos
+    art: {fileID: 21300000, guid: 8096341fda2d0734ab684ebd7bbd6cd1, type: 3}
+    caption: "Pero no hay atajos de supermercado: pl\xE1tano macho real, az\xFAcar de ca\xF1a, canela en rama y la mejor harina."
+    placeholderNote: "Ulises imaginando los ingredientes a su alrededor: racimo de pl\xE1tano macho, ca\xF1a de az\xFAcar, canela, costal de harina."
+  - title: Madame Circe
+    art: {fileID: 21300000, guid: 99513d6dc2be3224b9730cd87130f45f, type: 3}
+    caption: "Entonces aparece Madame Circe, la chef del consorcio rival: \xABLa costa no tiene espacio para recetas humildes.\xBB"
+    placeholderNote: "Madame Circe, elegante y burlona, con su batidora cromada, frente a Ulises que frunce el ce\xF1o."
+  - title: "Lo que Est\xE1 en Juego"
+    art: {fileID: 21300000, guid: 29d88909c8bf0164bbbf78143e205fa1, type: 3}
+    caption: "Circe se marcha y deja su tarjeta sobre la mesa. Don Lupe la mira en silencio: no es solo un concurso, es la panader\xEDa entera."
+    placeholderNote: Don Lupe sosteniendo la tarjeta dorada del consorcio; por la ventana, anuncios de hoteles y franquicias sobre el puerto.
+  - title: La Ruta
+    art: {fileID: 21300000, guid: f60148d579354cc40b389940c4a52b26, type: 3}
+    caption: 'Esa noche, a la luz de una vela, Ulises traza su ruta: el Mercado, el Horno del pueblo y los manglares de La Tovara.'
+    placeholderNote: "Ulises de noche sobre un mapa viejo de San Blas, marcando con l\xE1piz el Mercado, el Horno y La Tovara."
+  - title: Juego Sucio
+    art: {fileID: 21300000, guid: 9c6d8eee77554af448dbd335418eb624, type: 3}
+    caption: 'Mientras tanto, en su cocina de acero, Circe no piensa jugar limpio: sus ayudantes ya se adelantan por la costa.'
+    placeholderNote: "Cocina industrial cromada; Circe sonriendo y se\xF1alando un mapa mientras sus ayudantes salen por la puerta."
+  - title: Antes de Partir
+    art: {fileID: 21300000, guid: df17f56f41cbc0c41859295082bbeb04, type: 3}
+    caption: "Al amanecer, Don Lupe lo detiene en la puerta: \xABAntes de irte, muchacho, demu\xE9strame que no se te olvid\xF3 lo b\xE1sico.\xBB"
+    placeholderNote: "Amanecer en la puerta de la panader\xEDa; Don Lupe le ofrece el rodillo a Ulises, el puerto de fondo."

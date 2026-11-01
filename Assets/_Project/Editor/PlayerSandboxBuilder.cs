@@ -26,22 +26,13 @@ namespace Odisea.EditorTools
         private const string ScenePath = "Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity";
         internal const string SpritePath = "Assets/_Project/Art/Placeholders/Cuadro.png";
         private const string HeartFullPath = "Assets/_Project/Art/Placeholders/CorazonLleno.png";
-        private const string HeartEmptyPath = "Assets/_Project/Art/Placeholders/CorazonVacio.png";
 
-        // Corazón en pixel art. X = contorno, o = relleno, w = brillo. La primera fila es la de arriba.
-        private static readonly string[] HeartPattern =
-        {
-            "..XXX.XXX..",
-            ".XoooXoooX.",
-            "XoowooooooX",
-            "XowoooooooX",
-            "XoooooooooX",
-            ".XoooooooX.",
-            "..XoooooX..",
-            "...XoooX...",
-            "....XoX....",
-            ".....X.....",
-        };
+        // Corazones del HUD dibujados en código (lisos, con contorno café); se rehacen si cambia HeartTextureWidth.
+        private const int HeartTextureWidth = 256;
+        private const int HeartTextureHeight = 236;
+        // Viñeta roja de la última vida y anillo dorado al curar.
+        private const string VignettePath = "Assets/_Project/Art/Placeholders/Vineta.png";
+        private const string RingPath = "Assets/_Project/Art/Placeholders/Anillo.png";
         private const string MaterialPath = "Assets/_Project/Settings/SinFriccion.physicsMaterial2D";
         private const string ConfigPath = "Assets/_Project/ScriptableObjects/Player/UlisesConfig.asset";
         private const string InputPath = "Assets/Settings/InputSystem_Actions.inputactions";
@@ -53,7 +44,6 @@ namespace Odisea.EditorTools
         private static readonly Color Manglar = new(0.180f, 0.353f, 0.267f);
         private static readonly Color Chile = new(0.784f, 0.263f, 0.169f);
         private static readonly Color Mar = new(0.184f, 0.561f, 0.627f);
-        private static readonly Color BeigeMasa = new(0.910f, 0.878f, 0.824f);
         private static readonly Color Madera = new(0.545f, 0.353f, 0.169f);
 
         [MenuItem("Odisea/Sandbox/Crear escena de prueba del jugador")]
@@ -109,7 +99,7 @@ namespace Odisea.EditorTools
             public PhysicsMaterial2D NoFriction;
             public PlayerConfig Config;
             public InputActionAsset InputActions;
-            public Sprite FullHeart, EmptyHeart;
+            public Sprite FullHeart;
             public Projectile DoughBall;
         }
 
@@ -125,8 +115,9 @@ namespace Odisea.EditorTools
             int ladderLayer = EnsureLayer("Ladder", 9);
 
             EnsurePlaceholderSprite();
-            EnsureHeartSprite(HeartFullPath, Chile, Crema);
-            EnsureHeartSprite(HeartEmptyPath, BeigeMasa, BeigeMasa);
+            EnsureHeartSprite(HeartFullPath, Chile, full: true);
+            EnsureVignetteSprite();
+            EnsureRingSprite();
             EnsureNoFrictionMaterial();
             EnsureFlashMaterial();
             EnsureSwooshSprite();
@@ -164,7 +155,6 @@ namespace Odisea.EditorTools
                 Config = LoadRequired<PlayerConfig>(ConfigPath),
                 InputActions = LoadRequired<InputActionAsset>(InputPath),
                 FullHeart = LoadRequired<Sprite>(HeartFullPath),
-                EmptyHeart = LoadRequired<Sprite>(HeartEmptyPath),
             };
             context.DoughBall = EnsureProjectilePrefab(context.Square, playerLayer);
             return context;
@@ -180,7 +170,7 @@ namespace Odisea.EditorTools
             GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
             player.transform.position = spawn;
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
-            CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart, level.EmptyHeart,
+            CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart,
                 showControls);
 
             // Música de fondo; se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
@@ -612,7 +602,7 @@ namespace Odisea.EditorTools
             return dummy;
         }
 
-        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, Sprite emptyHeart, bool showControls)
+        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, bool showControls)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             var canvas = canvasObject.GetComponent<Canvas>();
@@ -630,10 +620,32 @@ namespace Odisea.EditorTools
             rect.anchoredPosition = new Vector2(48f, -48f);
             rect.sizeDelta = new Vector2(300f, 80f);
 
+            // Orillas rojas de la última vida: detrás de todo el HUD.
+            var vignette = new GameObject("Última vida", typeof(RectTransform), typeof(Image));
+            var vignetteRect = (RectTransform)vignette.transform;
+            vignetteRect.SetParent(canvasObject.transform, false);
+            vignetteRect.SetAsFirstSibling();
+            vignetteRect.anchorMin = Vector2.zero;
+            vignetteRect.anchorMax = Vector2.one;
+            vignetteRect.offsetMin = vignetteRect.offsetMax = Vector2.zero;
+            var vignetteImage = vignette.GetComponent<Image>();
+            vignetteImage.sprite = LoadRequired<Sprite>(VignettePath);
+            vignetteImage.color = new Color(Chile.r, Chile.g * 0.6f, Chile.b * 0.6f, 0f);
+            vignetteImage.raycastTarget = false;
+            vignetteImage.enabled = false;
+
             var hearts = lives.AddComponent<HeartsDisplay>();
             SetSerialized(hearts, "health", playerHealth);
             SetSerialized(hearts, "fullHeart", fullHeart);
-            SetSerialized(hearts, "emptyHeart", emptyHeart);
+            SetSerialized(hearts, "shardSprite", LoadRequired<Sprite>(TutorialBuilder.CirclePath));
+            SetSerialized(hearts, "ringSprite", LoadRequired<Sprite>(RingPath));
+            SetSerialized(hearts, "lowHealthVignette", vignetteImage);
+            var heartSettings = new SerializedObject(hearts);
+            heartSettings.FindProperty("heartSize").vector2Value = new Vector2(70f, 64f);
+            heartSettings.FindProperty("spacing").floatValue = 10f;
+            heartSettings.FindProperty("shardColor").colorValue = Chile;
+            heartSettings.FindProperty("ringColor").colorValue = Platano;
+            heartSettings.ApplyModifiedPropertiesWithoutUndo();
             CreateBuffsDisplay(canvasObject.transform, buffs);
 
             if (showControls)
@@ -1118,38 +1130,119 @@ namespace Odisea.EditorTools
             }
         }
 
-        private static void EnsureHeartSprite(string path, Color fill, Color shine)
+        /// <summary>
+        /// Corazón liso (con antialiasing) de contorno café grueso. Lleno: relleno de color, sombra abajo a la
+        /// derecha y brillo crema arriba a la izquierda. Vacío: hueco translúcido con el mismo contorno.
+        /// </summary>
+        private static void EnsureHeartSprite(string path, Color fill, bool full)
         {
-            if (File.Exists(path))
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (existing != null && existing.width == HeartTextureWidth)
                 return;
 
-            EnsureFolder(Path.GetDirectoryName(path));
-            int height = HeartPattern.Length;
-            int width = HeartPattern[0].Length;
-            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            for (int row = 0; row < height; row++)
+            const int samples = 4;
+            Color shadow = new(fill.r * 0.72f, fill.g * 0.62f, fill.b * 0.62f, fill.a);
+            var texture = new Texture2D(HeartTextureWidth, HeartTextureHeight, TextureFormat.RGBA32, false);
+            for (int py = 0; py < HeartTextureHeight; py++)
             {
-                for (int x = 0; x < width; x++)
+                for (int px = 0; px < HeartTextureWidth; px++)
                 {
-                    Color pixel = HeartPattern[row][x] switch
+                    float outline = 0f, inner = 0f, dark = 0f, shine = 0f;
+                    for (int sy = 0; sy < samples; sy++)
+                    for (int sx = 0; sx < samples; sx++)
                     {
-                        'X' => Cafe,
-                        'o' => fill,
-                        'w' => shine,
-                        _ => Color.clear,
-                    };
-                    // Las texturas empiezan abajo; el patrón está escrito de arriba hacia abajo.
-                    texture.SetPixel(x, height - 1 - row, pixel);
+                        // Del píxel al plano del corazón: x de -1.25 a 1.25, y de -1.1 a 1.35.
+                        float u = ((px + (sx + 0.5f) / samples) / HeartTextureWidth * 2f - 1f) * 1.25f;
+                        float v = (py + (sy + 0.5f) / samples) / HeartTextureHeight * 2.45f - 1.1f;
+                        if (!InHeart(u, v, 1f, 0f, 0f))
+                            continue;
+                        outline++;
+                        if (!InHeart(u, v, 0.8f, 0f, 0.1f))
+                            continue;
+                        inner++;
+                        // La sombra: lo del relleno que no tapa una copia corrida arriba a la izquierda.
+                        if (!InHeart(u, v, 0.8f, -0.12f, 0.24f))
+                            dark++;
+                        float du = (u + 0.48f) / 0.22f, dv = (v - 0.62f) / 0.14f;
+                        if (du * du + dv * dv <= 1f)
+                            shine++;
+                    }
+                    float total = samples * samples;
+                    float ring = (outline - inner) / total, fillCoverage = inner / total;
+                    Color body = full ? Color.Lerp(fill, shadow, inner > 0f ? dark / inner : 0f) : fill;
+                    if (full && inner > 0f)
+                        body = Color.Lerp(body, Crema, shine / inner);
+                    // Mezcla premultiplicada del aro café y el relleno (que en el vacío es translúcido).
+                    float alpha = ring + fillCoverage * body.a;
+                    Color color = alpha > 0f ? (Cafe * ring + body * (fillCoverage * body.a)) / alpha : Color.clear;
+                    color.a = alpha;
+                    texture.SetPixel(px, py, color);
                 }
             }
+            WriteSpriteTexture(path, texture);
+        }
+
+        // Dentro del corazón (x² + y² − 1)³ − x²y³ ≤ 0, escalado y movido.
+        private static bool InHeart(float u, float v, float scale, float offsetX, float offsetY)
+        {
+            float x = (u - offsetX) / scale, y = (v - offsetY) / scale;
+            float a = x * x + y * y - 1f;
+            return a * a * a - x * x * y * y * y <= 0f;
+        }
+
+        /// <summary>Blanco transparente al centro y opaco en las orillas (se tiñe en el Image).</summary>
+        private static void EnsureVignetteSprite()
+        {
+            if (File.Exists(VignettePath))
+                return;
+            const int size = 256;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int py = 0; py < size; py++)
+            {
+                for (int px = 0; px < size; px++)
+                {
+                    float x = (px + 0.5f) / size * 2f - 1f, y = (py + 0.5f) / size * 2f - 1f;
+                    // Distancia "cuadrada redondeada": pega a las orillas sin oscurecer de más las esquinas.
+                    float d = Mathf.Pow(Mathf.Pow(Mathf.Abs(x), 4f) + Mathf.Pow(Mathf.Abs(y), 4f), 0.25f);
+                    float alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.72f, 1.02f, d));
+                    texture.SetPixel(px, py, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+            WriteSpriteTexture(VignettePath, texture);
+        }
+
+        /// <summary>Aro blanco suave (se tiñe en el Image).</summary>
+        private static void EnsureRingSprite()
+        {
+            if (File.Exists(RingPath))
+                return;
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int py = 0; py < size; py++)
+            {
+                for (int px = 0; px < size; px++)
+                {
+                    float d = Vector2.Distance(new Vector2(px + 0.5f, py + 0.5f), new Vector2(size / 2f, size / 2f)) / (size / 2f);
+                    float alpha = Mathf.Clamp01(1f - Mathf.Abs(d - 0.82f) / 0.12f);
+                    texture.SetPixel(px, py, new Color(1f, 1f, 1f, alpha * alpha * (3f - 2f * alpha)));
+                }
+            }
+            WriteSpriteTexture(RingPath, texture);
+        }
+
+        private static void WriteSpriteTexture(string path, Texture2D texture)
+        {
+            EnsureFolder(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, texture.EncodeToPNG());
             UnityEngine.Object.DestroyImmediate(texture);
-            AssetDatabase.ImportAsset(path);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
 
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.filterMode = FilterMode.Point;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
         }

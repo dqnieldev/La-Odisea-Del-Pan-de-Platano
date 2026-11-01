@@ -20,8 +20,11 @@ namespace Odisea.EditorTools
         public const string OutfitExtraBold = "Outfit/Outfit-ExtraBold";
         public const string RubikRegular = "Rubik/Rubik-Regular";
         public const string RubikMedium = "Rubik/Rubik-Medium";
+        // Libro de historietas: título de cartel antiguo y texto de libro viejo.
+        public const string RyeRegular = "Rye/Rye-Regular";
+        public const string ImFellEnglish = "IMFell/IMFellEnglish-Regular";
 
-        private static readonly string[] AllFonts = { OutfitBold, OutfitExtraBold, RubikRegular, RubikMedium };
+        private static readonly string[] AllFonts = { OutfitBold, OutfitExtraBold, RubikRegular, RubikMedium, RyeRegular, ImFellEnglish };
 
         [MenuItem("Odisea/UI/Crear font assets (TextMeshPro)")]
         public static void BuildFontAssets()
@@ -169,14 +172,40 @@ namespace Odisea.EditorTools
         public static Odisea.Core.TransitionSettings EnsureTransitionSettings()
         {
             var settings = AssetDatabase.LoadAssetAtPath<Odisea.Core.TransitionSettings>(TransitionSettingsPath);
-            if (settings != null)
-                return settings;
-
-            EnsureIrisMaterial(); // Crea también la carpeta Resources/Transitions.
-            settings = ScriptableObject.CreateInstance<Odisea.Core.TransitionSettings>();
-            AssetDatabase.CreateAsset(settings, TransitionSettingsPath);
+            if (settings == null)
+            {
+                EnsureIrisMaterial(); // Crea también la carpeta Resources/Transitions.
+                settings = ScriptableObject.CreateInstance<Odisea.Core.TransitionSettings>();
+                AssetDatabase.CreateAsset(settings, TransitionSettingsPath);
+            }
+            FillLoadingSign(settings);
             AssetDatabase.SaveAssets();
             return settings;
+        }
+
+        /// <summary>Signo de carga: Ulises chibi caminando (el del mapa) y la letra del "Cargando…", si faltan.</summary>
+        [MenuItem("Odisea/UI/Poner signo de carga (Ulises caminando)")]
+        public static void FillLoadingSign() => EnsureTransitionSettings();
+
+        private static void FillLoadingSign(Odisea.Core.TransitionSettings settings)
+        {
+            bool changed = false;
+            if (settings.loadingFrames == null || settings.loadingFrames.Length == 0)
+            {
+                Sprite[] walk = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapWalkPath);
+                if (walk.Length > 0)
+                {
+                    settings.loadingFrames = walk;
+                    changed = true;
+                }
+            }
+            if (settings.loadingFont == null)
+            {
+                settings.loadingFont = LoadFont(OutfitBold);
+                changed |= settings.loadingFont != null;
+            }
+            if (changed)
+                EditorUtility.SetDirty(settings);
         }
 
         private const string LumaKeyMaterialPath = "Assets/_Project/Art/UI/Materiales/QuitarNegro.mat";

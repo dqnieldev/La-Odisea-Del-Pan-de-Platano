@@ -17,6 +17,16 @@ MonoBehaviour:
   openDuration: 0.9
   color: {r: 0, g: 0, b: 0, a: 1}
   edgeSoftness: 0.0518
+  loadingFrames:
+  - {fileID: -4423595552095404140, guid: a0317a97842eb18499b7d8e0a2c2143b, type: 3}
+  - {fileID: -8242328041491176886, guid: a0317a97842eb18499b7d8e0a2c2143b, type: 3}
+  - {fileID: 3152148190164780251, guid: a0317a97842eb18499b7d8e0a2c2143b, type: 3}
+  - {fileID: -9129940131467041353, guid: a0317a97842eb18499b7d8e0a2c2143b, type: 3}
+  loadingFps: 9
+  loadingHeight: 160
+  loadingFont: {fileID: 11400000, guid: 06fb01d8b93842948ad3ffe49b72ce06, type: 2}
+  loadingTextColor: {r: 0.96, g: 0.91, b: 0.8, a: 1}
+  minLoadingTime: 0.6
   closeCurve:
     serializedVersion: 2
     m_Curve:
