@@ -39,6 +39,11 @@ namespace Odisea.EditorTools
         private const float DoorTop = 4.5f;
         private static float CameraY => (FloorLine - 0.5f) * RoomHeight;
 
+        // Boca del horno en el dibujo (px de 2752 × 1536): centro de la leña y tamaño de la boca.
+        private static readonly Vector2 OvenFireBase = new(2090f, 890f);
+        private static readonly Vector2 OvenMouthSize = new(160f, 120f);
+        private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
+
         private const int BackOrder = -20, FurnitureOrder = -10, NpcOrder = 8, FrontOrder = 30;
 
         // Colores de boceto del interior, mientras no esté el dibujo.
@@ -106,6 +111,7 @@ namespace Odisea.EditorTools
                 drawing.transform.localScale = Vector3.one * (RoomHeight / art.bounds.size.y);
                 drawing.transform.localPosition = new Vector3(0f, CameraY, 0f);
                 drawing.sortingOrder = BackOrder;
+                CreateOvenFire(root);
             }
             else
             {
@@ -152,6 +158,26 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Panadería creada en {ScenePath}.");
+        }
+
+        // ---------- Horno ----------
+
+        // Fuego vivo encima del dibujo del horno: llamas, resplandor, chispas y el brillo cálido del cuarto.
+        private static void CreateOvenFire(Transform root)
+        {
+            var softDot = AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath);
+            if (softDot == null)
+                return;
+            // Del píxel del dibujo al mundo (el dibujo está centrado en x = 0 y su orilla de arriba en CameraY + RoomHeight / 2).
+            float scale = RoomHeight / 1536f;
+            var fire = new GameObject("Fuego del horno").AddComponent<OvenFire>();
+            fire.transform.SetParent(root, false);
+            fire.transform.position = new Vector3((OvenFireBase.x - 2752f / 2f) * scale, CameraY + RoomHeight / 2f - OvenFireBase.y * scale, 0f);
+            MenuScenesBuilder.SetField(fire, "softDot", softDot);
+            var settings = new SerializedObject(fire);
+            settings.FindProperty("mouthSize").vector2Value = OvenMouthSize * scale;
+            settings.FindProperty("sortingOrder").intValue = BackOrder + 5;
+            settings.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ---------- Don Lupe ----------
