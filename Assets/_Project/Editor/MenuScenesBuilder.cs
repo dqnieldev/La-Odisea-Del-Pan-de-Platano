@@ -1078,6 +1078,8 @@ namespace Odisea.EditorTools
             Stretch(faceRect);
             CreateImage("Borde", faceRect, rounded, Cafe, Vector2.zero, Vector2.zero, stretch: true);
             Image fill = CreateImage("Relleno", faceRect, rounded, Platano, Vector2.zero, Vector2.zero, stretch: true, inset: 4f);
+            // Lo que recibe el clic del mouse (CreateImage los deja sin raycast).
+            fill.raycastTarget = true;
             CreateText("Texto", faceRect, label, font, fontSize, Cafe, stretch: true);
 
             var button = root.GetComponent<Button>();

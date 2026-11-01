@@ -10,7 +10,7 @@ namespace Odisea.UI
 {
     /// <summary>
     /// Elegir partida (la abre Jugar): tres tarjetas con su avance (cuántos lugares del mapa lleva). Aceptar entra
-    /// (nueva: historieta y tutorial; empezada: el mapa). Borrar (Q / Y / Triángulo, o el botón de la tarjeta)
+    /// (nueva: historieta y tutorial; empezada: el mapa). Borrar (Q / Y / Triángulo)
     /// pregunta antes de vaciarla. Atrás vuelve al menú.
     /// </summary>
     public class SlotSelectScreen : MonoBehaviour
@@ -22,7 +22,6 @@ namespace Odisea.UI
             public TMP_Text summary;
             [Tooltip("Un punto por lugar del mapa (en orden); se rellena el que ya terminó.")]
             public Image[] dots = Array.Empty<Image>();
-            public Button deleteButton;
         }
 
         [SerializeField] private SlotCard[] cards = Array.Empty<SlotCard>();
@@ -44,8 +43,6 @@ namespace Odisea.UI
             {
                 int slot = i + 1;
                 cards[i].button.onClick.AddListener(() => Play(slot));
-                if (cards[i].deleteButton != null)
-                    cards[i].deleteButton.onClick.AddListener(() => AskDelete(slot));
             }
             confirmYes.onClick.AddListener(Delete);
             confirmNo.onClick.AddListener(CancelDelete);
@@ -68,8 +65,6 @@ namespace Odisea.UI
                     : $"{done} de {GameProgress.Locations.Length} lugares";
                 for (int d = 0; d < card.dots.Length && d < GameProgress.Locations.Length; d++)
                     card.dots[d].color = GameProgress.IsDone(slot, GameProgress.Locations[d]) ? dotDone : dotPending;
-                if (card.deleteButton != null)
-                    card.deleteButton.gameObject.SetActive(started);
             }
         }
 

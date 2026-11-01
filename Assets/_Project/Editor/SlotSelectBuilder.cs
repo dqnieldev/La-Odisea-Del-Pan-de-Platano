@@ -17,7 +17,7 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Menus/Partidas.unity";
         private const string BackgroundPath = "Assets/_Project/Art/UI/FondoMenu.jpg";
         private static readonly string[] LocationNames = { "Tutorial", "Mercado", "Horno", "Tovara" };
-        private static readonly Vector2 CardSize = new(500f, 580f);
+        private static readonly Vector2 CardSize = new(500f, 440f);
         private const float CardSpacing = 580f;
 
         [MenuItem("Odisea/Menús/Crear pantalla de partidas")]
@@ -46,11 +46,11 @@ namespace Odisea.EditorTools
 
             // ----- Tarjetas -----
             var cards = new Button[GameProgress.SlotCount];
-            var serializedCards = new (Button button, TMP_Text summary, Image[] dots, Button delete)[GameProgress.SlotCount];
+            var serializedCards = new (Button button, TMP_Text summary, Image[] dots)[GameProgress.SlotCount];
             for (int i = 0; i < GameProgress.SlotCount; i++)
             {
                 float x = (i - (GameProgress.SlotCount - 1) / 2f) * CardSpacing;
-                serializedCards[i] = CreateCard(i + 1, canvasRect, new Vector2(x, 0f), rounded, titleFont, bodyFont, buttonFont);
+                serializedCards[i] = CreateCard(i + 1, canvasRect, new Vector2(x, 0f), rounded, titleFont, bodyFont);
                 cards[i] = serializedCards[i].button;
             }
             // Izquierda y derecha entre tarjetas (Borrar va aparte: tecla Q / Y / Triángulo).
@@ -92,7 +92,6 @@ namespace Odisea.EditorTools
                 SerializedProperty card = list.GetArrayElementAtIndex(i);
                 card.FindPropertyRelative("button").objectReferenceValue = serializedCards[i].button;
                 card.FindPropertyRelative("summary").objectReferenceValue = serializedCards[i].summary;
-                card.FindPropertyRelative("deleteButton").objectReferenceValue = serializedCards[i].delete;
                 SerializedProperty dots = card.FindPropertyRelative("dots");
                 dots.arraySize = serializedCards[i].dots.Length;
                 for (int d = 0; d < serializedCards[i].dots.Length; d++)
@@ -109,9 +108,9 @@ namespace Odisea.EditorTools
             Debug.Log($"[Odisea] Pantalla de partidas creada en {ScenePath}.");
         }
 
-        // Tarjeta crema (botón: Aceptar entra) con "Partida N", su avance, un punto por lugar y "Borrar" para el mouse.
-        private static (Button, TMP_Text, Image[], Button) CreateCard(int slot, RectTransform parent, Vector2 position, Sprite rounded,
-            TMP_FontAsset titleFont, TMP_FontAsset bodyFont, TMP_FontAsset buttonFont)
+        // Tarjeta crema (botón: Aceptar entra) con "Partida N", su avance y un punto por lugar.
+        private static (Button, TMP_Text, Image[]) CreateCard(int slot, RectTransform parent, Vector2 position, Sprite rounded,
+            TMP_FontAsset titleFont, TMP_FontAsset bodyFont)
         {
             var root = new GameObject($"Partida {slot}", typeof(RectTransform), typeof(Button));
             var rect = (RectTransform)root.transform;
@@ -130,9 +129,9 @@ namespace Odisea.EditorTools
             fill.raycastTarget = true;
 
             MenuScenesBuilder.CreateText("Nombre", faceRect, $"Partida {slot}", titleFont, 60, MenuScenesBuilder.Cafe,
-                position: new Vector2(0f, 200f), rectSize: new Vector2(440f, 90f));
+                position: new Vector2(0f, 130f), rectSize: new Vector2(440f, 90f));
             TMP_Text summary = MenuScenesBuilder.CreateText("Avance", faceRect, "", bodyFont, 34, MenuScenesBuilder.TintaClara,
-                position: new Vector2(0f, 110f), rectSize: new Vector2(440f, 60f));
+                position: new Vector2(0f, 45f), rectSize: new Vector2(440f, 60f));
 
             // Un punto por lugar del mapa, con su nombre abajo.
             var dots = new Image[LocationNames.Length];
@@ -141,14 +140,10 @@ namespace Odisea.EditorTools
             {
                 float x = (d - (LocationNames.Length - 1) / 2f) * 105f;
                 dots[d] = MenuScenesBuilder.CreateImage($"Punto {LocationNames[d]}", faceRect, circle, MenuScenesBuilder.Cafe,
-                    new Vector2(x, 0f), new Vector2(54f, 54f), stretch: false);
+                    new Vector2(x, -60f), new Vector2(54f, 54f), stretch: false);
                 MenuScenesBuilder.CreateText($"Lugar {LocationNames[d]}", faceRect, LocationNames[d], bodyFont, 22,
-                    MenuScenesBuilder.TintaClara, position: new Vector2(x, -50f), rectSize: new Vector2(105f, 36f));
+                    MenuScenesBuilder.TintaClara, position: new Vector2(x, -110f), rectSize: new Vector2(105f, 36f));
             }
-
-            Button delete = MenuScenesBuilder.CreateMenuButton("BORRAR", faceRect, rounded, buttonFont, new Vector2(200f, 64f), 30);
-            ((RectTransform)delete.transform).anchoredPosition = new Vector2(0f, -200f);
-            delete.navigation = new Navigation { mode = Navigation.Mode.None };
 
             var button = root.GetComponent<Button>();
             button.transition = Selectable.Transition.None;
@@ -162,7 +157,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(feedback, "pressedColor", new Color(0.976f, 0.800f, 0.396f));
             PlayerSandboxBuilder.SetSerialized(feedback, "selectedScale", 1.04f);
             root.AddComponent<SelectableSounds>();
-            return (button, summary, dots, delete);
+            return (button, summary, dots);
         }
 
         // Abajo al centro: [Aceptar] Jugar  [Atrás] Volver  [Q / Y / Triángulo] Borrar.
