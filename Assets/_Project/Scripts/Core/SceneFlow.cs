@@ -25,6 +25,8 @@ namespace Odisea.Core
         public const string Map = "Mapa";
         /// <summary>Panadería de Don Lupe: después del prólogo y desde el mapa. Su puerta lleva a la playa (tutorial).</summary>
         public const string Bakery = "Panaderia";
+        /// <summary>Créditos (los abre el menú principal).</summary>
+        public const string Credits = "Creditos";
         /// <summary>Historieta del principio (antes de la panadería).</summary>
         public const string PrologueStory = "Prologo";
 

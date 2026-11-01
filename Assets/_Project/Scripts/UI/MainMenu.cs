@@ -7,13 +7,14 @@ using UnityEngine.UI;
 namespace Odisea.UI
 {
     /// <summary>
-    /// Menú principal: Jugar, Tutorial, Opciones y Salir (Salir pregunta antes de cerrar el juego).
+    /// Menú principal: Jugar, Tutorial, Opciones, Créditos y Salir (Salir pregunta antes de cerrar el juego).
     /// </summary>
     public class MainMenu : MonoBehaviour
     {
         [SerializeField] private Button playButton;
         [SerializeField] private Button tutorialButton;
         [SerializeField] private Button optionsButton;
+        [SerializeField] private Button creditsButton;
         [SerializeField] private Button quitButton;
         [Tooltip("Contenedor de los botones; se oculta mientras Opciones está abierto.")]
         [SerializeField] private GameObject buttonsPanel;
@@ -34,6 +35,8 @@ namespace Odisea.UI
             playButton.onClick.AddListener(SceneFlow.StartGame);
             tutorialButton.onClick.AddListener(SceneFlow.PlayTutorialFromMenu);
             optionsButton.onClick.AddListener(OpenOptions);
+            if (creditsButton != null)
+                creditsButton.onClick.AddListener(() => SceneFlow.Load(SceneFlow.Credits));
             quitButton.onClick.AddListener(AskToQuit);
             quitNoButton.onClick.AddListener(CancelQuit);
             quitYesButton.onClick.AddListener(SceneFlow.Quit);

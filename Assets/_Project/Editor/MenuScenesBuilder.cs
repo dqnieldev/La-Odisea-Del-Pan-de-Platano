@@ -251,7 +251,7 @@ namespace Odisea.EditorTools
             buttonsRect.SetParent(canvas, false);
             buttonsRect.anchorMin = buttonsRect.anchorMax = new Vector2(0.14f, 0.5f);
             buttonsRect.pivot = new Vector2(0.5f, 0.5f);
-            buttonsRect.sizeDelta = new Vector2(600f, 330f);
+            buttonsRect.sizeDelta = new Vector2(600f, 410f);
             var layout = buttons.GetComponent<VerticalLayoutGroup>();
             layout.spacing = 0f;
             layout.childAlignment = TextAnchor.MiddleCenter;
@@ -262,6 +262,7 @@ namespace Odisea.EditorTools
             Button play = CreateTextMenuItem("JUGAR", buttonsRect, menuFont);
             Button tutorial = CreateTextMenuItem("TUTORIAL", buttonsRect, menuFont);
             Button options = CreateTextMenuItem("OPCIONES", buttonsRect, menuFont);
+            Button credits = CreateTextMenuItem("CRÉDITOS", buttonsRect, menuFont);
             Button quit = CreateTextMenuItem("SALIR", buttonsRect, menuFont);
 
             // "¿Salir del juego?" en el mismo lugar que los botones; MainMenu la muestra al elegir SALIR.
@@ -292,6 +293,7 @@ namespace Odisea.EditorTools
             SetField(menu, "playButton", play);
             SetField(menu, "tutorialButton", tutorial);
             SetField(menu, "optionsButton", options);
+            SetField(menu, "creditsButton", credits);
             SetField(menu, "quitButton", quit);
             SetField(menu, "buttonsPanel", buttons);
             SetField(menu, "optionsPanel", optionsPanel);
@@ -1440,8 +1442,8 @@ namespace Odisea.EditorTools
                 return;
             var serialized = new SerializedObject(music);
             SerializedProperty scenes = serialized.FindProperty("continueInto");
-            // La historia va en silencio (más seria) y el mapa tiene su propia canción.
-            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots };
+            // Sigue sin cortarse en partidas y créditos; la historia y el mapa tienen su propia canción.
+            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Credits };
             scenes.arraySize = names.Length;
             for (int i = 0; i < names.Length; i++)
                 scenes.GetArrayElementAtIndex(i).stringValue = names[i];
@@ -1461,7 +1463,7 @@ namespace Odisea.EditorTools
             EditorBuildSettings.scenes = new[]
                 {
                     SplashScenePath, TitleScenePath, MenuScenePath, SlotSelectBuilder.ScenePath, StoryBuilder.ScenePath,
-                    MapBuilder.ScenePath, BakeryBuilder.ScenePath,
+                    MapBuilder.ScenePath, BakeryBuilder.ScenePath, CreditsBuilder.ScenePath,
                     TutorialBuilder.ScenePath, SandboxScenePath,
                 }
                 .Where(File.Exists)

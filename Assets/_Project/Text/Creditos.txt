@@ -1,0 +1,36 @@
+// Créditos del juego. Se puede editar sin tocar código ni regenerar la escena.
+// Una línea que empieza con "# " es el título de una sección; las demás son nombres o texto.
+// Las líneas vacías dejan espacio. {version} se cambia por la versión del juego.
+// Las líneas que empiezan con "//" (como estas) no se muestran.
+
+# La Odisea del Pan de Plátano
+Versión {version}
+
+# Desarrollo
+(Tu nombre aquí)
+(Tu nombre aquí)
+
+# Arte e ilustración
+(Tu nombre aquí)
+
+# Historia
+(Tu nombre aquí)
+
+# Música y sonido
+(Tu nombre aquí)
+
+# Programación asistida
+Claude (Anthropic)
+
+# Tipografías
+Outfit · Rubik · Rye · IM Fell English
+SIL Open Font License
+
+# Íconos de botones
+Kenney Input Prompts (kenney.nl) · CC0
+
+# Hecho con
+Unity
+
+# ¡Gracias por jugar!
+San Blas, Nayarit
