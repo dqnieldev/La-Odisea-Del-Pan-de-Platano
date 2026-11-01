@@ -48,7 +48,7 @@ namespace Odisea.Map
         [Tooltip("Aro que acompaña la orilla de la mancha (opcional).")]
         [SerializeField] private Sprite revealRing;
         [SerializeField] private Color ringColor = new(0.961f, 0.718f, 0.192f, 0.9f);
-        [SerializeField, Min(0.1f)] private float revealDuration = 1.1f;
+        [SerializeField, Min(0.1f)] private float revealDuration = 1.5f;
         [Tooltip("Base dorada de \"alcanzado\" sobre la de piedra (aparece al abrirse).")]
         [SerializeField] private GameObject reachedMark;
 

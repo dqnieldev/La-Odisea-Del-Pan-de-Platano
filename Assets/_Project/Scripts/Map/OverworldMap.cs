@@ -13,7 +13,8 @@ namespace Odisea.Map
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
     /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
     /// avisan qué hay que terminar antes.
-    /// Al volver con un lugar recién abierto, le vuelve el color. Sobre el lugar elegido rebota una flecha y brilla un
+    /// Al pasar el mouse sobre un lugar, se ilumina y la ventanita lo muestra. Al volver con un lugar recién abierto,
+    /// la cámara se acerca, le vuelve el color con un estallido de chispas y regresa. Sobre el lugar elegido rebota una flecha y brilla un
     /// anillo; su nombre sale en la ventanita de abajo.
     /// </summary>
     public class OverworldMap : MonoBehaviour
@@ -66,7 +67,12 @@ namespace Odisea.Map
         [SerializeField] private Transform marker;
         [Tooltip("Anillo que brilla en el claro del lugar elegido.")]
         [SerializeField] private SpriteRenderer highlight;
+        [Tooltip("Anillo del lugar bajo el mouse (si no es donde está Ulises).")]
+        [SerializeField] private SpriteRenderer hoverRing;
         [SerializeField] private SoundEffect unlockSound = new();
+        [SerializeField] private Color burstColor = new(1f, 0.85f, 0.35f, 1f);
+        [Tooltip("Al estrenar un lugar, el tamaño de la cámara respecto al mapa completo.")]
+        [SerializeField, Range(0.2f, 1f)] private float revealZoom = 0.55f;
 
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
@@ -77,8 +83,12 @@ namespace Odisea.Map
         private float stepTimer;
         private int lastHorizontal;
         private Vector3 visualHome, markerScale = Vector3.one;
-        private Color highlightColor = Color.white;
-        private float focus;
+        private Color highlightColor = Color.white, hoverColor = Color.white;
+        private float focus, hoverFocus;
+        private int hovered = -1;
+        private Camera view;
+        private Vector3 viewHome;
+        private float viewSize;
 
         private bool Walking => route.Count > 0;
 
@@ -100,6 +110,14 @@ namespace Odisea.Map
                 markerScale = marker.localScale;
             if (highlight != null)
                 highlightColor = highlight.color;
+            if (hoverRing != null)
+                hoverColor = hoverRing.color;
+            view = Camera.main;
+            if (view != null)
+            {
+                viewHome = view.transform.position;
+                viewSize = view.orthographicSize;
+            }
             ShowCurrent();
             StartCoroutine(RevealPlaces());
         }
@@ -110,7 +128,9 @@ namespace Odisea.Map
                 Walk();
             AnimateToken();
             AnimateFocus();
-            if (entering || revealing || Walking || SceneFlow.IsLoading || Time.timeScale == 0f)
+            bool busy = entering || revealing || Walking || SceneFlow.IsLoading || Time.timeScale == 0f;
+            UpdateHover(busy);
+            if (busy)
                 return;
 
             if (ClickedLocation(out int clicked))
@@ -150,11 +170,11 @@ namespace Odisea.Map
             }
         }
 
-        // Flecha y anillo del lugar donde está Ulises. Se apagan mientras camina.
+        // Flecha y anillo del lugar donde está Ulises. Se apagan mientras camina o mientras se estrena un lugar.
         private void AnimateFocus()
         {
             MapLocation location = nodes[current].location;
-            focus = Mathf.MoveTowards(focus, Walking || location == null ? 0f : 1f, Time.deltaTime * 4f);
+            focus = Mathf.MoveTowards(focus, Walking || revealing || location == null ? 0f : 1f, Time.deltaTime * 4f);
             if (location == null)
                 return;
 
@@ -179,6 +199,55 @@ namespace Odisea.Map
 
         // Ancho del anillo en el mundo: un poco más que la base de piedra de un lugar.
         private const float HighlightSize = 4.6f;
+
+        // ---------- Mouse encima ----------
+
+        // El lugar bajo el mouse (que no sea donde está Ulises) se ilumina con un anillo y la ventanita lo muestra.
+        private void UpdateHover(bool busy)
+        {
+            int now = busy ? -1 : LocationUnderMouse();
+            if (now == current)
+                now = -1;
+            if (now != hovered)
+            {
+                if (now >= 0)
+                {
+                    panel.Preview(nodes[now].location);
+                    UiAudio.Play(UiSound.Hover);
+                }
+                else if (!busy)
+                {
+                    panel.EndPreview();
+                }
+                hovered = now;
+            }
+            hoverFocus = Mathf.MoveTowards(hoverFocus, hovered >= 0 ? 1f : 0f, Time.deltaTime * 6f);
+            if (hoverRing == null)
+                return;
+            if (hovered >= 0)
+                hoverRing.transform.position = nodes[hovered].position;
+            float size = HighlightSize / Mathf.Max(0.01f, hoverRing.sprite.bounds.size.x);
+            hoverRing.transform.localScale = Vector3.one * size * (0.8f + 0.2f * hoverFocus);
+            hoverRing.color = new Color(hoverColor.r, hoverColor.g, hoverColor.b, hoverColor.a * hoverFocus);
+        }
+
+        private int LocationUnderMouse()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null || view == null)
+                return -1;
+            Vector2 point = view.ScreenToWorldPoint(mouse.position.ReadValue());
+            Collider2D hit = Physics2D.OverlapPoint(point);
+            MapLocation location = hit != null ? hit.GetComponentInParent<MapLocation>() : null;
+            if (location == null)
+                return -1;
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (nodes[i].location == location)
+                    return i;
+            }
+            return -1;
+        }
 
         // ---------- Lugares nuevos ----------
 
@@ -205,12 +274,46 @@ namespace Odisea.Map
             yield return new WaitForSeconds(0.6f);
             for (int index = seen; index < open; index++)
             {
+                // La cámara se acerca al lugar, le vuelve el color con un estallido de chispas y regresa.
+                MapLocation location = nodes[locationOrder[index]].location;
+                Vector2 spot = nodes[locationOrder[index]].position;
+                panel.Preview(location, "¡Nuevo lugar!");
+                yield return MoveCamera(spot + Vector2.up * 2f, viewSize * revealZoom, 0.7f);
                 unlockSound.Play();
-                yield return nodes[locationOrder[index]].location.RevealColor();
+                if (ambience != null)
+                    ambience.Burst(spot, burstColor);
+                yield return location.RevealColor();
                 // Se guarda en cuanto se estrena cada uno, por si sale del mapa a la mitad.
                 GameProgress.MapRevealed = index + 1;
+                yield return new WaitForSeconds(0.45f);
             }
+            yield return MoveCamera(viewHome, viewSize, 0.6f);
+            panel.EndPreview();
+            ShowCurrent();
             revealing = false;
+        }
+
+        // Lleva la cámara a un punto y tamaño (sin salirse del mapa), con entrada y salida suaves.
+        private IEnumerator MoveCamera(Vector2 center, float size, float duration)
+        {
+            if (view == null)
+                yield break;
+            float aspect = view.aspect;
+            float halfWidth = viewSize * aspect, halfHeight = viewSize;
+            center.x = Mathf.Clamp(center.x, viewHome.x - halfWidth + size * aspect, viewHome.x + halfWidth - size * aspect);
+            center.y = Mathf.Clamp(center.y, viewHome.y - halfHeight + size, viewHome.y + halfHeight - size);
+            Vector3 fromPosition = view.transform.position;
+            float fromSize = view.orthographicSize;
+            var toPosition = new Vector3(center.x, center.y, fromPosition.z);
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float p = Mathf.SmoothStep(0f, 1f, t / duration);
+                view.transform.position = Vector3.Lerp(fromPosition, toPosition, p);
+                view.orthographicSize = Mathf.Lerp(fromSize, size, p);
+                yield return null;
+            }
+            view.transform.position = toPosition;
+            view.orthographicSize = size;
         }
 
         // ← →: al lugar abierto anterior o siguiente en el orden de la historia (los bloqueados se saltan).

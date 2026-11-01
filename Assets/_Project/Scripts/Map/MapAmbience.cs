@@ -139,6 +139,17 @@ namespace Odisea.Map
             }
         }
 
+        /// <summary>Estallido de chispas que salen en círculo (un lugar que se estrena).</summary>
+        public void Burst(Vector2 position, Color color, int count = 24)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (i + Random.Range(0f, 0.6f)) / count * Mathf.PI * 2f;
+                var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Random.Range(2.5f, 5f);
+                Emit(position, velocity, Random.Range(0.6f, 1f), Random.Range(0.35f, 0.6f), 0.1f, color);
+            }
+        }
+
         // ---------- Mar ----------
 
         private void RestartSparkle(Sparkle sparkle, float now)

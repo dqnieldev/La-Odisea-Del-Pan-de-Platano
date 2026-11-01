@@ -189,6 +189,10 @@ namespace Odisea.EditorTools
             {
                 SpriteRenderer highlight = Rect("Anillo del lugar", root, ring, Vector2.zero, ring.bounds.size, Platano, PlaceOrder - 1);
                 MenuScenesBuilder.SetField(map, "highlight", highlight);
+                // Anillo crema del lugar bajo el mouse; empieza apagado.
+                SpriteRenderer hover = Rect("Anillo del mouse", root, ring, Vector2.zero, ring.bounds.size,
+                    new Color(1f, 0.97f, 0.88f, 0.85f), PlaceOrder - 1);
+                MenuScenesBuilder.SetField(map, "hoverRing", hover);
             }
             MenuScenesBuilder.SetField(map, "ambience", CreateAmbience(square));
             var unlock = AssetDatabase.LoadAssetAtPath<AudioClip>(UnlockSoundPath);

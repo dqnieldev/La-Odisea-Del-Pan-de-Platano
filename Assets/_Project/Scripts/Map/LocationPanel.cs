@@ -8,7 +8,8 @@ namespace Odisea.Map
     /// <summary>
     /// Ventanita del mapa con el lugar donde está Ulises: su nombre, si ya se terminó (y la mejor puntuación) y
     /// "Entrar", o por qué todavía no se puede ("Próximamente"). Al dar clic a un lugar bloqueado avisa un momento
-    /// qué hay que terminar antes. Solo dibuja: los controles los lleva <see cref="OverworldMap"/>.
+    /// qué hay que terminar antes, y al pasar el mouse sobre otro lugar lo muestra mientras siga encima.
+    /// Solo dibuja: los controles los lleva <see cref="OverworldMap"/>.
     /// </summary>
     public class LocationPanel : MonoBehaviour
     {
@@ -38,6 +39,37 @@ namespace Odisea.Map
             home = location;
             noticeUntil = -1f;
             Display(location);
+        }
+
+        /// <summary>
+        /// Muestra otro lugar sin dejar el de Ulises (el mouse encima, o un lugar que se estrena). Con status, ese texto
+        /// en lugar del estado. <see cref="EndPreview"/> regresa al de Ulises.
+        /// </summary>
+        public void Preview(MapLocation location, string status = null)
+        {
+            noticeUntil = -1f;
+            if (shown != location)
+                Display(location);
+            if (status != null)
+            {
+                this.status.text = status;
+                enterPrompt.SetActive(false);
+            }
+        }
+
+        public void EndPreview()
+        {
+            if (noticeUntil > 0f)
+                return;
+            if (home != null)
+            {
+                if (shown != home)
+                    Display(home);
+            }
+            else
+            {
+                shown = null;
+            }
         }
 
         /// <summary>Oculta la ventanita (mientras Ulises camina).</summary>
