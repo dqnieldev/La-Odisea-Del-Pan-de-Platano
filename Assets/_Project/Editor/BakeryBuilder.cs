@@ -192,19 +192,19 @@ namespace Odisea.EditorTools
 
             Sprite[] frames = File.Exists(ArtImportBuilder.DonLupeIdlePath)
                 ? ArtImportBuilder.LoadStrip(ArtImportBuilder.DonLupeIdlePath) : new Sprite[0];
+            Sprite[] talk = File.Exists(ArtImportBuilder.DonLupeTalkPath)
+                ? ArtImportBuilder.LoadStrip(ArtImportBuilder.DonLupeTalkPath) : new Sprite[0];
+            SpriteRenderer animated = null;
             float height;
             if (frames.Length > 0)
             {
                 // Arte real (Odisea > Arte > Importar a Don Lupe): ya viene a su estatura, con los pies en el pivote.
-                // Respira y parpadea en loop, despacio.
+                // NpcDialogue lo anima: respira en reposo y mueve la boca mientras habla.
                 var drawing = new GameObject("Dibujo").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(visual, false);
                 drawing.sprite = frames[0];
                 drawing.sortingOrder = NpcOrder;
-                var flipbook = drawing.gameObject.AddComponent<SpriteFlipbook>();
-                MenuScenesBuilder.SetField(flipbook, "target", drawing);
-                PlayerSandboxBuilder.SetSerialized(flipbook, "frames", frames.Cast<Object>().ToArray());
-                PlayerSandboxBuilder.SetSerialized(flipbook, "framesPerSecond", 6f);
+                animated = drawing;
                 height = frames[0].bounds.size.y;
             }
             else
@@ -235,6 +235,12 @@ namespace Odisea.EditorTools
             var dialogue = npc.AddComponent<NpcDialogue>();
             PlayerSandboxBuilder.SetSerialized(dialogue, "playerLayers", 1 << playerLayer);
             MenuScenesBuilder.SetField(dialogue, "visual", visual);
+            if (animated != null)
+            {
+                MenuScenesBuilder.SetField(dialogue, "drawing", animated);
+                PlayerSandboxBuilder.SetSerialized(dialogue, "idleFrames", frames.Cast<Object>().ToArray());
+                PlayerSandboxBuilder.SetSerialized(dialogue, "talkFrames", talk.Cast<Object>().ToArray());
+            }
             AddBubble(npc.transform, dialogue, new Vector2(0f, height + 0.5f), "Hablar");
 
             var serialized = new SerializedObject(dialogue);
