@@ -1,0 +1,275 @@
+fileFormatVersion: 2
+guid: 1f0375a1cd98af14fb1e654a37a44d9b
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1296517620861957916
+    second: DonLupe_Habla_0
+  - first:
+      213: 1775889342741562472
+    second: DonLupe_Habla_1
+  - first:
+      213: -3420268357097770131
+    second: DonLupe_Habla_2
+  - first:
+      213: -3564915255190437164
+    second: DonLupe_Habla_3
+  - first:
+      213: 2466218326494166746
+    second: DonLupe_Habla_4
+  - first:
+      213: -1409725047963335249
+    second: DonLupe_Habla_5
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.0029739777}
+  spritePixelsToUnits: 564.68085
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: DonLupe_Habla_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2d7ceb2abb41a6a4da45e51a644fb267
+      internalID: -1296517620861957916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DonLupe_Habla_1
+      rect:
+        serializedVersion: 2
+        x: 554
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 23480ef9169cd0841876e9f0a06db4f6
+      internalID: 1775889342741562472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DonLupe_Habla_2
+      rect:
+        serializedVersion: 2
+        x: 1108
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 67c1b1f11a81ddc4e90fd602ca1f5205
+      internalID: -3420268357097770131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DonLupe_Habla_3
+      rect:
+        serializedVersion: 2
+        x: 1662
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 95c40b1701f227740abb1bffd1946f5b
+      internalID: -3564915255190437164
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DonLupe_Habla_4
+      rect:
+        serializedVersion: 2
+        x: 2216
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1e37c147e10b4b34ea3cb3d546816b7e
+      internalID: 2466218326494166746
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DonLupe_Habla_5
+      rect:
+        serializedVersion: 2
+        x: 2770
+        y: 0
+        width: 554
+        height: 1345
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0029739777}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 83c0356b39309c04b8f634b1bb65854a
+      internalID: -1409725047963335249
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: e0a66bc601ae0fd41af125a25ed7ca5b
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      DonLupe_Habla_0: -1296517620861957916
+      DonLupe_Habla_1: 1775889342741562472
+      DonLupe_Habla_2: -3420268357097770131
+      DonLupe_Habla_3: -3564915255190437164
+      DonLupe_Habla_4: 2466218326494166746
+      DonLupe_Habla_5: -1409725047963335249
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -8,7 +8,8 @@ namespace Odisea.Level
 {
     /// <summary>
     /// Personaje que platica (Don Lupe): al interactuar dice las líneas que tocan según el avance de la partida
-    /// (la última conversación cuyo lugar requerido ya se terminó). Voltea a ver a Ulises cuando está cerca.
+    /// (la última conversación cuyo lugar requerido ya se terminó). Voltea a ver a Ulises cuando está cerca y, si
+    /// tiene sus cuadros, mueve la boca mientras se escribe su línea (si no, respira en reposo).
     /// </summary>
     public class NpcDialogue : Interactable
     {
@@ -26,7 +27,17 @@ namespace Odisea.Level
         [Tooltip("El dibujo (hijo): se voltea hacia Ulises. Por defecto mira a la derecha.")]
         [SerializeField] private Transform visual;
 
+        [Header("Animación (opcional)")]
+        [SerializeField] private SpriteRenderer drawing;
+        [SerializeField] private Sprite[] idleFrames = Array.Empty<Sprite>();
+        [SerializeField, Min(0.1f)] private float idleFps = 6f;
+        [SerializeField] private Sprite[] talkFrames = Array.Empty<Sprite>();
+        [SerializeField, Min(0.1f)] private float talkFps = 8f;
+
         private Vector3 visualScale = Vector3.one;
+        private bool speaking;
+        private float frameTime;
+        private bool wasTalking;
 
         protected override void Awake()
         {
@@ -51,9 +62,36 @@ namespace Odisea.Level
         }
 
         /// <summary>Dice algo fuera de su conversación (p. ej. cuando una puerta no se puede abrir todavía).</summary>
-        public void SayOnce(string[] lines, PlayerInputReader reader) => DialogueBox.Say(speakerName, lines, reader);
+        public void SayOnce(string[] lines, PlayerInputReader reader)
+        {
+            speaking = true;
+            DialogueBox.Say(speakerName, lines, reader);
+        }
 
-        protected override void Interact(PlayerInputReader reader) => DialogueBox.Say(speakerName, CurrentLines, reader);
+        protected override void Interact(PlayerInputReader reader)
+        {
+            speaking = true;
+            DialogueBox.Say(speakerName, CurrentLines, reader);
+        }
+
+        // Reposo o hablando (mientras se escribe su línea); al cambiar, empieza desde el primer cuadro.
+        private void LateUpdate()
+        {
+            if (speaking && !DialogueBox.IsOpen)
+                speaking = false;
+            if (drawing == null)
+                return;
+            bool talking = speaking && DialogueBox.IsTyping && talkFrames.Length > 0;
+            if (talking != wasTalking)
+            {
+                wasTalking = talking;
+                frameTime = 0f;
+            }
+            frameTime += Time.deltaTime;
+            Sprite[] frames = talking ? talkFrames : idleFrames;
+            if (frames.Length > 0)
+                drawing.sprite = frames[(int)(frameTime * (talking ? talkFps : idleFps)) % frames.Length];
+        }
 
         protected override void WhileNear(PlayerInputReader reader)
         {

@@ -43,6 +43,9 @@ namespace Odisea.UI
         /// <summary>Hay un diálogo en pantalla.</summary>
         public static bool IsOpen => current != null && current.open;
 
+        /// <summary>La línea actual todavía se está escribiendo (quien habla mueve la boca).</summary>
+        public static bool IsTyping => IsOpen && current.typed < current.body.textInfo.characterCount;
+
         private void Awake()
         {
             current = this;

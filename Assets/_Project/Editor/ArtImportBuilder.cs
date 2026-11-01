@@ -100,26 +100,36 @@ namespace Odisea.EditorTools
         public const string DonLupeFolder = "Assets/_Project/Art/Characters/DonLupe";
         /// <summary>Tira de Don Lupe en reposo (apoyado en el bastón, respira y parpadea); pivote en los pies.</summary>
         public const string DonLupeIdlePath = DonLupeFolder + "/DonLupe_Reposo.png";
+        /// <summary>Tira de Don Lupe hablando (mueve la boca y una mano); pivote en los pies, como la de reposo.</summary>
+        public const string DonLupeTalkPath = DonLupeFolder + "/DonLupe_Habla.png";
         private const string DonLupeSource = "Personajes/sprite en png/don lupe/donlupe_reposo.png";
+        private const string DonLupeTalkSource = "Personajes/sprite en png/don lupe/donlupe_habla.jfif";
         // Estatura en el juego: un poco más alto que Ulises aunque va encorvado.
         private const float DonLupeHeight = 2.35f;
 
         /// <summary>
-        /// Hoja de una fila con fondo blanco (barba y guantes son blanco hueso, más oscuros que el fondo): cada
-        /// cuadro con los pies en el mismo punto.
+        /// Hojas de una fila con fondo blanco (barba y guantes son blanco hueso, más oscuros que el fondo): reposo y
+        /// hablando, cada cuadro con los pies en el mismo punto y a la misma estatura.
         /// </summary>
         [MenuItem("Odisea/Arte/Importar a Don Lupe")]
         public static void ImportDonLupe()
         {
-            Sheet sheet = LoadSheet(DonLupeSource, whiteThreshold: 248, warnIfMissing: false);
+            EnsureFolder(DonLupeFolder);
+            ImportDonLupeStrip(DonLupeSource, 248, DonLupeIdlePath, "DonLupe_Reposo");
+            // La de hablar es JPG: el fondo trae ruido de compresión, por eso el umbral es un poco más bajo.
+            ImportDonLupeStrip(DonLupeTalkSource, 246, DonLupeTalkPath, "DonLupe_Habla");
+        }
+
+        private static void ImportDonLupeStrip(string source, int whiteThreshold, string path, string spriteName)
+        {
+            Sheet sheet = LoadSheet(source, whiteThreshold, warnIfMissing: false);
             if (sheet == null)
                 return;
             List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 20).SelectMany(r => r)
                 .OrderBy(f => f.Core.MinX).ToList();
             float ppu = MedianCoreHeight(frames) / DonLupeHeight;
-            EnsureFolder(DonLupeFolder);
-            WriteStrip(sheet, frames, DonLupeIdlePath, ppu, "DonLupe_Reposo");
-            Debug.Log($"[Odisea] Don Lupe: {frames.Count} cuadros.");
+            WriteStrip(sheet, frames, path, ppu, spriteName);
+            Debug.Log($"[Odisea] {spriteName}: {frames.Count} cuadros.");
         }
 
         // ---------- Ítems ----------
