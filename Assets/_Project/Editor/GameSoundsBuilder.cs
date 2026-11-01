@@ -110,12 +110,26 @@ namespace Odisea.EditorTools
         /// </summary>
         public static SceneMusic CreateMusic(string name, string basePath)
         {
-            string path = new[] { ".ogg", ".mp3", ".wav" }.Select(ext => basePath + ext).FirstOrDefault(File.Exists);
-            if (path == null)
+            AudioClip clip = LoadMusic(basePath);
+            if (clip == null)
             {
                 Debug.LogWarning($"[Odisea] No está {basePath} (.ogg, .mp3 o .wav); la escena queda sin música.");
                 return null;
             }
+
+            var go = new GameObject(name, typeof(AudioSource));
+            go.GetComponent<AudioSource>().clip = clip;
+            return go.AddComponent<SceneMusic>();
+        }
+
+        /// <summary>
+        /// Canción por su ruta sin extensión (.ogg, .mp3 o .wav), configurada para música; null si no existe.
+        /// </summary>
+        public static AudioClip LoadMusic(string basePath)
+        {
+            string path = new[] { ".ogg", ".mp3", ".wav" }.Select(ext => basePath + ext).FirstOrDefault(File.Exists);
+            if (path == null)
+                return null;
 
             // Música larga: se lee del disco mientras suena (Streaming) para no ocupar memoria, en estéreo.
             var importer = (AudioImporter)AssetImporter.GetAtPath(path);
@@ -130,9 +144,7 @@ namespace Odisea.EditorTools
                 importer.SaveAndReimport();
             }
 
-            var go = new GameObject(name, typeof(AudioSource));
-            go.GetComponent<AudioSource>().clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-            return go.AddComponent<SceneMusic>();
+            return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
         }
 
         /// <summary>

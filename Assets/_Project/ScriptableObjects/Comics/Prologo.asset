@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Prologo
   m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
   title: "Pr\xF3logo: El Decreto del Viejo Horno"
+  music: {fileID: 8300000, guid: 5ef0d719ee6423f42bae2fdd1fe6bb59, type: 3}
   panels:
   - title: El Decreto del Viejo Horno
     art: {fileID: 21300000, guid: 0244545404005304a8bc93a14228d1a8, type: 3}

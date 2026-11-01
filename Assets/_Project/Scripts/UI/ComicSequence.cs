@@ -26,6 +26,8 @@ namespace Odisea.UI
 
         [Tooltip("Título de las viñetas que no tienen uno propio, p. ej. \"El Decreto del Viejo Horno\".")]
         public string title;
+        [Tooltip("Canción de fondo mientras se ve; vacío = en silencio.")]
+        public AudioClip music;
         public Panel[] panels = Array.Empty<Panel>();
     }
 }

@@ -91,6 +91,20 @@ namespace Odisea.Core
             FadeTo(1f, fadeInDuration);
         }
 
+        /// <summary>
+        /// Empieza a sonar una canción elegida al momento (la escena de historietas toca la de la historieta que
+        /// muestra). Para el objeto de música que se creó sin canción.
+        /// </summary>
+        public void Play(AudioClip clip)
+        {
+            if (clip == null || source.isPlaying)
+                return;
+            source.clip = clip;
+            playing = this;
+            source.Play();
+            FadeTo(1f, fadeInDuration);
+        }
+
         private void OnDestroy()
         {
             if (playing == this)

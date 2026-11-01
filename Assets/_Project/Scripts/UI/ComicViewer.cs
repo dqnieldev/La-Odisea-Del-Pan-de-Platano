@@ -21,6 +21,8 @@ namespace Odisea.UI
         [Tooltip("La que se muestra si se abre esta escena directo (pruebas en el editor).")]
         [SerializeField] private ComicSequence fallback;
         [SerializeField] private string fallbackNextScene = SceneFlow.MainMenu;
+        [Tooltip("Música de la escena, sin canción: toca la de la historieta (si trae).")]
+        [SerializeField] private SceneMusic music;
 
         [Header("Página")]
         [Tooltip("La viñeta (marco, dibujo y texto); es lo que entra y sale.")]
@@ -64,6 +66,8 @@ namespace Odisea.UI
                 Leave();
                 return;
             }
+            if (music != null)
+                music.Play(story.music);
             StartCoroutine(ShowNext(startDelay));
         }
 

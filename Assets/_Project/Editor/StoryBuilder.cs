@@ -25,6 +25,8 @@ namespace Odisea.EditorTools
         // Libro abierto (como el de Cuphead): en la página grande, el título arriba, la viñeta y el texto abajo.
         // Las posiciones son para un dibujo 16:9 con la página grande de ~22 % a ~91 % del ancho.
         private const string BookPath = "Assets/_Project/Art/Comics/Libro.png";
+        // Canción de fondo del prólogo (sin extensión).
+        private const string PrologueMusicPath = "Assets/_Project/Audio/Music/musica_prologo";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
         private static readonly Vector2 BookPanelCenter = new(125f, 62f);
@@ -69,6 +71,12 @@ namespace Odisea.EditorTools
             // Primero la escena: abrirla descarga los assets recién creados y sus referencias quedarían vacías.
             var scene = MenuScenesBuilder.NewScene(ScenePath);
             ComicSequence prologue = EnsureStory(SceneFlow.PrologueStory, "Prólogo", Prologue, PrologueTitles);
+            // Canción del prólogo (si diseño no le puso otra).
+            if (prologue.music == null)
+            {
+                prologue.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
+                EditorUtility.SetDirty(prologue);
+            }
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
                 .Select(guid => AssetDatabase.LoadAssetAtPath<ComicSequence>(AssetDatabase.GUIDToAssetPath(guid)))
@@ -77,7 +85,9 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.CreateCamera(MenuScenesBuilder.Cafe);
             Transform canvas = MenuScenesBuilder.CreateCanvas("Historieta");
             MenuScenesBuilder.CreateUiAudio();
-            // Sin música: las historietas van en silencio para que se sientan más serias.
+            // Música sin canción: el visor pone la de la historieta (las que no traen, van en silencio).
+            var musicObject = new GameObject("Música de la historieta", typeof(AudioSource));
+            var storyMusic = musicObject.AddComponent<SceneMusic>();
 
             Sprite book = File.Exists(BookPath) ? MenuScenesBuilder.LoadUiSprite(BookPath) : null;
             RectTransform paper;
@@ -111,6 +121,7 @@ namespace Odisea.EditorTools
             var viewer = new GameObject("Visor de historietas").AddComponent<ComicViewer>();
             PlayerSandboxBuilder.SetSerialized(viewer, "stories", stories.Cast<Object>().ToArray());
             MenuScenesBuilder.SetField(viewer, "fallback", prologue);
+            MenuScenesBuilder.SetField(viewer, "music", storyMusic);
             MenuScenesBuilder.SetField(viewer, "panel", panel);
             MenuScenesBuilder.SetField(viewer, "panelGroup", panel.GetComponent<CanvasGroup>());
             MenuScenesBuilder.SetField(viewer, "art", art);
