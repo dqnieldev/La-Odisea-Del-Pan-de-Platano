@@ -1,5 +1,4 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -24,10 +23,6 @@ namespace Odisea.UI
         [SerializeField] private Color pressedColor = new(0.878f, 0.635f, 0.118f);     // Plátano 600
         [SerializeField] private float selectedScale = 1.06f;
         [SerializeField] private float pressDepth = 3f;
-        [Tooltip("Opcional: texto que cambia de color al seleccionar (botones de tinta que se rellenan de café).")]
-        [SerializeField] private TMP_Text label;
-        [SerializeField] private Color labelNormalColor = new(0.169f, 0.118f, 0.086f);
-        [SerializeField] private Color labelSelectedColor = new(0.984f, 0.973f, 0.949f);
 
         private Selectable selectable;
         private Vector2 faceRestPosition;
@@ -38,7 +33,7 @@ namespace Odisea.UI
         {
             selectable = GetComponent<Selectable>();
             faceRestPosition = face.anchoredPosition;
-            Paint(normalColor, false);
+            fill.color = normalColor;
         }
 
         private void OnDisable()
@@ -47,7 +42,7 @@ namespace Odisea.UI
             selected = false;
             face.anchoredPosition = faceRestPosition;
             transform.localScale = Vector3.one;
-            Paint(normalColor, false);
+            fill.color = normalColor;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -59,14 +54,14 @@ namespace Odisea.UI
         public void OnSelect(BaseEventData eventData)
         {
             selected = true;
-            Paint(selectedColor, true);
+            fill.color = selectedColor;
             AnimateScale(selectedScale, bounce: true);
         }
 
         public void OnDeselect(BaseEventData eventData)
         {
             selected = false;
-            Paint(normalColor, false);
+            fill.color = normalColor;
             AnimateScale(1f, bounce: false);
         }
 
@@ -83,18 +78,11 @@ namespace Odisea.UI
         private void SetPressed(bool pressed)
         {
             face.anchoredPosition = faceRestPosition + (pressed ? Vector2.down * pressDepth : Vector2.zero);
-            Paint(pressed ? pressedColor : selected ? selectedColor : normalColor, pressed || selected);
+            fill.color = pressed ? pressedColor : selected ? selectedColor : normalColor;
             if (pressed)
                 AnimateScale(0.96f, bounce: false);
             else
                 AnimateScale(selected ? selectedScale : 1f, bounce: false);
-        }
-
-        private void Paint(Color fillColor, bool lit)
-        {
-            fill.color = fillColor;
-            if (label != null)
-                label.color = lit ? labelSelectedColor : labelNormalColor;
         }
 
         private IEnumerator QuickPress()

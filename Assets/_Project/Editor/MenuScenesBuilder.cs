@@ -423,12 +423,21 @@ namespace Odisea.EditorTools
             marker.rectTransform.pivot = new Vector2(0.5f, 0f);
             marker.rectTransform.anchoredPosition = new Vector2(0f, -4f);
 
-            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish);
-            Button retry = CreateInkButton("REINTENTAR", card, font, new Vector2(0f, -65f));
-            Button restart = CreateInkButton("REINICIAR NIVEL", card, font, new Vector2(0f, -165f));
-            Button exit = CreateInkButton("VOLVER AL MAPA", card, font, new Vector2(0f, -265f));
+            // Opciones como las del índice del recetario (Opciones y Pausa): tinta café sobre el papel.
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            Button retry = CreateIndexItem("REINTENTAR", card, font, 0f, 56f);
+            Button restart = CreateIndexItem("REINICIAR NIVEL", card, font, 0f, 56f);
+            Button exit = CreateIndexItem("VOLVER AL MAPA", card, font, 0f, 56f);
+            float y = -60f;
             foreach (Button button in new[] { retry, restart, exit })
+            {
+                var rect = (RectTransform)button.transform;
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(640f, rect.sizeDelta.y);
+                rect.anchoredPosition = new Vector2(0f, y);
+                y -= 95f;
                 button.navigation = new Navigation { mode = Navigation.Mode.Vertical };
+            }
 
             var screen = root.AddComponent<GameOverScreen>();
             SetField(screen, "player", player);
@@ -444,7 +453,6 @@ namespace Odisea.EditorTools
             SetField(screen, "retryButton", retry);
             SetField(screen, "restartButton", restart);
             SetField(screen, "exitButton", exit);
-            SetField(screen, "exitLabel", exit.GetComponentInChildren<TMP_Text>());
             return screen;
         }
 
@@ -513,51 +521,6 @@ namespace Odisea.EditorTools
             CreateImage("Raya izquierda", parent, null, color, position + new Vector2(-half / 2f - 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
             CreateImage("Raya derecha", parent, null, color, position + new Vector2(half / 2f + 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
             CreateDiamond(parent, position, 18f, Cafe);
-        }
-
-        /// <summary>
-        /// Botón serio de tinta: rectángulo con marco café doble y letra antigua; al seleccionarlo se rellena de café
-        /// y la letra queda en crema.
-        /// </summary>
-        private static Button CreateInkButton(string label, RectTransform parent, TMP_FontAsset font, Vector2 position)
-        {
-            var size = new Vector2(560f, 80f);
-            var root = new GameObject($"Botón {label}", typeof(RectTransform), typeof(Button));
-            var rect = (RectTransform)root.transform;
-            rect.SetParent(parent, false);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
-
-            var face = new GameObject("Cara", typeof(RectTransform));
-            var faceRect = (RectTransform)face.transform;
-            faceRect.SetParent(rect, false);
-            Stretch(faceRect);
-            Image fill = CreateImage("Relleno", faceRect, null, Crema, Vector2.zero, Vector2.zero, stretch: true);
-            fill.raycastTarget = true;
-            CreateFrame(faceRect, "Borde", 1.5f, 3f, Cafe);
-            CreateFrame(faceRect, "Marco fino", 8f, 1.5f, new Color(Cafe.r, Cafe.g, Cafe.b, 0.55f));
-            TMP_Text text = CreateText("Texto", faceRect, label, font, 42, Cafe, stretch: true);
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.characterSpacing = 6f;
-
-            var button = root.GetComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            button.targetGraphic = fill;
-
-            var feedback = root.AddComponent<MenuButtonFeedback>();
-            SetField(feedback, "face", faceRect);
-            SetField(feedback, "fill", fill);
-            SetField(feedback, "label", text);
-            SetColor(feedback, "normalColor", new Color(1f, 0.98f, 0.93f, 0.3f));
-            SetColor(feedback, "selectedColor", Cafe);
-            SetColor(feedback, "pressedColor", Color.black);
-            SetColor(feedback, "labelNormalColor", Cafe);
-            SetColor(feedback, "labelSelectedColor", Crema);
-            var serialized = new SerializedObject(feedback);
-            serialized.FindProperty("selectedScale").floatValue = 1.03f;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            root.AddComponent<SelectableSounds>();
-            return button;
         }
 
         internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)

@@ -39,7 +39,6 @@ namespace Odisea.UI
         [SerializeField] private Button retryButton;
         [SerializeField] private Button restartButton;
         [SerializeField] private Button exitButton;
-        [SerializeField] private TMP_Text exitLabel;
 
         /// <summary>Ulises murió: ya no se abre la pausa (la tarjeta está por salir o ya salió).</summary>
         public static bool IsActive { get; private set; }
@@ -78,12 +77,15 @@ namespace Odisea.UI
             retryButton.onClick.AddListener(Retry);
             restartButton.onClick.AddListener(Restart);
             exitButton.onClick.AddListener(Exit);
-            exitLabel.text = ExitDestination() switch
+            string exitText = ExitDestination() switch
             {
                 SceneFlow.MainMenu => "SALIR AL MENÚ",
                 SceneFlow.Bakery => "VOLVER A LA PANADERÍA",
                 _ => "VOLVER AL MAPA",
             };
+            // El texto y sus copias de color (rojo y cian) de la opción.
+            foreach (TMP_Text label in exitButton.GetComponentsInChildren<TMP_Text>(true))
+                label.text = exitText;
             barWidth = ((RectTransform)progressFill.transform.parent).rect.width;
             best = Progress();
         }
