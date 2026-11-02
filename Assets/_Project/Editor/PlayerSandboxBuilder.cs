@@ -932,6 +932,10 @@ namespace Odisea.EditorTools
         {
             public Sprite Plank;
             public Sprite BrokenPlank;
+            /// <summary>Tablón roto por la izquierda (BrokenPlank está roto por la derecha).</summary>
+            public Sprite BrokenPlank2;
+            /// <summary>Tablón roto de los dos lados.</summary>
+            public Sprite BrokenBoth;
             public Sprite Post;
             public Sprite Ladder;
             public float[] LadderXs = Array.Empty<float>();
@@ -944,6 +948,8 @@ namespace Odisea.EditorTools
                 {
                     Plank = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Tablon.png"),
                     BrokenPlank = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/TablonRoto1.png"),
+                    BrokenPlank2 = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/TablonRoto2.png"),
+                    BrokenBoth = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/TablonRotoAmbos.png"),
                     Post = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Viga.png"),
                     Ladder = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/Escalera.png"),
                 };

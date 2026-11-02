@@ -53,6 +53,8 @@ namespace Odisea.EditorTools
         public const string PlankPath = Level1Folder + "/Tablon.png";
         public const string BrokenPlankPath = Level1Folder + "/TablonRoto1.png";
         public const string BrokenPlank2Path = Level1Folder + "/TablonRoto2.png";
+        /// <summary>Tablón roto de los dos lados (se arma con las puntas de los otros dos; ver ComposeBrokenBothEnds).</summary>
+        public const string BrokenBothPath = Level1Folder + "/TablonRotoAmbos.png";
 
         // Tamaños en el juego (unidades). Ulises mide 1.6 de collider; el dibujo corriendo, con pelo, un poco más.
         private const float UlisesRunHeight = 1.8f;
@@ -566,6 +568,84 @@ namespace Odisea.EditorTools
                 int cap = Mathf.Min(piece.Core.Width / 6, piece.Core.Height * 2);
                 WriteSingle(sheet, piece, path, ppu, new Vector4(cap, 0f, cap, 0f));
             }
+            ComposeBrokenBothEnds(folder);
+        }
+
+        /// <summary>
+        /// Arma TablonRotoAmbos.png: la punta rota de TablonRoto2 (izquierda), el centro y la punta rota de TablonRoto1
+        /// (derecha), alineados por arriba. Las puntas quedan como bordes, así que se repite a lo ancho sin estirarlas.
+        /// </summary>
+        public static void ComposeBrokenBothEnds(string folder = Level1Folder)
+        {
+            string leftPath = $"{folder}/TablonRoto2.png", rightPath = $"{folder}/TablonRoto1.png";
+            if (!File.Exists(leftPath) || !File.Exists(rightPath))
+                return;
+            var leftImporter = (TextureImporter)AssetImporter.GetAtPath(leftPath);
+            var rightImporter = (TextureImporter)AssetImporter.GetAtPath(rightPath);
+            Texture2D left = LoadPng(leftPath), right = LoadPng(rightPath);
+            int rightCapStart = right.width - Mathf.RoundToInt(rightImporter.spriteBorder.z);
+            // Se corta en la raya oscura entre dos tablas (después de cada punta) para que la unión no se note.
+            int leftCap = SeamColumn(left, Mathf.RoundToInt(leftImporter.spriteBorder.x)) + 1;
+            int middleStart = SeamColumn(right, Mathf.RoundToInt(rightImporter.spriteBorder.x)) + 1;
+
+            int width = leftCap + (right.width - middleStart);
+            int height = Mathf.Max(left.height, right.height);
+            var pixels = new Color32[width * height];
+            // Las filas van de abajo hacia arriba: se recorre cada imagen subiéndola para que las caras de arriba coincidan.
+            Copy(left, 0, leftCap, 0, height - left.height);
+            Copy(right, middleStart, right.width, leftCap, height - right.height);
+            WritePng(BrokenBothPathIn(folder), pixels, width, height);
+            ConfigureTexture(BrokenBothPathIn(folder), leftImporter.spritePixelsPerUnit, new Vector2(0.5f, 0.5f),
+                new Vector4(leftCap, 0f, right.width - rightCapStart, 0f), multiple: false);
+            UnityEngine.Object.DestroyImmediate(left);
+            UnityEngine.Object.DestroyImmediate(right);
+
+            void Copy(Texture2D source, int fromX, int toX, int targetX, int targetY)
+            {
+                Color32[] data = source.GetPixels32();
+                for (int y = 0; y < source.height; y++)
+                {
+                    for (int x = fromX; x < toX; x++)
+                        pixels[(y + targetY) * width + targetX + x - fromX] = data[y * source.width + x];
+                }
+            }
+        }
+
+        private static string BrokenBothPathIn(string folder) => $"{folder}/TablonRotoAmbos.png";
+
+        // La columna más oscura (la raya entre dos tablas) en la parte de arriba del tablón, poco después de "from".
+        private static int SeamColumn(Texture2D texture, int from)
+        {
+            Color32[] data = texture.GetPixels32();
+            int best = from;
+            float darkest = float.MaxValue;
+            for (int x = from; x < Mathf.Min(from + 90, texture.width); x++)
+            {
+                float sum = 0f;
+                int count = 0;
+                // Filas de las tablas de arriba (las filas van de abajo hacia arriba).
+                for (int y = texture.height / 2; y < texture.height * 85 / 100; y++)
+                {
+                    Color32 pixel = data[y * texture.width + x];
+                    if (pixel.a < 128)
+                        continue;
+                    sum += pixel.r + pixel.g + pixel.b;
+                    count++;
+                }
+                if (count > 0 && sum / count < darkest)
+                {
+                    darkest = sum / count;
+                    best = x;
+                }
+            }
+            return best;
+        }
+
+        private static Texture2D LoadPng(string path)
+        {
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            texture.LoadImage(File.ReadAllBytes(path));
+            return texture;
         }
 
         // ---------- Fondo del tutorial ----------

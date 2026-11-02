@@ -106,6 +106,7 @@ namespace Odisea.EditorTools
                 GameObject shelf = PlayerSandboxBuilder.CreatePlatform($"Piso {floor} ({side})", root, square, art,
                     new Vector2((from + to) / 2f, Surface(floor) - 0.2f), width, ground, posts: false);
                 MakeFirm(shelf, floor, from, to, width > 20f, ground);
+                DrawBrokenEnds(shelf, art, floor, from, to, width > 20f);
             }
             if (art.Post != null)
             {
@@ -167,6 +168,73 @@ namespace Odisea.EditorTools
                 cursor = end;
             }
             Piece(shelf, "Tramo firme", cursor, to, y, thickness, layer, oneWay: false);
+        }
+
+        // Hueco que se deja entre las dos puntas rotas de un paso (se asoma la escalera).
+        private const float CrackHalfWidth = 0.3f;
+
+        /// <summary>
+        /// Dibujo de la repisa por tramos para que se note por dónde se pasa: se parte (con las puntas astilladas de
+        /// TablonRoto1, TablonRoto2 y TablonRotoAmbos) encima de cada escalera y a la mitad del hueco en los pisos completos, y las
+        /// orillas que dan al hueco terminan rotas, como en el boceto. Sin esos dibujos se queda el tablón entero.
+        /// </summary>
+        private static void DrawBrokenEnds(GameObject shelf, PlayerSandboxBuilder.LevelArt art, int floor, float from, float to, bool full)
+        {
+            Transform whole = shelf.transform.Find("Tablón");
+            if (whole == null || art.BrokenPlank == null || art.BrokenPlank2 == null)
+                return;
+            Object.DestroyImmediate(whole.gameObject);
+
+            var cracks = new System.Collections.Generic.List<float>();
+            foreach ((float x, _, int ladderTo) in Ladders)
+            {
+                if (ladderTo == floor && x > from && x < to)
+                    cracks.Add(x);
+            }
+            if (full)
+                cracks.Add(0f);
+            cracks.Sort();
+
+            // Las orillas del hueco van rotas; las de la pared, enteras.
+            float start = from;
+            bool brokenStart = !full && from > 0f;
+            foreach (float crack in cracks)
+            {
+                DrawSegment(shelf, art, start, crack - CrackHalfWidth, brokenStart, brokenEnd: true);
+                start = crack + CrackHalfWidth;
+                brokenStart = true;
+            }
+            DrawSegment(shelf, art, start, to, brokenStart, brokenEnd: !full && to < 0f);
+        }
+
+        private static void DrawSegment(GameObject shelf, PlayerSandboxBuilder.LevelArt art, float from, float to, bool brokenStart,
+            bool brokenEnd)
+        {
+            // Las puntas enteras se pasan un poco del collider, como el tablón de siempre; las rotas acaban justo ahí.
+            if (!brokenStart)
+                from -= 0.1f;
+            if (!brokenEnd)
+                to += 0.1f;
+            Sprite sprite = brokenStart && brokenEnd && art.BrokenBoth != null ? art.BrokenBoth
+                : brokenEnd ? art.BrokenPlank : brokenStart ? art.BrokenPlank2 : art.Plank;
+            PlankPiece(shelf, sprite, from, to);
+        }
+
+        // Un tablón de x = from a x = to (en el mundo), repetido a lo ancho: sus puntas (los bordes del sprite) no se
+        // estiran. La cara de arriba coincide con la del collider, como en PlayerSandboxBuilder.CreatePlatform.
+        private static void PlankPiece(GameObject shelf, Sprite sprite, float from, float to)
+        {
+            var drawing = new GameObject("Tablón") { layer = shelf.layer };
+            drawing.transform.SetParent(shelf.transform, false);
+            float height = sprite.bounds.size.y;
+            float emptyTop = ArtImportBuilder.Padding / sprite.pixelsPerUnit;
+            drawing.transform.position = new Vector3((from + to) / 2f, shelf.transform.position.y + 0.2f - height / 2f + emptyTop, 0f);
+            var renderer = drawing.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(to - from, height);
+            renderer.sortingOrder = 3;
         }
 
         // Un tramo de collider de la repisa, de x = from a x = to (en el mundo).
