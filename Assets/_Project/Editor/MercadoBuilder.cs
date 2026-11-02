@@ -1,0 +1,213 @@
+using Odisea.Core;
+using Odisea.Level;
+using UnityEditor;
+using UnityEngine;
+
+namespace Odisea.EditorTools
+{
+    /// <summary>
+    /// Nivel 1, El Mercado (Odisea > Niveles > Crear Mercado): nivel vertical sacado de estructura_nivel_1.jpg. Son dos
+    /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba, y se sube
+    /// por escaleras, con doble salto o cruzando de una torre a la otra. Hay ingredientes repartidos (algunos
+    /// escondidos o sobre el hueco), puntos de control cada dos pisos y la meta en la cima (el racimo de plátano).
+    /// Sin el arte del nivel, tablones, vigas y escaleras quedan de color.
+    /// </summary>
+    public static class MercadoBuilder
+    {
+        public const string ScenePath = "Assets/_Project/Scenes/Levels/Mercado.unity";
+        private const string MusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
+
+        // Medidas del nivel (unidades). El suelo está en y = 0 y cada piso queda FloorGap más arriba.
+        private const float FloorGap = 4f;
+        private const int TopFloor = 7;
+        private const float HalfWidth = 13.5f;
+        // Vigas (columnas de las dos torres), como en el boceto.
+        private static readonly float[] PostXs = { -11.2f, -4.8f, 5f, 11.1f };
+
+        private static readonly Color Backdrop = new(0.93f, 0.87f, 0.76f);
+        private static readonly Color Floor = new(0.545f, 0.353f, 0.169f);
+        private static readonly Color Wall = new(0.36f, 0.24f, 0.15f);
+        private static readonly Color BackWall = new(0.86f, 0.78f, 0.64f);
+
+        // Repisas de cada piso (de dónde a dónde en x); los pisos 4 y 7 cruzan de lado a lado.
+        private static readonly (int floor, float from, float to)[] Shelves =
+        {
+            (1, -13f, -3f), (1, 3f, 13f),
+            (2, -13f, -3.5f), (2, 2.5f, 13f),
+            (3, -13f, -2.5f), (3, 3.5f, 13f),
+            (4, -13f, 13f),
+            (5, -13f, -3f), (5, 2.5f, 13f),
+            (6, -13f, -2f), (6, 3f, 13f),
+            (7, -13f, 13f),
+        };
+
+        // Escaleras (x, del piso, al piso). Ruta: la torre izquierda hasta el piso 4, cruzar, y la derecha hasta arriba.
+        // La derecha de abajo pide un doble salto (del 2 al 3) y la izquierda de arriba no llega a la cima: hay que
+        // saltar el hueco.
+        private static readonly (float x, int from, int to)[] Ladders =
+        {
+            (-6.5f, 0, 1), (-6.5f, 1, 2), (-6.5f, 2, 3), (-11f, 3, 4), (-6.5f, 4, 5), (-6.5f, 5, 6),
+            (7f, 0, 1), (7f, 1, 2), (11f, 3, 4), (5.5f, 4, 5), (11f, 5, 6), (6f, 6, 7),
+        };
+
+        // Ingredientes: en las orillas, sobre el hueco y en la torre que no es la ruta.
+        private static readonly (PlayerSandboxBuilder.Ingredient kind, Vector2 position)[] Ingredients =
+        {
+            (PlayerSandboxBuilder.Ingredient.Canela, new Vector2(-12f, Surface(1) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(12f, Surface(2) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Harina, new Vector2(0f, Surface(3) + 1.6f)),
+            (PlayerSandboxBuilder.Ingredient.Platano, new Vector2(12.2f, Surface(3) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Canela, new Vector2(0f, Surface(4) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Harina, new Vector2(9f, Surface(5) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Platano, new Vector2(-3.6f, Surface(5) + 1f)),
+            (PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(-12f, Surface(6) + 1f)),
+        };
+
+        // Puntos de control: banderines en los pisos 2, 4 y 6, por donde pasa la ruta.
+        private static readonly Vector2[] CheckpointFeet =
+        {
+            new(-10f, Surface(2)), new(-1f, Surface(4)), new(9f, Surface(6)),
+        };
+
+        private static float Surface(int floor) => floor * FloorGap;
+
+        [MenuItem("Odisea/Niveles/Crear Mercado")]
+        public static void Build()
+        {
+            TutorialBuilder.EnsureCircleSprite();
+            PlayerSandboxBuilder.LevelContext level = PlayerSandboxBuilder.BeginLevel(ScenePath);
+            Sprite square = level.Square;
+            Transform root = level.Root;
+            int ground = level.GroundLayer;
+            float top = Surface(TopFloor);
+
+            // ----- Suelo, paredes y el fondo de las torres -----
+            PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1f), new Vector2(HalfWidth * 2f, 2f), Floor, ground);
+            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, top / 2f + 2f),
+                new Vector2(1f, top + 8f), Wall, ground);
+            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 2f),
+                new Vector2(1f, top + 8f), Wall, ground);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var back = PlayerSandboxBuilder.CreateBlock(side < 0f ? "Fondo torre izquierda" : "Fondo torre derecha", root, square,
+                    new Vector2(side * 8f, top / 2f), new Vector2(10.5f, top), BackWall, 0);
+                Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
+                back.GetComponent<SpriteRenderer>().sortingOrder = -10;
+            }
+
+            // ----- Repisas, vigas y escaleras -----
+            var art = PlayerSandboxBuilder.LevelArt.Load();
+            foreach ((int floor, float from, float to) in Shelves)
+            {
+                float width = to - from;
+                // La superficie (donde pisa Ulises) queda en el piso; el collider mide PlatformThickness (0.4).
+                string side = width > 20f ? "completo" : from < 0f ? "izquierda" : "derecha";
+                PlayerSandboxBuilder.CreatePlatform($"Piso {floor} ({side})", root, square, art, new Vector2((from + to) / 2f, Surface(floor) - 0.2f), width, ground, posts: false);
+            }
+            if (art.Post != null)
+            {
+                foreach (float x in PostXs)
+                    PlayerSandboxBuilder.CreatePost(root, art.Post, new Vector2(x, 0f), top - 0.4f, ground);
+            }
+            foreach ((float x, int from, int to) in Ladders)
+                PlayerSandboxBuilder.CreateLadder($"Escalera {from}-{to}", root, square, art, x, Surface(from), Surface(to), level.LadderLayer);
+
+            // ----- Ingredientes, un pescado a la mitad y los puntos de control -----
+            foreach ((PlayerSandboxBuilder.Ingredient kind, Vector2 position) in Ingredients)
+                PlayerSandboxBuilder.CreateIngredient(level, kind, position);
+            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(8f, Surface(4) + 1f));
+            for (int i = 0; i < CheckpointFeet.Length; i++)
+                CreateBanner(root, square, CheckpointFeet[i], i + 1, level.PlayerLayer);
+
+            // ----- Meta: el racimo de plátano en la cima -----
+            CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
+
+            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
+                showControls: false, background: Backdrop);
+            player.AddComponent<CheckpointSpawn>();
+            // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
+            var follow = Camera.main.GetComponent<CameraFollow2D>();
+            PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
+            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, 5f));
+            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, top - 2f));
+
+            PlayerSandboxBuilder.EndLevel(level);
+            MenuScenesBuilder.AddToBuild(ScenePath);
+            Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
+        }
+
+        /// <summary>
+        /// Punto de control: banderín rojo en un palo (mientras llega su dibujo). Da el saltito al pasar Ulises y
+        /// él reaparece ahí si muere.
+        /// </summary>
+        private static void CreateBanner(Transform parent, Sprite square, Vector2 foot, int number, int playerLayer)
+        {
+            var banner = new GameObject($"Punto de control {number}");
+            banner.transform.SetParent(parent, false);
+            banner.transform.position = foot;
+            var drawing = new GameObject("Banderín").transform;
+            drawing.SetParent(banner.transform, false);
+            Quad("Palo", drawing, square, new Vector2(0f, 1.1f), new Vector2(0.14f, 2.2f), PlayerSandboxBuilder.Cafe, 2);
+            Quad("Tela", drawing, square, new Vector2(0.5f, 1.85f), new Vector2(0.85f, 0.6f), new Color(0.784f, 0.263f, 0.169f), 2);
+
+            var area = banner.AddComponent<BoxCollider2D>();
+            area.size = new Vector2(1.5f, 3f);
+            area.offset = new Vector2(0f, 1.5f);
+            var checkpoint = banner.AddComponent<Checkpoint>();
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "playerLayers", 1 << playerLayer);
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "bounce", drawing);
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "respawnOffset", new Vector2(-1f, 0f));
+            PlayerSandboxBuilder.SetSerialized(checkpoint, "progressAxis", Vector2.up);
+            var sound = AssetDatabase.LoadAssetAtPath<AudioClip>(TutorialBuilder.CheckpointSoundPath);
+            if (sound != null)
+                GameSoundsBuilder.SetSound(checkpoint, "sound", new[] { sound }, 0.5f);
+        }
+
+        /// <summary>Meta en la cima: el racimo de plátano dorado (círculos de color mientras llega su dibujo).</summary>
+        private static void CreateGoal(Transform parent, Vector2 floor, int playerLayer)
+        {
+            var goal = new GameObject("Meta (racimo de plátano)");
+            goal.transform.SetParent(parent, false);
+            goal.transform.position = floor + new Vector2(0f, 1.5f);
+            var area = goal.AddComponent<BoxCollider2D>();
+            area.size = new Vector2(2f, 3f);
+
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            var glow = new GameObject("Brillo").AddComponent<SpriteRenderer>();
+            glow.transform.SetParent(goal.transform, false);
+            glow.transform.localScale = Vector3.one * 2.6f;
+            glow.sprite = circle;
+            glow.color = new Color(1f, 0.93f, 0.6f, 0.6f);
+            glow.sortingOrder = 4;
+            for (int i = 0; i < 3; i++)
+            {
+                var banana = new GameObject($"Plátano {i + 1}").AddComponent<SpriteRenderer>();
+                banana.transform.SetParent(goal.transform, false);
+                banana.transform.localPosition = new Vector3((i - 1) * 0.45f, (i == 1 ? 0.2f : 0f), 0f);
+                banana.transform.localScale = new Vector3(0.45f, 1.1f, 1f);
+                banana.transform.localRotation = Quaternion.Euler(0f, 0f, (1 - i) * 18f);
+                banana.sprite = circle;
+                banana.color = new Color(0.961f, 0.718f, 0.192f);
+                banana.sortingOrder = 5;
+            }
+
+            var component = goal.AddComponent<LevelGoal>();
+            PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
+            PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
+            PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Mercado);
+            PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
+                "¡Mercado completado!", "Ulises llegó a la cima con el racimo de plátano."));
+        }
+
+        private static void Quad(string name, Transform parent, Sprite square, Vector2 center, Vector2 size, Color color, int order)
+        {
+            var quad = new GameObject(name).AddComponent<SpriteRenderer>();
+            quad.transform.SetParent(parent, false);
+            quad.transform.localPosition = center;
+            quad.transform.localScale = new Vector3(size.x, size.y, 1f);
+            quad.sprite = square;
+            quad.color = color;
+            quad.sortingOrder = order;
+        }
+    }
+}

@@ -35,6 +35,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Sandbox/PlayerSandbox.unity
     guid: 2c6a78531eed58349870eeba18b8925c
+  - enabled: 1
+    path: Assets/_Project/Scenes/Levels/Mercado.unity
+    guid: 7344e586bd3d23c4aa6e16455d7d4e03
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

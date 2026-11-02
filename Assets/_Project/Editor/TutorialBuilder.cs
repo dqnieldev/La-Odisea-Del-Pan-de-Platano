@@ -244,7 +244,7 @@ namespace Odisea.EditorTools
         }
 
         // Brillo del logo: el sonido de "guardado" mientras no haya uno propio.
-        private const string CheckpointSoundPath = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
+        internal const string CheckpointSoundPath = "Assets/_Project/Audio/SFX/UI/logo_brillo.mp3";
 
         /// <summary>Punto de control en el letrero: lo activa Ulises al pasar por enfrente (da un saltito y suena).</summary>
         private static void AddCheckpoint(GameObject sign, int playerLayer)

@@ -1006,7 +1006,7 @@ namespace Odisea.EditorTools
         }
 
         // Viga decorativa del suelo (y = ground) hasta debajo de la plataforma; no tiene collider.
-        private static void CreatePost(Transform parent, Sprite post, Vector2 foot, float top, int layer)
+        internal static void CreatePost(Transform parent, Sprite post, Vector2 foot, float top, int layer)
         {
             float height = top - foot.y;
             if (height < 0.5f)
