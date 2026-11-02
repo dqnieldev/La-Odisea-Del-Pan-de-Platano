@@ -140,12 +140,10 @@ namespace Odisea.EditorTools
             string music = new[] { BakeryMusicPath, MapMusicPath, MenuScenesBuilder.MenuMusicPath }
                 .First(path => new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(path + ext)));
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe",
-                music, showControls: false, background: Color.black);
-            // Aquí no hay peligro: sin corazones en pantalla, sin puntaje y sin golpear ni lanzar masa (solo caminar,
-            // saltar y platicar).
+                music, showControls: false, background: Color.black, scored: false);
+            // Aquí no hay peligro: sin corazones en pantalla y sin golpear ni lanzar masa (solo caminar, saltar y platicar).
             Object.DestroyImmediate(GameObject.Find("HUD"));
             Object.DestroyImmediate(GameObject.Find("Game Over"));
-            Object.DestroyImmediate(Object.FindAnyObjectByType<LevelScore>().gameObject);
             player.GetComponent<Odisea.Player.PlayerCombat>().enabled = false;
             var pause = Object.FindAnyObjectByType<PauseMenu>();
             if (pause != null)

@@ -81,6 +81,9 @@ namespace Odisea.EditorTools
             CreatePickup(level, PickupKind.Heal, new Vector2(14f, 1f));
             CreatePickup(level, PickupKind.Shield, new Vector2(16.5f, 1f));
             CreatePickup(level, PickupKind.Speed, new Vector2(19f, 1f));
+            // Ingredientes del puntaje: uno en el suelo y otro arriba de la torre.
+            CreateIngredient(level, Ingredient.Canela, new Vector2(7f, 1f));
+            CreateIngredient(level, Ingredient.Platano, new Vector2(-15.5f, 8.7f));
             CreateDummy(level.Root, square, enemyLayer, new Vector2(-4f, 0.75f));
             CreateCrocodile(level.Root, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
 
@@ -163,17 +166,22 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// Ulises con su bolita de masa, el HUD, la música del nivel (se apaga al morir), el reinicio al morir,
-        /// el menú de pausa y la cámara que lo sigue.
+        /// el menú de pausa y la cámara que lo sigue. Con <paramref name="scored"/>, el puntaje del nivel y su HUD (el
+        /// tutorial y la panadería no llevan).
         /// </summary>
         internal static GameObject SetUpPlayer(LevelContext level, Vector2 spawn, string levelName, string musicPath,
-            bool showControls, Color? background = null)
+            bool showControls, Color? background = null, bool scored = true)
         {
             GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
             player.transform.position = spawn;
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
             // Puntaje del nivel (ingredientes, tiempo, enemigos, sin daño) y su HUD arriba a la derecha.
-            var score = new GameObject("Puntaje").AddComponent<LevelScore>();
-            SetSerialized(score, "player", player.GetComponent<Health>());
+            LevelScore score = null;
+            if (scored)
+            {
+                score = new GameObject("Puntaje").AddComponent<LevelScore>();
+                SetSerialized(score, "player", player.GetComponent<Health>());
+            }
             CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart,
                 showControls, score);
 
@@ -782,7 +790,8 @@ namespace Odisea.EditorTools
             heartSettings.FindProperty("ringColor").colorValue = Platano;
             heartSettings.ApplyModifiedPropertiesWithoutUndo();
             CreateBuffsDisplay(canvasObject.transform, buffs);
-            CreateScoreHud(canvasObject.transform, score);
+            if (score != null)
+                CreateScoreHud(canvasObject.transform, score);
 
             if (showControls)
                 CreateControlsPanel(canvasObject.transform);
