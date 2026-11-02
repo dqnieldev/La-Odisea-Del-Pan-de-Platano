@@ -148,8 +148,11 @@ namespace Odisea.UI
             progressGroup.SetActive(goal != null);
             progressFill.fillAmount = 0f;
             progressLabel.text = $"Llegaste al {Mathf.RoundToInt(best * 100f)} % del camino";
-            // Sin punto de control, Reintentar ya empieza desde el principio: Reiniciar sobra.
-            restartButton.gameObject.SetActive(Checkpoints.TryGet(out _));
+            // Sin punto de control, Reintentar ya empieza desde el principio: Reiniciar sobra y la salida sube a su lugar.
+            bool hasCheckpoint = Checkpoints.TryGet(out _);
+            restartButton.gameObject.SetActive(hasCheckpoint);
+            if (!hasCheckpoint)
+                ((RectTransform)exitButton.transform).anchoredPosition = ((RectTransform)restartButton.transform).anchoredPosition;
             shownTime = Time.unscaledTime;
             UiAudio.Play(UiSound.Back);
             if (EventSystem.current != null)

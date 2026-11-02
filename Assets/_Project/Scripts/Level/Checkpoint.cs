@@ -13,9 +13,6 @@ namespace Odisea.Level
         [SerializeField] private LayerMask playerLayers;
         [Tooltip("Dónde reaparece Ulises respecto a este punto (a la izquierda del letrero, para no taparlo).")]
         [SerializeField] private Vector2 respawnOffset = new(-2.6f, 0f);
-        [Tooltip("Hacia dónde avanza el nivel (derecha en el tutorial, arriba en el Mercado): un punto guardado más " +
-                 "adelante que este ya lo cuenta como pasado.")]
-        [SerializeField] private Vector2 progressAxis = Vector2.right;
         [Tooltip("Opcional: lo que da el saltito al activarse (el dibujo del letrero).")]
         [SerializeField] private Transform bounce;
         [SerializeField] private SoundEffect sound = new();
@@ -31,7 +28,7 @@ namespace Odisea.Level
             if (bounce != null)
                 restScale = bounce.localScale;
             // Si Ulises reapareció en este punto (o más adelante), ya está activo: no vuelve a sonar.
-            if (Checkpoints.TryGet(out Vector2 saved) && Vector2.Dot(saved - RespawnPoint, progressAxis) >= -0.01f)
+            if (Checkpoints.TryGet(out Vector2 saved) && saved.x >= RespawnPoint.x - 0.01f)
                 reached = true;
         }
 

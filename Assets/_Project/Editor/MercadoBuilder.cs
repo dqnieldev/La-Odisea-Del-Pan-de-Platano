@@ -9,7 +9,8 @@ namespace Odisea.EditorTools
     /// Nivel 1, El Mercado (Odisea > Niveles > Crear Mercado): nivel vertical sacado de estructura_nivel_1.jpg. Son dos
     /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba, y se sube
     /// por escaleras, con doble salto o cruzando de una torre a la otra. Hay ingredientes repartidos (algunos
-    /// escondidos o sobre el hueco), puntos de control cada dos pisos y la meta en la cima (el racimo de plátano).
+    /// escondidos o sobre el hueco) y la meta en la cima (el racimo de plátano). No hay puntos de control: al morir
+    /// se empieza desde abajo.
     /// Sin el arte del nivel, tablones, vigas y escaleras quedan de color.
     /// </summary>
     public static class MercadoBuilder
@@ -63,12 +64,6 @@ namespace Odisea.EditorTools
             (PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(-12f, Surface(6) + 1f)),
         };
 
-        // Puntos de control: banderines en los pisos 2, 4 y 6, por donde pasa la ruta.
-        private static readonly Vector2[] CheckpointFeet =
-        {
-            new(-10f, Surface(2)), new(-1f, Surface(4)), new(9f, Surface(6)),
-        };
-
         private static float Surface(int floor) => floor * FloorGap;
 
         [MenuItem("Odisea/Niveles/Crear Mercado")]
@@ -112,19 +107,16 @@ namespace Odisea.EditorTools
             foreach ((float x, int from, int to) in Ladders)
                 PlayerSandboxBuilder.CreateLadder($"Escalera {from}-{to}", root, square, art, x, Surface(from), Surface(to), level.LadderLayer);
 
-            // ----- Ingredientes, un pescado a la mitad y los puntos de control -----
+            // ----- Ingredientes y un pescado a la mitad -----
             foreach ((PlayerSandboxBuilder.Ingredient kind, Vector2 position) in Ingredients)
                 PlayerSandboxBuilder.CreateIngredient(level, kind, position);
             PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(8f, Surface(4) + 1f));
-            for (int i = 0; i < CheckpointFeet.Length; i++)
-                CreateBanner(root, square, CheckpointFeet[i], i + 1, level.PlayerLayer);
 
             // ----- Meta: el racimo de plátano en la cima -----
             CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
 
-            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
+            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
                 showControls: false, background: Backdrop);
-            player.AddComponent<CheckpointSpawn>();
             // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
@@ -134,33 +126,6 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
-        }
-
-        /// <summary>
-        /// Punto de control: banderín rojo en un palo (mientras llega su dibujo). Da el saltito al pasar Ulises y
-        /// él reaparece ahí si muere.
-        /// </summary>
-        private static void CreateBanner(Transform parent, Sprite square, Vector2 foot, int number, int playerLayer)
-        {
-            var banner = new GameObject($"Punto de control {number}");
-            banner.transform.SetParent(parent, false);
-            banner.transform.position = foot;
-            var drawing = new GameObject("Banderín").transform;
-            drawing.SetParent(banner.transform, false);
-            Quad("Palo", drawing, square, new Vector2(0f, 1.1f), new Vector2(0.14f, 2.2f), PlayerSandboxBuilder.Cafe, 2);
-            Quad("Tela", drawing, square, new Vector2(0.5f, 1.85f), new Vector2(0.85f, 0.6f), new Color(0.784f, 0.263f, 0.169f), 2);
-
-            var area = banner.AddComponent<BoxCollider2D>();
-            area.size = new Vector2(1.5f, 3f);
-            area.offset = new Vector2(0f, 1.5f);
-            var checkpoint = banner.AddComponent<Checkpoint>();
-            PlayerSandboxBuilder.SetSerialized(checkpoint, "playerLayers", 1 << playerLayer);
-            PlayerSandboxBuilder.SetSerialized(checkpoint, "bounce", drawing);
-            PlayerSandboxBuilder.SetSerialized(checkpoint, "respawnOffset", new Vector2(-1f, 0f));
-            PlayerSandboxBuilder.SetSerialized(checkpoint, "progressAxis", Vector2.up);
-            var sound = AssetDatabase.LoadAssetAtPath<AudioClip>(TutorialBuilder.CheckpointSoundPath);
-            if (sound != null)
-                GameSoundsBuilder.SetSound(checkpoint, "sound", new[] { sound }, 0.5f);
         }
 
         /// <summary>Meta en la cima: el racimo de plátano dorado (círculos de color mientras llega su dibujo).</summary>
@@ -197,17 +162,6 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Mercado);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Mercado completado!", "Ulises llegó a la cima con el racimo de plátano."));
-        }
-
-        private static void Quad(string name, Transform parent, Sprite square, Vector2 center, Vector2 size, Color color, int order)
-        {
-            var quad = new GameObject(name).AddComponent<SpriteRenderer>();
-            quad.transform.SetParent(parent, false);
-            quad.transform.localPosition = center;
-            quad.transform.localScale = new Vector3(size.x, size.y, 1f);
-            quad.sprite = square;
-            quad.color = color;
-            quad.sortingOrder = order;
         }
     }
 }
