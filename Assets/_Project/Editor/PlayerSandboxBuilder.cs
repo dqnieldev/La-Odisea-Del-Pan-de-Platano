@@ -963,14 +963,15 @@ namespace Odisea.EditorTools
         /// Plataforma de un sentido. Con arte: tablón repetido a lo ancho (las cortas usan el tablón roto)
         /// y, si se pide, vigas que la sostienen desde el suelo. Sin arte: el cuadro café de siempre.
         /// </summary>
-        internal static void CreatePlatform(string name, Transform parent, Sprite square, LevelArt art, Vector2 center,
+        internal static GameObject CreatePlatform(string name, Transform parent, Sprite square, LevelArt art, Vector2 center,
             float width, int layer, bool posts = true)
         {
             Sprite plank = width <= 3f && art.BrokenPlank != null ? art.BrokenPlank : art.Plank;
             if (plank == null)
             {
-                MakeOneWay(CreateBlock(name, parent, square, center, new Vector2(width, PlatformThickness), Madera, layer));
-                return;
+                GameObject block = CreateBlock(name, parent, square, center, new Vector2(width, PlatformThickness), Madera, layer);
+                MakeOneWay(block);
+                return block;
             }
 
             var platform = new GameObject(name) { layer = layer };
@@ -995,7 +996,7 @@ namespace Odisea.EditorTools
             renderer.sortingOrder = 3;
 
             if (!posts || art.Post == null)
-                return;
+                return platform;
             float bottom = center.y - PlatformThickness / 2f;
             foreach (float side in new[] { -1f, 1f })
             {
@@ -1003,6 +1004,7 @@ namespace Odisea.EditorTools
                 if (art.LadderXs.All(ladderX => Mathf.Abs(ladderX - x) > 0.9f))
                     CreatePost(platform.transform, art.Post, new Vector2(x, 0f), bottom, layer);
             }
+            return platform;
         }
 
         // Viga decorativa del suelo (y = ground) hasta debajo de la plataforma; no tiene collider.
@@ -1128,7 +1130,7 @@ namespace Odisea.EditorTools
             return LoadRequired<GameObject>(path);
         }
 
-        private static void MakeOneWay(GameObject platform)
+        internal static void MakeOneWay(GameObject platform)
         {
             var effector = platform.AddComponent<PlatformEffector2D>();
             effector.useOneWay = true;

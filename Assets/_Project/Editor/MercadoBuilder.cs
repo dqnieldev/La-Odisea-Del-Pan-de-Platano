@@ -7,8 +7,9 @@ namespace Odisea.EditorTools
 {
     /// <summary>
     /// Nivel 1, El Mercado (Odisea > Niveles > Crear Mercado): nivel vertical sacado de estructura_nivel_1.jpg. Son dos
-    /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba, y se sube
-    /// por escaleras, con doble salto o cruzando de una torre a la otra. Hay ingredientes repartidos (algunos
+    /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba.
+    /// Las repisas son firmes (no se atraviesan desde abajo): se sube por las escaleras (seguro y lento) o por las
+    /// orillas del hueco con doble salto (rápido; si falla, cae varios pisos). Hay ingredientes repartidos (algunos
     /// escondidos o sobre el hueco) y la meta en la cima (el racimo de plátano). No hay puntos de control: al morir
     /// se empieza desde abajo.
     /// Sin el arte del nivel, tablones, vigas y escaleras quedan de color.
@@ -30,17 +31,22 @@ namespace Odisea.EditorTools
         private static readonly Color Wall = new(0.36f, 0.24f, 0.15f);
         private static readonly Color BackWall = new(0.86f, 0.78f, 0.64f);
 
-        // Repisas de cada piso (de dónde a dónde en x); los pisos 4 y 7 cruzan de lado a lado.
+        // Repisas de cada piso (de dónde a dónde en x); los pisos 4 y 7 cruzan de lado a lado. Las orillas del hueco se
+        // alternan (una más adentro, la de arriba más afuera) para que se pueda subir saltando junto a ellas.
         private static readonly (int floor, float from, float to)[] Shelves =
         {
             (1, -13f, -3f), (1, 3f, 13f),
-            (2, -13f, -3.5f), (2, 2.5f, 13f),
-            (3, -13f, -2.5f), (3, 3.5f, 13f),
+            (2, -13f, -4.5f), (2, 4.5f, 13f),
+            (3, -13f, -2.5f), (3, 3f, 13f),
             (4, -13f, 13f),
             (5, -13f, -3f), (5, 2.5f, 13f),
-            (6, -13f, -2f), (6, 3f, 13f),
+            (6, -13f, -4.5f), (6, 4.5f, 13f),
             (7, -13f, 13f),
         };
+        // En los pisos completos, el tramo sobre el hueco se atraviesa desde abajo (la ruta por saltos sigue).
+        private const float GapHalfWidth = 3f;
+        // Ancho del tramo de paso encima de cada escalera.
+        private const float HatchWidth = 1.6f;
 
         // Escaleras (x, del piso, al piso). Ruta: la torre izquierda hasta el piso 4, cruzar, y la derecha hasta arriba.
         // La derecha de abajo pide un doble salto (del 2 al 3) y la izquierda de arriba no llega a la cima: hay que
@@ -97,7 +103,9 @@ namespace Odisea.EditorTools
                 float width = to - from;
                 // La superficie (donde pisa Ulises) queda en el piso; el collider mide PlatformThickness (0.4).
                 string side = width > 20f ? "completo" : from < 0f ? "izquierda" : "derecha";
-                PlayerSandboxBuilder.CreatePlatform($"Piso {floor} ({side})", root, square, art, new Vector2((from + to) / 2f, Surface(floor) - 0.2f), width, ground, posts: false);
+                GameObject shelf = PlayerSandboxBuilder.CreatePlatform($"Piso {floor} ({side})", root, square, art,
+                    new Vector2((from + to) / 2f, Surface(floor) - 0.2f), width, ground, posts: false);
+                MakeFirm(shelf, floor, from, to, width > 20f, ground);
             }
             if (art.Post != null)
             {
@@ -126,6 +134,56 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
+        }
+
+        /// <summary>
+        /// Repisa firme: se cambia su collider de un sentido por tramos sólidos y deja de un sentido solo los pasos (encima
+        /// de cada escalera que llega a este piso y, en los pisos completos, sobre el hueco). Las escaleras atraviesan
+        /// esos pasos al trepar.
+        /// </summary>
+        private static void MakeFirm(GameObject shelf, int floor, float from, float to, bool full, int layer)
+        {
+            var openings = new System.Collections.Generic.List<(float from, float to)>();
+            foreach ((float x, _, int ladderTo) in Ladders)
+            {
+                if (ladderTo == floor && x > from && x < to)
+                    openings.Add((x - HatchWidth / 2f, x + HatchWidth / 2f));
+            }
+            if (full)
+                openings.Add((-GapHalfWidth, GapHalfWidth));
+            openings.Sort((a, b) => a.from.CompareTo(b.from));
+
+            var box = shelf.GetComponent<BoxCollider2D>();
+            float y = box.bounds.center.y, thickness = box.bounds.size.y;
+            Object.DestroyImmediate(shelf.GetComponent<PlatformEffector2D>());
+            Object.DestroyImmediate(box);
+
+            float cursor = from;
+            foreach ((float start, float end) in openings)
+            {
+                Piece(shelf, "Tramo firme", cursor, start, y, thickness, layer, oneWay: false);
+                Piece(shelf, start > -GapHalfWidth - 0.01f && end < GapHalfWidth + 0.01f ? "Paso (hueco)" : "Paso (escalera)",
+                    start, end, y, thickness, layer, oneWay: true);
+                cursor = end;
+            }
+            Piece(shelf, "Tramo firme", cursor, to, y, thickness, layer, oneWay: false);
+        }
+
+        // Un tramo de collider de la repisa, de x = from a x = to (en el mundo).
+        private static void Piece(GameObject shelf, string name, float from, float to, float y, float thickness, int layer, bool oneWay)
+        {
+            if (to - from < 0.05f)
+                return;
+            var piece = new GameObject(name) { layer = layer };
+            piece.transform.SetParent(shelf.transform, false);
+            piece.transform.position = new Vector3((from + to) / 2f, y, 0f);
+            // Si la repisa está escalada (sin arte, el cuadro de color), el tramo se mide en el mundo de todos modos.
+            Vector3 scale = shelf.transform.lossyScale;
+            piece.transform.localScale = new Vector3(1f / scale.x, 1f / scale.y, 1f);
+            var collider = piece.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(to - from, thickness);
+            if (oneWay)
+                PlayerSandboxBuilder.MakeOneWay(piece);
         }
 
         /// <summary>Meta en la cima: el racimo de plátano dorado (círculos de color mientras llega su dibujo).</summary>
