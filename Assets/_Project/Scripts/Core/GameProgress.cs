@@ -6,7 +6,7 @@ namespace Odisea.Core
 {
     /// <summary>
     /// Avance guardado del jugador (PlayerPrefs) en <see cref="SlotCount"/> partidas: qué lugares del mapa terminó,
-    /// su mejor puntuación y en cuál estaba por última vez (para aparecer ahí al volver al mapa). Todo se lee y se
+    /// su mejor puntuación y rango, y en cuál estaba por última vez (para aparecer ahí al volver al mapa). Todo se lee y se
     /// escribe en la partida elegida (<see cref="Slot"/>). Los lugares se identifican con <see cref="Tutorial"/>,
     /// <see cref="Mercado"/>, <see cref="Horno"/> y <see cref="Tovara"/>.
     /// </summary>
@@ -68,6 +68,19 @@ namespace Odisea.Core
             return true;
         }
 
+        /// <summary>Mejor rango del lugar en la partida actual (0 = C ... 3 = S; -1 si no hay).</summary>
+        public static int BestRank(string id) => PlayerPrefs.GetInt(Key(Slot, id, "Rango"), 0) - 1;
+
+        /// <summary>Guarda el rango si supera al anterior (se guarda aparte del récord de puntos).</summary>
+        public static void SubmitRank(string id, int rank)
+        {
+            if (string.IsNullOrEmpty(id) || rank <= BestRank(id))
+                return;
+            Remember(Slot, id);
+            PlayerPrefs.SetInt(Key(Slot, id, "Rango"), rank + 1);
+            PlayerPrefs.Save();
+        }
+
         /// <summary>Lugar del mapa del que salió por última vez en la partida actual (vacío: el inicio).</summary>
         public static string LastMapLocation
         {
@@ -116,6 +129,7 @@ namespace Odisea.Core
             {
                 PlayerPrefs.DeleteKey(Key(slot, id, "Terminado"));
                 PlayerPrefs.DeleteKey(Key(slot, id, "Puntos"));
+                PlayerPrefs.DeleteKey(Key(slot, id, "Rango"));
             }
             PlayerPrefs.DeleteKey(Key(slot, "", "Conocidos"));
             PlayerPrefs.DeleteKey(Key(slot, "", "UltimoLugar"));

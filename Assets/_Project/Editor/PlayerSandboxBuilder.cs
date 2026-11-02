@@ -6,6 +6,7 @@ using Odisea.Enemies;
 using Odisea.Level;
 using Odisea.Player;
 using Odisea.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -80,6 +81,9 @@ namespace Odisea.EditorTools
             CreatePickup(level, PickupKind.Heal, new Vector2(14f, 1f));
             CreatePickup(level, PickupKind.Shield, new Vector2(16.5f, 1f));
             CreatePickup(level, PickupKind.Speed, new Vector2(19f, 1f));
+            // Ingredientes del puntaje: uno en el suelo y otro arriba de la torre.
+            CreateIngredient(level, Ingredient.Canela, new Vector2(7f, 1f));
+            CreateIngredient(level, Ingredient.Platano, new Vector2(-15.5f, 8.7f));
             CreateDummy(level.Root, square, enemyLayer, new Vector2(-4f, 0.75f));
             CreateCrocodile(level.Root, square, new Vector2(30f, 0f), enemyLayer, groundLayer, playerLayer);
 
@@ -162,16 +166,24 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// Ulises con su bolita de masa, el HUD, la música del nivel (se apaga al morir), el reinicio al morir,
-        /// el menú de pausa y la cámara que lo sigue.
+        /// el menú de pausa y la cámara que lo sigue. Con <paramref name="scored"/>, el puntaje del nivel y su HUD (el
+        /// tutorial y la panadería no llevan).
         /// </summary>
         internal static GameObject SetUpPlayer(LevelContext level, Vector2 spawn, string levelName, string musicPath,
-            bool showControls, Color? background = null)
+            bool showControls, Color? background = null, bool scored = true)
         {
             GameObject player = CreatePlayer(level.Square, level.NoFriction, level.Config, level.InputActions, level.PlayerLayer);
             player.transform.position = spawn;
             SetSerialized(player.GetComponent<PlayerCombat>(), "projectilePrefab", level.DoughBall);
+            // Puntaje del nivel (ingredientes, tiempo, enemigos, sin daño) y su HUD arriba a la derecha.
+            LevelScore score = null;
+            if (scored)
+            {
+                score = new GameObject("Puntaje").AddComponent<LevelScore>();
+                SetSerialized(score, "player", player.GetComponent<Health>());
+            }
             CreateHud(player.GetComponent<Health>(), player.GetComponent<PlayerBuffs>(), level.FullHeart,
-                showControls);
+                showControls, score);
 
             // Música de fondo; se apaga rápido al morir Ulises para que se oiga su sonido de muerte.
             SceneMusic music = GameSoundsBuilder.CreateMusic("Música del nivel", musicPath);
@@ -363,6 +375,7 @@ namespace Odisea.EditorTools
         {
             PickupKind.Heal => ("Pescado zarandeado", ArtImportBuilder.FishPath, FishColor, "+1 vida"),
             PickupKind.Shield => ("Hoja de plátano", ArtImportBuilder.LeafPath, LeafColor, "¡Escudo!"),
+            PickupKind.Ingredient => IngredientInfo(Ingredient.Platano),
             _ => ("Café de olla", ArtImportBuilder.CoffeePath, CoffeeColor, "¡Rápido!"),
         };
 
@@ -370,6 +383,7 @@ namespace Odisea.EditorTools
         {
             PickupKind.Heal => "pescado",
             PickupKind.Shield => "hoja",
+            PickupKind.Ingredient => "ingrediente",
             _ => "cafe",
         };
 
@@ -426,6 +440,135 @@ namespace Odisea.EditorTools
                 sound = new[] { fallback };
             GameSoundsBuilder.SetSound(pickup, "sound", sound, 0.6f);
             return item;
+        }
+
+        // ---------- Ingredientes del pan de plátano (puntaje) ----------
+
+        internal enum Ingredient
+        {
+            Canela,
+            Azucar,
+            Harina,
+            Platano,
+        }
+
+        private static (string name, string artPath, Color color, string label) IngredientInfo(Ingredient ingredient) => ingredient switch
+        {
+            Ingredient.Canela => ("Canela", ArtImportBuilder.IngredientsFolder + "/Canela.png", new Color(0.627f, 0.369f, 0.204f), "+Canela"),
+            Ingredient.Azucar => ("Azúcar de caña", ArtImportBuilder.IngredientsFolder + "/Azucar.png", new Color(0.851f, 0.596f, 0.322f), "+Azúcar"),
+            Ingredient.Harina => ("Harina", ArtImportBuilder.IngredientsFolder + "/Harina.png", new Color(0.957f, 0.941f, 0.902f), "+Harina"),
+            _ => ("Plátano", ArtImportBuilder.IngredientsFolder + "/Platano.png", new Color(0.961f, 0.718f, 0.192f), "+Plátano"),
+        };
+
+        private static (Sprite sprite, Color color, bool isArt) IngredientSprite(Ingredient ingredient)
+        {
+            (_, string artPath, Color color, _) = IngredientInfo(ingredient);
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+            return art != null ? (art, Color.white, true) : (LoadRequired<Sprite>(TutorialBuilder.CirclePath), color, false);
+        }
+
+        /// <summary>
+        /// Ingrediente del pan de plátano (canela, azúcar de caña, harina o plátano): flota como los demás ítems y
+        /// suma al puntaje del nivel. Sin su dibujo (Art/Items/Ingredientes), un círculo de su color con contorno.
+        /// </summary>
+        internal static GameObject CreateIngredient(LevelContext level, Ingredient ingredient, Vector2 center)
+        {
+            GameObject item = CreatePickup(level, PickupKind.Ingredient, center);
+            (string name, _, _, string label) = IngredientInfo(ingredient);
+            item.name = $"Ingrediente {name}";
+            SetSerialized(item.GetComponent<Pickup>(), "label", label);
+            var drawing = item.transform.Find("Dibujo/Ítem").GetComponent<SpriteRenderer>();
+            (Sprite sprite, Color color, bool isArt) = IngredientSprite(ingredient);
+            drawing.sprite = sprite;
+            drawing.color = color;
+            drawing.transform.localScale = isArt ? Vector3.one : new Vector3(0.6f, 0.6f, 1f);
+            if (!isArt)
+            {
+                var outline = new GameObject("Contorno").AddComponent<SpriteRenderer>();
+                outline.transform.SetParent(drawing.transform.parent, false);
+                outline.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
+                outline.sprite = sprite;
+                outline.color = Cafe;
+                outline.sortingOrder = 4;
+            }
+            return item;
+        }
+
+        /// <summary>
+        /// Bandeja café arriba a la derecha: el ingrediente con "recogidos/total" y el cronómetro. Se acomoda sola
+        /// al ancho (sin ingredientes en el nivel queda solo el reloj).
+        /// </summary>
+        private static void CreateScoreHud(Transform canvas, LevelScore score)
+        {
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            var tray = new GameObject("Puntaje", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup),
+                typeof(ContentSizeFitter));
+            var rect = (RectTransform)tray.transform;
+            rect.SetParent(canvas, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-48f, -48f);
+            rect.sizeDelta = new Vector2(300f, 76f);
+            var background = tray.GetComponent<Image>();
+            background.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+            background.type = Image.Type.Sliced;
+            background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+            background.raycastTarget = false;
+            var layout = tray.GetComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(22, 26, 8, 8);
+            layout.spacing = 30f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            tray.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            (Sprite sprite, Color color, _) = IngredientSprite(Ingredient.Platano);
+            (GameObject ingredients, Image icon, TMP_Text count) = CreateHudEntry(rect, "Ingredientes", sprite, color, font, "0/0", 90f);
+            (_, Image clock, TMP_Text time) = CreateHudEntry(rect, "Tiempo", UiAssetsBuilder.EnsureRingSprite(), Crema, font, "0:00", 100f);
+            clock.rectTransform.localScale = Vector3.one * 0.75f;
+
+            var hud = tray.AddComponent<ScoreHud>();
+            SetSerialized(hud, "score", score);
+            SetSerialized(hud, "ingredientsGroup", ingredients);
+            SetSerialized(hud, "ingredientsIcon", icon.rectTransform);
+            SetSerialized(hud, "ingredientsText", count);
+            SetSerialized(hud, "timeText", time);
+        }
+
+        // Ícono y texto de la bandeja del puntaje. El texto tiene ancho fijo para que la bandeja no baile cada segundo.
+        private static (GameObject entry, Image icon, TMP_Text text) CreateHudEntry(RectTransform tray, string name, Sprite sprite,
+            Color color, TMP_FontAsset font, string sample, float textWidth)
+        {
+            var entry = new GameObject(name, typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            var rect = (RectTransform)entry.transform;
+            rect.SetParent(tray, false);
+            var layout = entry.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+
+            var iconObject = new GameObject("Ícono", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            iconObject.transform.SetParent(rect, false);
+            var icon = iconObject.GetComponent<Image>();
+            icon.sprite = sprite;
+            icon.color = color;
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            var element = iconObject.GetComponent<LayoutElement>();
+            element.preferredWidth = element.preferredHeight = 48f;
+
+            var textObject = new GameObject("Texto", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
+            textObject.transform.SetParent(rect, false);
+            var text = textObject.GetComponent<TextMeshProUGUI>();
+            text.text = sample;
+            text.font = font;
+            text.fontSize = 44f;
+            text.color = Crema;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            textObject.GetComponent<LayoutElement>().preferredWidth = textWidth;
+            return (entry, icon, text);
         }
 
         // Escudo: hojitas que giran alrededor de Ulises (ShieldLeaves). Café: siluetas, polvo y vapor (SpeedTrail).
@@ -602,7 +745,7 @@ namespace Odisea.EditorTools
             return dummy;
         }
 
-        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, bool showControls)
+        private static void CreateHud(Health playerHealth, PlayerBuffs buffs, Sprite fullHeart, bool showControls, LevelScore score)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             var canvas = canvasObject.GetComponent<Canvas>();
@@ -647,6 +790,8 @@ namespace Odisea.EditorTools
             heartSettings.FindProperty("ringColor").colorValue = Platano;
             heartSettings.ApplyModifiedPropertiesWithoutUndo();
             CreateBuffsDisplay(canvasObject.transform, buffs);
+            if (score != null)
+                CreateScoreHud(canvasObject.transform, score);
 
             if (showControls)
                 CreateControlsPanel(canvasObject.transform);
@@ -659,7 +804,7 @@ namespace Odisea.EditorTools
             var rect = (RectTransform)panel.transform;
             rect.SetParent(canvas, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-48f, -48f);
+            rect.anchoredPosition = new Vector2(-48f, -150f); // Debajo del puntaje.
             rect.sizeDelta = new Vector2(660f, 330f);
             var background = panel.GetComponent<Image>();
             background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.92f);

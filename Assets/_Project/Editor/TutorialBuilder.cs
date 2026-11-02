@@ -136,7 +136,7 @@ namespace Odisea.EditorTools
                 CreateBackground(square, circle);
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "Tutorial", MusicPath(),
-                showControls: false, background: Paper);
+                showControls: false, background: Paper, scored: false); // El tutorial no lleva puntaje.
             // Al morir reaparece en el último letrero que pasó, no al principio.
             player.AddComponent<CheckpointSpawn>();
             // La cámara no se asoma más allá de las paredes ni por debajo de la arena.

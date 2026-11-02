@@ -13,10 +13,13 @@ namespace Odisea.Level
         Shield,
         /// <summary>Café de olla: corre más rápido un rato.</summary>
         Speed,
+        /// <summary>Ingrediente del pan de plátano: suma al puntaje del nivel (<see cref="LevelScore"/>).</summary>
+        Ingredient,
     }
 
     /// <summary>
-    /// Ítem que flota en el nivel y Ulises recoge al tocarlo: cura o da una ventaja (<see cref="PlayerBuffs"/>).
+    /// Ítem que flota en el nivel y Ulises recoge al tocarlo: cura, da una ventaja (<see cref="PlayerBuffs"/>) o es un
+    /// ingrediente que suma al puntaje.
     /// Al recogerlo suena (cada ítem con su sonido), sale su nombre flotando y desaparece. La curación con la vida
     /// llena da un corazón extra (hasta <see cref="maxHearts"/>). Al morir, la escena se recarga y los ítems vuelven.
     /// </summary>
@@ -86,6 +89,12 @@ namespace Odisea.Level
         private bool Apply(Health health, out string shown)
         {
             shown = label;
+            if (kind == PickupKind.Ingredient)
+            {
+                if (LevelScore.Current != null)
+                    LevelScore.Current.CollectIngredient(this);
+                return true;
+            }
             var buffs = health.GetComponent<PlayerBuffs>();
             if (kind == PickupKind.Heal)
             {

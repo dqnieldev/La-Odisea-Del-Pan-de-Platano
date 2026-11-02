@@ -314,5 +314,41 @@ namespace Odisea.EditorTools
             }
             return AssetDatabase.LoadAssetAtPath<Sprite>(RoundedSpritePath);
         }
+
+        private const string RingSpritePath = "Assets/_Project/Art/UI/Aro.png";
+        private const int RingSize = 256;
+        private const float RingThickness = 12f;
+
+        /// <summary>Aro blanco de orilla nítida (para teñir): el sello del rango y el reloj del HUD.</summary>
+        public static Sprite EnsureRingSprite()
+        {
+            if (!System.IO.File.Exists(RingSpritePath))
+            {
+                var texture = new Texture2D(RingSize, RingSize, TextureFormat.RGBA32, false);
+                float outer = RingSize / 2f - 1f;
+                var center = new Vector2(RingSize / 2f, RingSize / 2f);
+                for (int y = 0; y < RingSize; y++)
+                {
+                    for (int x = 0; x < RingSize; x++)
+                    {
+                        // Suavizado de 1 px por fuera y por dentro.
+                        float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
+                        float alpha = Mathf.Clamp01(outer - distance + 0.5f) * Mathf.Clamp01(distance - (outer - RingThickness) + 0.5f);
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    }
+                }
+                System.IO.File.WriteAllBytes(RingSpritePath, texture.EncodeToPNG());
+                UnityEngine.Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(RingSpritePath);
+
+                var importer = (TextureImporter)AssetImporter.GetAtPath(RingSpritePath);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.mipmapEnabled = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(RingSpritePath);
+        }
     }
 }
