@@ -37,8 +37,8 @@ namespace Odisea.UI
 
         private void Update()
         {
-            // Con el tiempo ya detenido por otra pantalla (nivel completado) no se abre encima.
-            if (IsPaused || SceneFlow.IsLoading || Time.timeScale == 0f)
+            // Con el tiempo ya detenido por otra pantalla (nivel completado) o con Ulises muerto no se abre encima.
+            if (IsPaused || SceneFlow.IsLoading || Time.timeScale == 0f || GameOverScreen.IsActive)
                 return;
 
             bool pausePressed = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||

@@ -143,6 +143,7 @@ namespace Odisea.EditorTools
                 music, showControls: false, background: Color.black);
             // Aquí no hay peligro: sin corazones en pantalla y sin golpear ni lanzar masa (solo caminar, saltar y platicar).
             Object.DestroyImmediate(GameObject.Find("HUD"));
+            Object.DestroyImmediate(GameObject.Find("Game Over"));
             player.GetComponent<Odisea.Player.PlayerCombat>().enabled = false;
             var pause = Object.FindAnyObjectByType<PauseMenu>();
             if (pause != null)

@@ -26,11 +26,24 @@ namespace Odisea.EditorTools
 
         private static readonly string[] AllFonts = { OutfitBold, OutfitExtraBold, RubikRegular, RubikMedium, RyeRegular, ImFellEnglish };
 
+        // Todo lo que escribe el juego: ASCII, español (acentos, ñ, ¡¿) y signos sueltos (·, «», …, flechas).
+        private static readonly string FontCharacters = BuildCharacterSet();
+        private const int StaticAtlasSize = 2048;
+
+        private static string BuildCharacterSet()
+        {
+            var builder = new System.Text.StringBuilder();
+            for (char c = ' '; c <= '~'; c++)
+                builder.Append(c);
+            builder.Append("¡¿áéíóúüñÁÉÍÓÚÜÑ·«»ºª°×…—–‘’“”‹›←↑→↓−≈≤±²³");
+            return builder.ToString();
+        }
+
         [MenuItem("Odisea/UI/Crear font assets (TextMeshPro)")]
         public static void BuildFontAssets()
         {
             foreach (string font in AllFonts)
-                EnsureFontAsset(font);
+                MakeStatic(EnsureFontAsset(font));
 
             SetDefaultFont(LoadFont(RubikRegular));
             AssetDatabase.SaveAssets();
@@ -69,6 +82,37 @@ namespace Odisea.EditorTools
             EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
             return asset;
+        }
+
+        /// <summary>
+        /// Deja la fuente estática con <see cref="FontCharacters"/> ya dibujados: así el archivo no cambia mientras se
+        /// juega (las dinámicas agregan letras al vuelo, ensucian git y, si se revierte el archivo, las letras salen
+        /// revueltas). Si falta una letra, se agrega aquí y se vuelve a correr Odisea > UI > Crear font assets.
+        /// </summary>
+        private static void MakeStatic(TMP_FontAsset asset)
+        {
+            var serialized = new SerializedObject(asset);
+            serialized.FindProperty("m_AtlasWidth").intValue = StaticAtlasSize;
+            serialized.FindProperty("m_AtlasHeight").intValue = StaticAtlasSize;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            asset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            asset.ClearFontAssetData(setAtlasSizeToZero: false);
+            asset.TryAddCharacters(FontCharacters, out string missing);
+            // Las texturas de atlas nuevas (si no cupo en una) tienen que guardarse dentro del asset.
+            for (int i = 0; i < asset.atlasTextures.Length; i++)
+            {
+                Texture2D atlas = asset.atlasTextures[i];
+                if (atlas != null && !AssetDatabase.Contains(atlas))
+                {
+                    atlas.name = $"{asset.name} Atlas {i}";
+                    AssetDatabase.AddObjectToAsset(atlas, asset);
+                }
+            }
+            asset.atlasPopulationMode = AtlasPopulationMode.Static;
+            EditorUtility.SetDirty(asset);
+            if (!string.IsNullOrEmpty(missing))
+                Debug.Log($"[Odisea] {asset.name}: la tipografía no trae «{missing}».");
+            Debug.Log($"[Odisea] {asset.name}: estática, {asset.characterTable.Count} caracteres en {asset.atlasTextures.Length} atlas.");
         }
 
         private static void SetDefaultFont(TMP_FontAsset font)

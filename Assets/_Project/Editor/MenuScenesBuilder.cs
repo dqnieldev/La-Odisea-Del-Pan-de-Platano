@@ -367,6 +367,162 @@ namespace Odisea.EditorTools
         /// Tarjeta de nivel completado (se crea dentro de la escena del nivel; la abre la meta): el juego oscurecido
         /// detrás, una tarjeta crema con el título y la frase, y "Continuar" con el botón del dispositivo actual.
         /// </summary>
+        /// <summary>
+        /// Game Over de un nivel: tarjeta "¡Se quemó el pan!" con la barra de qué tan lejos llegó Ulises (él encima, en
+        /// chibi) y los botones Reintentar, Reiniciar nivel y salir. Empieza apagada; la muestra la muerte de Ulises.
+        /// </summary>
+        internal static GameOverScreen CreateGameOverScreen(Health player, Vector2 levelStart)
+        {
+            var root = new GameObject("Game Over", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 600; // Encima del HUD y de la pausa; debajo del iris de transición.
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            root.AddComponent<GraphicRaycaster>();
+            var rootRect = (RectTransform)root.transform;
+
+            var panel = new GameObject("Tarjeta y fondo", typeof(RectTransform), typeof(CanvasGroup));
+            var panelRect = (RectTransform)panel.transform;
+            panelRect.SetParent(rootRect, false);
+            Stretch(panelRect);
+            CreateImage("Oscurecer", panelRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.8f), Vector2.zero, Vector2.zero,
+                stretch: true).raycastTarget = true;
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+            RectTransform card = CreatePaperSheet("Hoja", panelRect, new Vector2(1000f, 800f));
+            CreateText("Título", card, "¡SE QUEMÓ EL PAN!", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular), 78, Cafe,
+                position: new Vector2(0f, 270f), rectSize: new Vector2(900f, 110f));
+            CreateOrnamentRule(card, new Vector2(0f, 205f), 420f);
+
+            // Qué tan lejos llegó: barra de plátano con Ulises encima y la meta al final.
+            var progress = new GameObject("Avance", typeof(RectTransform));
+            var progressRect = (RectTransform)progress.transform;
+            progressRect.SetParent(card, false);
+            TMP_Text label = CreateText("Texto", progressRect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish), 40,
+                TintaClara, position: new Vector2(0f, 40f), rectSize: new Vector2(900f, 50f));
+            Image track = CreateImage("Barra", progressRect, null, Cafe, new Vector2(0f, 92f), new Vector2(680f, 30f),
+                stretch: false);
+            CreateImage("Fondo", track.rectTransform, null, BeigeMasa, Vector2.zero, Vector2.zero, stretch: true, inset: 3f);
+            // El relleno necesita un sprite para llenarse por partes: el mismo papel, teñido de plátano.
+            Sprite paper = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath);
+            Image fill = CreateImage("Relleno", track.rectTransform, paper != null ? paper : rounded, Platano, Vector2.zero,
+                Vector2.zero, stretch: true, inset: 5f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillAmount = 0f;
+            Image goalMark = CreateImage("Meta", track.rectTransform, AssetDatabase.LoadAssetAtPath<Sprite>(TutorialBuilder.CirclePath),
+                Cafe, Vector2.zero, new Vector2(30f, 30f), stretch: false);
+            goalMark.rectTransform.anchorMin = goalMark.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+            Sprite[] chibi = ArtImportBuilder.LoadStrip(ArtImportBuilder.MapIdlePath);
+            Image marker = CreateImage("Ulises", track.rectTransform, chibi.Length > 0 ? chibi[0] : null, Color.white,
+                Vector2.zero, new Vector2(72f, 82f), stretch: false);
+            marker.preserveAspect = true;
+            marker.rectTransform.anchorMin = marker.rectTransform.anchorMax = new Vector2(0f, 1f);
+            marker.rectTransform.pivot = new Vector2(0.5f, 0f);
+            marker.rectTransform.anchoredPosition = new Vector2(0f, -4f);
+
+            // Opciones como las del índice del recetario (Opciones y Pausa): tinta café sobre el papel.
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            Button retry = CreateIndexItem("REINTENTAR", card, font, 0f, 56f);
+            Button restart = CreateIndexItem("REINICIAR NIVEL", card, font, 0f, 56f);
+            Button exit = CreateIndexItem("VOLVER AL MAPA", card, font, 0f, 56f);
+            float y = -60f;
+            foreach (Button button in new[] { retry, restart, exit })
+            {
+                var rect = (RectTransform)button.transform;
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(640f, rect.sizeDelta.y);
+                rect.anchoredPosition = new Vector2(0f, y);
+                y -= 95f;
+                button.navigation = new Navigation { mode = Navigation.Mode.Vertical };
+            }
+
+            var screen = root.AddComponent<GameOverScreen>();
+            SetField(screen, "player", player);
+            var serialized = new SerializedObject(screen);
+            serialized.FindProperty("levelStart").vector2Value = levelStart;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            SetField(screen, "panel", panel.GetComponent<CanvasGroup>());
+            SetField(screen, "card", card);
+            SetField(screen, "progressFill", fill);
+            SetField(screen, "progressMarker", marker.rectTransform);
+            SetField(screen, "progressLabel", label);
+            SetField(screen, "progressGroup", progress);
+            SetField(screen, "retryButton", retry);
+            SetField(screen, "restartButton", restart);
+            SetField(screen, "exitButton", exit);
+            return screen;
+        }
+
+        /// <summary>
+        /// Hoja de papel viejo (el papel del fondo del tutorial) un poco chueca, con sombra, doble marco de tinta y
+        /// rombos en las esquinas. Si falta el papel, queda crema.
+        /// </summary>
+        private static RectTransform CreatePaperSheet(string name, RectTransform parent, Vector2 size)
+        {
+            var sheet = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)sheet.transform;
+            rect.SetParent(parent, false);
+            rect.sizeDelta = size;
+            rect.localRotation = Quaternion.Euler(0f, 0f, -1.2f);
+            CreateImage("Sombra", rect, null, new Color(0f, 0f, 0f, 0.45f), new Vector2(12f, -14f), size, stretch: false);
+            var paper = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath);
+            CreateImage("Papel", rect, paper, paper != null ? Color.white : Crema, Vector2.zero, Vector2.zero, stretch: true);
+            var ink = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+            CreateFrame(rect, "Marco", 28f, 5f, ink);
+            CreateFrame(rect, "Marco fino", 42f, 2f, new Color(Cafe.r, Cafe.g, Cafe.b, 0.6f));
+            foreach (Vector2 corner in new[] { new Vector2(-1f, 1f), new Vector2(1f, 1f), new Vector2(-1f, -1f), new Vector2(1f, -1f) })
+            {
+                Vector2 position = new(corner.x * (size.x / 2f - 30.5f), corner.y * (size.y / 2f - 30.5f));
+                CreateDiamond(rect, position, 22f, Cafe);
+            }
+            return rect;
+        }
+
+        /// <summary>Recuadro de cuatro líneas a <paramref name="inset"/> del borde del padre.</summary>
+        private static void CreateFrame(RectTransform parent, string name, float inset, float thickness, Color color)
+        {
+            var frame = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)frame.transform;
+            rect.SetParent(parent, false);
+            Stretch(rect);
+            rect.offsetMin = new Vector2(inset, inset);
+            rect.offsetMax = new Vector2(-inset, -inset);
+            // Arriba, abajo, izquierda, derecha.
+            (Vector2 min, Vector2 max)[] sides =
+            {
+                (new Vector2(0f, 1f), new Vector2(1f, 1f)), (new Vector2(0f, 0f), new Vector2(1f, 0f)),
+                (new Vector2(0f, 0f), new Vector2(0f, 1f)), (new Vector2(1f, 0f), new Vector2(1f, 1f)),
+            };
+            foreach ((Vector2 min, Vector2 max) in sides)
+            {
+                Image line = CreateImage("Línea", rect, null, color, Vector2.zero, Vector2.zero, stretch: false);
+                line.rectTransform.anchorMin = min;
+                line.rectTransform.anchorMax = max;
+                // Lo grueso hacia los lados y un poco de más a lo largo para cerrar las esquinas.
+                line.rectTransform.sizeDelta = new Vector2(thickness, thickness);
+                line.rectTransform.anchoredPosition = Vector2.zero;
+            }
+        }
+
+        private static void CreateDiamond(RectTransform parent, Vector2 position, float size, Color color)
+        {
+            Image diamond = CreateImage("Rombo", parent, null, color, position, new Vector2(size, size) / 1.414f, stretch: false);
+            diamond.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        }
+
+        /// <summary>Raya de adorno bajo un título: dos líneas finas con un rombo en medio.</summary>
+        private static void CreateOrnamentRule(RectTransform parent, Vector2 position, float width)
+        {
+            var color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f);
+            float half = width / 2f;
+            CreateImage("Raya izquierda", parent, null, color, position + new Vector2(-half / 2f - 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
+            CreateImage("Raya derecha", parent, null, color, position + new Vector2(half / 2f + 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
+            CreateDiamond(parent, position, 18f, Cafe);
+        }
+
         internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)
         {
             var root = new GameObject("Nivel completado", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));

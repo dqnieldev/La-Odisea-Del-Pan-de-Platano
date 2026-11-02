@@ -178,8 +178,8 @@ namespace Odisea.EditorTools
             if (music != null)
                 SetSerialized(music, "fadeOnDeath", player.GetComponent<Health>());
 
-            var shortcuts = new GameObject("Atajos de demo").AddComponent<DemoShortcuts>();
-            SetSerialized(shortcuts, "playerHealth", player.GetComponent<Health>());
+            // Al quedarse sin corazones: Game Over (Reintentar, Reiniciar nivel o salir).
+            MenuScenesBuilder.CreateGameOverScreen(player.GetComponent<Health>(), spawn);
 
             // Menú de pausa (Esc / Start). Lo genera Odisea > Menús > Crear menú de pausa.
             var pausePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/UI/MenuPausa.prefab");
