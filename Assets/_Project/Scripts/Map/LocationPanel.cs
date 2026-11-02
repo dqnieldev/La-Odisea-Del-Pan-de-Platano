@@ -100,10 +100,17 @@ namespace Odisea.Map
                 LocationState.Locked => $"Bloqueado: primero termina {location.RequiresName}",
                 LocationState.ComingSoon => "Próximamente",
                 _ when location.IsDone && GameProgress.BestScore(location.Id) > 0 =>
-                    $"¡Terminado!  Récord: {GameProgress.BestScore(location.Id)}",
+                    $"¡Terminado!  Récord: {GameProgress.BestScore(location.Id)}{RankText(location.Id)}",
                 _ when location.IsDone => "¡Terminado!",
                 _ => "",
             };
+        }
+
+        // " · Rango A" (vacío si aún no tiene rango). Los rangos van de C (0) a S (3), como Level.ScoreRank.
+        private static string RankText(string id)
+        {
+            int rank = GameProgress.BestRank(id);
+            return rank < 0 ? "" : $" · Rango {"CBAS"[Mathf.Min(rank, 3)]}";
         }
 
         private void Update()

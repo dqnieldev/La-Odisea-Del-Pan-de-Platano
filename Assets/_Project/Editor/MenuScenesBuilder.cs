@@ -364,10 +364,6 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>
-        /// Tarjeta de nivel completado (se crea dentro de la escena del nivel; la abre la meta): el juego oscurecido
-        /// detrás, una tarjeta crema con el título y la frase, y "Continuar" con el botón del dispositivo actual.
-        /// </summary>
-        /// <summary>
         /// Game Over de un nivel: tarjeta "¡Se quemó el pan!" con la barra de qué tan lejos llegó Ulises (él encima, en
         /// chibi) y los botones Reintentar, Reiniciar nivel y salir. Empieza apagada; la muestra la muerte de Ulises.
         /// </summary>
@@ -523,6 +519,12 @@ namespace Odisea.EditorTools
             CreateDiamond(parent, position, 18f, Cafe);
         }
 
+        /// <summary>
+        /// Tarjeta de nivel completado (se crea dentro de la escena del nivel; la abre la meta): la misma hoja de papel
+        /// que el Game Over, con el título y, si el nivel lleva puntaje, los renglones (ingredientes, tiempo, enemigos,
+        /// sin daño), el total y el sello del rango; sin puntaje, la frase. Abajo "Continuar" con el botón del
+        /// dispositivo actual.
+        /// </summary>
         internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)
         {
             var root = new GameObject("Nivel completado", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
@@ -535,18 +537,100 @@ namespace Odisea.EditorTools
             scaler.matchWidthOrHeight = 0.5f;
             var rootRect = (RectTransform)root.transform;
 
-            CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.6f), Vector2.zero, Vector2.zero, stretch: true);
-            RectTransform card = CreateCard("Tarjeta", rootRect, UiAssetsBuilder.EnsureRoundedSprite(), new Vector2(980f, 480f), Crema);
-            CreateText("Título", card, title, UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 88, Cafe,
-                position: new Vector2(0f, 120f), rectSize: new Vector2(900f, 130f));
-            CreateText("Frase", card, message, UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 38, TintaClara,
-                position: new Vector2(0f, -15f), rectSize: new Vector2(920f, 120f));
-
+            CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f), Vector2.zero, Vector2.zero, stretch: true);
+            RectTransform card = CreatePaperSheet("Hoja", rootRect, new Vector2(1000f, 800f));
+            TMP_Text titleText = CreateText("Título", card, title.ToUpperInvariant(), UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular),
+                70, Cafe, position: new Vector2(0f, 285f), rectSize: new Vector2(860f, 100f));
+            // En un solo renglón: los títulos largos se achican.
+            titleText.textWrappingMode = TextWrappingModes.NoWrap;
+            titleText.enableAutoSizing = true;
+            titleText.fontSizeMin = 40f;
+            titleText.fontSizeMax = 70f;
+            CreateOrnamentRule(card, new Vector2(0f, 225f), 420f);
+            TMP_FontAsset inkFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish);
             TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            TMP_Text phrase = CreateText("Frase", card, message, inkFont, 42, TintaClara,
+                position: new Vector2(0f, 40f), rectSize: new Vector2(860f, 200f));
+
+            // ----- Puntaje: renglones a la izquierda, sello del rango a la derecha -----
+            var score = new GameObject("Puntaje", typeof(RectTransform));
+            var scoreRect = (RectTransform)score.transform;
+            scoreRect.SetParent(card, false);
+            Stretch(scoreRect);
+
+            var list = new GameObject("Renglones", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            var listRect = (RectTransform)list.transform;
+            listRect.SetParent(scoreRect, false);
+            listRect.pivot = new Vector2(0.5f, 1f);
+            listRect.anchoredPosition = new Vector2(-150f, 180f);
+            listRect.sizeDelta = new Vector2(560f, 280f);
+            var listLayout = list.GetComponent<VerticalLayoutGroup>();
+            listLayout.spacing = 6f;
+            listLayout.childAlignment = TextAnchor.UpperCenter;
+            listLayout.childControlWidth = listLayout.childControlHeight = true;
+            listLayout.childForceExpandWidth = true;
+            listLayout.childForceExpandHeight = false;
+
+            string[] names = { "Ingredientes", "Tiempo", "Enemigos", "Sin daño" };
+            var rows = new UnityEngine.Object[names.Length];
+            var details = new UnityEngine.Object[names.Length];
+            var points = new UnityEngine.Object[names.Length];
+            for (int i = 0; i < names.Length; i++)
+            {
+                var row = new GameObject(names[i], typeof(RectTransform), typeof(CanvasGroup), typeof(LayoutElement));
+                var rowRect = (RectTransform)row.transform;
+                rowRect.SetParent(listRect, false);
+                row.GetComponent<LayoutElement>().preferredHeight = 62f;
+                CreateText("Nombre", rowRect, names[i], font, 38, Cafe, anchor: new Vector2(0f, 0.5f),
+                    position: new Vector2(130f, 0f), rectSize: new Vector2(260f, 60f), alignment: TextAlignmentOptions.MidlineLeft);
+                details[i] = CreateText("Detalle", rowRect, "", inkFont, 40, TintaClara, anchor: new Vector2(0f, 0.5f),
+                    position: new Vector2(330f, 0f), rectSize: new Vector2(130f, 60f), alignment: TextAlignmentOptions.MidlineLeft);
+                points[i] = CreateText("Puntos", rowRect, "", font, 38, Cafe, anchor: new Vector2(1f, 0.5f),
+                    position: new Vector2(-75f, 0f), rectSize: new Vector2(150f, 60f), alignment: TextAlignmentOptions.MidlineRight);
+                rows[i] = row.GetComponent<CanvasGroup>();
+            }
+
+            var total = new GameObject("Total", typeof(RectTransform), typeof(CanvasGroup));
+            var totalRect = (RectTransform)total.transform;
+            totalRect.SetParent(scoreRect, false);
+            totalRect.anchoredPosition = new Vector2(-150f, -150f);
+            totalRect.sizeDelta = new Vector2(560f, 90f);
+            CreateImage("Raya", totalRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f), new Vector2(0f, 48f), new Vector2(560f, 3f), stretch: false);
+            CreateText("Nombre", totalRect, "TOTAL", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular), 48, Cafe,
+                anchor: new Vector2(0f, 0.5f), position: new Vector2(130f, 0f), rectSize: new Vector2(260f, 80f),
+                alignment: TextAlignmentOptions.MidlineLeft);
+            TMP_Text totalText = CreateText("Puntos", totalRect, "0", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 58, Cafe,
+                anchor: new Vector2(1f, 0.5f), position: new Vector2(-110f, 0f), rectSize: new Vector2(220f, 80f),
+                alignment: TextAlignmentOptions.MidlineRight);
+
+            // Sello de tinta roja: anillo doble con la letra del rango y la frase.
+            var stamp = new GameObject("Sello", typeof(RectTransform));
+            var stampRect = (RectTransform)stamp.transform;
+            stampRect.SetParent(scoreRect, false);
+            stampRect.anchoredPosition = new Vector2(285f, 30f);
+            stampRect.sizeDelta = new Vector2(250f, 250f);
+            stampRect.localRotation = Quaternion.Euler(0f, 0f, -12f);
+            var ink = new Color(0.784f, 0.263f, 0.169f, 0.9f);
+            Sprite ring = UiAssetsBuilder.EnsureRingSprite();
+            CreateImage("Aro", stampRect, ring, ink, Vector2.zero, new Vector2(250f, 250f), stretch: false);
+            CreateImage("Aro fino", stampRect, ring, ink, Vector2.zero, new Vector2(212f, 212f), stretch: false);
+            TMP_Text letter = CreateText("Letra", stampRect, "S", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular), 150, ink,
+                position: new Vector2(0f, 8f), rectSize: new Vector2(200f, 190f));
+            TMP_Text rankPhrase = CreateText("Frase", stampRect, "", inkFont, 34, ink,
+                position: new Vector2(-30f, -155f), rectSize: new Vector2(340f, 50f));
+            rankPhrase.textWrappingMode = TextWrappingModes.NoWrap;
+            // La frase va derecha aunque el sello esté chueco.
+            rankPhrase.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 12f);
+            TMP_Text record = CreateText("Récord", scoreRect, "¡NUEVO RÉCORD!", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 36,
+                new Color(0.784f, 0.263f, 0.169f), position: new Vector2(285f, -205f), rectSize: new Vector2(340f, 60f));
+            record.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 4f);
+            record.gameObject.AddComponent<BlinkingGroup>();
+
+            // ----- Continuar -----
             var prompt = new GameObject("Ayuda de botones", typeof(RectTransform), typeof(HorizontalLayoutGroup));
             var promptRect = (RectTransform)prompt.transform;
             promptRect.SetParent(card, false);
-            promptRect.anchoredPosition = new Vector2(0f, -160f);
+            promptRect.anchoredPosition = new Vector2(0f, -300f);
             promptRect.sizeDelta = new Vector2(500f, 64f);
             var layout = prompt.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 12f;
@@ -554,8 +638,8 @@ namespace Odisea.EditorTools
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
             Image icon = CreatePromptIcon(promptRect);
-            icon.GetComponent<LayoutElement>().preferredWidth = icon.GetComponent<LayoutElement>().preferredHeight = 60f;
-            CreatePromptLabel(promptRect, font, "Continuar").fontSize = 40;
+            icon.GetComponent<LayoutElement>().preferredWidth = icon.GetComponent<LayoutElement>().preferredHeight = 56f;
+            CreatePromptLabel(promptRect, font, "Continuar").fontSize = 38;
             var bar = prompt.AddComponent<ButtonPromptBar>();
             SetField(bar, "confirmIcon", icon);
             SetPromptSet(bar, "keyboard", "kb_enter", "kb_esc", "kb_q", "kb_e");
@@ -565,7 +649,34 @@ namespace Odisea.EditorTools
             var screen = root.AddComponent<LevelCompleteScreen>();
             SetField(screen, "group", root.GetComponent<CanvasGroup>());
             SetField(screen, "card", card);
+            SetField(screen, "message", phrase.gameObject);
+            SetField(screen, "prompt", prompt);
+            SetField(screen, "scoreGroup", score);
+            SetField(screen, "totalGroup", total.GetComponent<CanvasGroup>());
+            SetField(screen, "totalText", totalText);
+            SetField(screen, "stamp", stampRect);
+            SetField(screen, "rankLetter", letter);
+            SetField(screen, "rankPhrase", rankPhrase);
+            SetField(screen, "recordLabel", record.gameObject);
+            var serialized = new SerializedObject(screen);
+            SetArray(serialized.FindProperty("rows"), rows);
+            SetArray(serialized.FindProperty("rowDetails"), details);
+            SetArray(serialized.FindProperty("rowPoints"), points);
+            // Letra del sello por rango (C, B, A, S): todas en tinta roja; la S en plátano oscuro, como de oro.
+            SerializedProperty colors = serialized.FindProperty("rankColors");
+            colors.arraySize = 4;
+            for (int i = 0; i < 3; i++)
+                colors.GetArrayElementAtIndex(i).colorValue = ink;
+            colors.GetArrayElementAtIndex(3).colorValue = PlatanoOscuro;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
             return screen;
+        }
+
+        private static void SetArray(SerializedProperty array, UnityEngine.Object[] values)
+        {
+            array.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                array.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         /// <summary>

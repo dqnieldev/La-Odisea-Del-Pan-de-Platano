@@ -140,6 +140,8 @@ namespace Odisea.EditorTools
         public const string FishPath = ItemsFolder + "/Pescado.png";
         public const string LeafPath = ItemsFolder + "/Hoja.png";
         public const string CoffeePath = ItemsFolder + "/Cafe.png";
+        /// <summary>Dibujos de los ingredientes (Canela, Azucar, Harina, Platano .png); mientras no estén, círculos.</summary>
+        public const string IngredientsFolder = ItemsFolder + "/Ingredientes";
         private const string ItemsSource = "Sprites-por-revisar/Items/";
         private const float ItemSize = 0.9f;
 

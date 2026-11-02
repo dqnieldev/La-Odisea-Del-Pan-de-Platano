@@ -118,6 +118,13 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.CreatePickup(level, PickupKind.Shield, new Vector2(96f, 1f));
             PlayerSandboxBuilder.CreatePickup(level, PickupKind.Speed, new Vector2(99f, 1f));
 
+            // Ingredientes del pan (puntaje): arriba de las tablas, en el tablón de la escalera, tras el muñeco de la
+            // masa y antes de la meta.
+            PlayerSandboxBuilder.CreateIngredient(level, PlayerSandboxBuilder.Ingredient.Canela, new Vector2(43.5f, 8.6f));
+            PlayerSandboxBuilder.CreateIngredient(level, PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(60.5f, 7.2f));
+            PlayerSandboxBuilder.CreateIngredient(level, PlayerSandboxBuilder.Ingredient.Harina, new Vector2(87.5f, 1f));
+            PlayerSandboxBuilder.CreateIngredient(level, PlayerSandboxBuilder.Ingredient.Platano, new Vector2(127f, 1f));
+
             // 9. Cocodrilo: camina entre dos bordillos (da la vuelta en ellos); Ulises los salta.
             CreateSign(root, square, titleFont, bodyFont, 102.5f, "¡COCODRILO!", Prompt.Text("Pégale de frente:\n¡por la espalda, muerde!"),
                 checkpointLayer: level.PlayerLayer);

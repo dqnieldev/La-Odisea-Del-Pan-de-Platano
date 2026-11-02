@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Odisea.Level
 {
     /// <summary>
-    /// Meta del nivel: cuando Ulises la toca, sale la tarjeta de nivel completado (si hay) y, al aceptar, el iris
+    /// Meta del nivel: cuando Ulises la toca, sale la tarjeta de nivel completado con el puntaje (si hay) y, al aceptar, el iris
     /// se cierra sobre él y se carga la escena siguiente (el mapa). Marca el lugar como terminado.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
@@ -43,8 +43,10 @@ namespace Odisea.Level
             string destination = practice ? SceneFlow.MainMenu : nextScene;
             if (!practice)
                 GameProgress.Complete(completesLocation);
+            // El puntaje (si el nivel lleva): el de práctica se muestra pero no se guarda.
+            ScoreResult? result = LevelScore.Current != null ? LevelScore.Current.Finish(completesLocation, save: !practice) : null;
             if (completeScreen != null)
-                completeScreen.Show(() => SceneFlow.Load(destination, center));
+                completeScreen.Show(() => SceneFlow.Load(destination, center), result);
             else
                 SceneFlow.Load(destination, center);
         }
