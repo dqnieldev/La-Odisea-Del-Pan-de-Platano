@@ -391,20 +391,24 @@ namespace Odisea.EditorTools
             CreateImage("Oscurecer", panelRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.8f), Vector2.zero, Vector2.zero,
                 stretch: true).raycastTarget = true;
             Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
-            RectTransform card = CreateCard("Tarjeta", panelRect, rounded, new Vector2(980f, 740f), Crema);
-            CreateText("Título", card, "¡SE QUEMÓ EL PAN!", UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold), 80, Cafe,
-                position: new Vector2(0f, 285f), rectSize: new Vector2(920f, 110f));
+            RectTransform card = CreatePaperSheet("Hoja", panelRect, new Vector2(1000f, 800f));
+            CreateText("Título", card, "¡SE QUEMÓ EL PAN!", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular), 78, Cafe,
+                position: new Vector2(0f, 270f), rectSize: new Vector2(900f, 110f));
+            CreateOrnamentRule(card, new Vector2(0f, 205f), 420f);
 
             // Qué tan lejos llegó: barra de plátano con Ulises encima y la meta al final.
             var progress = new GameObject("Avance", typeof(RectTransform));
             var progressRect = (RectTransform)progress.transform;
             progressRect.SetParent(card, false);
-            TMP_Text label = CreateText("Texto", progressRect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium), 34,
-                TintaClara, position: new Vector2(0f, 95f), rectSize: new Vector2(900f, 50f));
-            Image track = CreateImage("Barra", progressRect, rounded, BeigeMasa, new Vector2(0f, 145f), new Vector2(700f, 34f),
+            TMP_Text label = CreateText("Texto", progressRect, "", UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish), 40,
+                TintaClara, position: new Vector2(0f, 40f), rectSize: new Vector2(900f, 50f));
+            Image track = CreateImage("Barra", progressRect, null, Cafe, new Vector2(0f, 92f), new Vector2(680f, 30f),
                 stretch: false);
-            Image fill = CreateImage("Relleno", track.rectTransform, rounded, Platano, Vector2.zero, Vector2.zero, stretch: true,
-                inset: 4f);
+            CreateImage("Fondo", track.rectTransform, null, BeigeMasa, Vector2.zero, Vector2.zero, stretch: true, inset: 3f);
+            // El relleno necesita un sprite para llenarse por partes: el mismo papel, teñido de plátano.
+            Sprite paper = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath);
+            Image fill = CreateImage("Relleno", track.rectTransform, paper != null ? paper : rounded, Platano, Vector2.zero,
+                Vector2.zero, stretch: true, inset: 5f);
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillAmount = 0f;
@@ -419,18 +423,12 @@ namespace Odisea.EditorTools
             marker.rectTransform.pivot = new Vector2(0.5f, 0f);
             marker.rectTransform.anchoredPosition = new Vector2(0f, -4f);
 
-            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
-            Button retry = CreateMenuButton("REINTENTAR", card, rounded, font, new Vector2(620f, 86f), 40);
-            ((RectTransform)retry.transform).anchoredPosition = new Vector2(0f, -25f);
-            Button restart = CreateMenuButton("REINICIAR NIVEL", card, rounded, font, new Vector2(620f, 86f), 40);
-            ((RectTransform)restart.transform).anchoredPosition = new Vector2(0f, -135f);
-            Button exit = CreateMenuButton("VOLVER AL MAPA", card, rounded, font, new Vector2(620f, 86f), 40);
-            ((RectTransform)exit.transform).anchoredPosition = new Vector2(0f, -245f);
+            TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish);
+            Button retry = CreateInkButton("REINTENTAR", card, font, new Vector2(0f, -65f));
+            Button restart = CreateInkButton("REINICIAR NIVEL", card, font, new Vector2(0f, -165f));
+            Button exit = CreateInkButton("VOLVER AL MAPA", card, font, new Vector2(0f, -265f));
             foreach (Button button in new[] { retry, restart, exit })
                 button.navigation = new Navigation { mode = Navigation.Mode.Vertical };
-
-            foreach (Button button in new[] { retry, restart, exit })
-                button.GetComponentInChildren<TMP_Text>().textWrappingMode = TextWrappingModes.NoWrap;
 
             var screen = root.AddComponent<GameOverScreen>();
             SetField(screen, "player", player);
@@ -448,6 +446,118 @@ namespace Odisea.EditorTools
             SetField(screen, "exitButton", exit);
             SetField(screen, "exitLabel", exit.GetComponentInChildren<TMP_Text>());
             return screen;
+        }
+
+        /// <summary>
+        /// Hoja de papel viejo (el papel del fondo del tutorial) un poco chueca, con sombra, doble marco de tinta y
+        /// rombos en las esquinas. Si falta el papel, queda crema.
+        /// </summary>
+        private static RectTransform CreatePaperSheet(string name, RectTransform parent, Vector2 size)
+        {
+            var sheet = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)sheet.transform;
+            rect.SetParent(parent, false);
+            rect.sizeDelta = size;
+            rect.localRotation = Quaternion.Euler(0f, 0f, -1.2f);
+            CreateImage("Sombra", rect, null, new Color(0f, 0f, 0f, 0.45f), new Vector2(12f, -14f), size, stretch: false);
+            var paper = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PaperPath);
+            CreateImage("Papel", rect, paper, paper != null ? Color.white : Crema, Vector2.zero, Vector2.zero, stretch: true);
+            var ink = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+            CreateFrame(rect, "Marco", 28f, 5f, ink);
+            CreateFrame(rect, "Marco fino", 42f, 2f, new Color(Cafe.r, Cafe.g, Cafe.b, 0.6f));
+            foreach (Vector2 corner in new[] { new Vector2(-1f, 1f), new Vector2(1f, 1f), new Vector2(-1f, -1f), new Vector2(1f, -1f) })
+            {
+                Vector2 position = new(corner.x * (size.x / 2f - 30.5f), corner.y * (size.y / 2f - 30.5f));
+                CreateDiamond(rect, position, 22f, Cafe);
+            }
+            return rect;
+        }
+
+        /// <summary>Recuadro de cuatro líneas a <paramref name="inset"/> del borde del padre.</summary>
+        private static void CreateFrame(RectTransform parent, string name, float inset, float thickness, Color color)
+        {
+            var frame = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)frame.transform;
+            rect.SetParent(parent, false);
+            Stretch(rect);
+            rect.offsetMin = new Vector2(inset, inset);
+            rect.offsetMax = new Vector2(-inset, -inset);
+            // Arriba, abajo, izquierda, derecha.
+            (Vector2 min, Vector2 max)[] sides =
+            {
+                (new Vector2(0f, 1f), new Vector2(1f, 1f)), (new Vector2(0f, 0f), new Vector2(1f, 0f)),
+                (new Vector2(0f, 0f), new Vector2(0f, 1f)), (new Vector2(1f, 0f), new Vector2(1f, 1f)),
+            };
+            foreach ((Vector2 min, Vector2 max) in sides)
+            {
+                Image line = CreateImage("Línea", rect, null, color, Vector2.zero, Vector2.zero, stretch: false);
+                line.rectTransform.anchorMin = min;
+                line.rectTransform.anchorMax = max;
+                // Lo grueso hacia los lados y un poco de más a lo largo para cerrar las esquinas.
+                line.rectTransform.sizeDelta = new Vector2(thickness, thickness);
+                line.rectTransform.anchoredPosition = Vector2.zero;
+            }
+        }
+
+        private static void CreateDiamond(RectTransform parent, Vector2 position, float size, Color color)
+        {
+            Image diamond = CreateImage("Rombo", parent, null, color, position, new Vector2(size, size) / 1.414f, stretch: false);
+            diamond.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        }
+
+        /// <summary>Raya de adorno bajo un título: dos líneas finas con un rombo en medio.</summary>
+        private static void CreateOrnamentRule(RectTransform parent, Vector2 position, float width)
+        {
+            var color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f);
+            float half = width / 2f;
+            CreateImage("Raya izquierda", parent, null, color, position + new Vector2(-half / 2f - 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
+            CreateImage("Raya derecha", parent, null, color, position + new Vector2(half / 2f + 14f, 0f), new Vector2(half - 20f, 2.5f), stretch: false);
+            CreateDiamond(parent, position, 18f, Cafe);
+        }
+
+        /// <summary>
+        /// Botón serio de tinta: rectángulo con marco café doble y letra antigua; al seleccionarlo se rellena de café
+        /// y la letra queda en crema.
+        /// </summary>
+        private static Button CreateInkButton(string label, RectTransform parent, TMP_FontAsset font, Vector2 position)
+        {
+            var size = new Vector2(560f, 80f);
+            var root = new GameObject($"Botón {label}", typeof(RectTransform), typeof(Button));
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(parent, false);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+
+            var face = new GameObject("Cara", typeof(RectTransform));
+            var faceRect = (RectTransform)face.transform;
+            faceRect.SetParent(rect, false);
+            Stretch(faceRect);
+            Image fill = CreateImage("Relleno", faceRect, null, Crema, Vector2.zero, Vector2.zero, stretch: true);
+            fill.raycastTarget = true;
+            CreateFrame(faceRect, "Borde", 1.5f, 3f, Cafe);
+            CreateFrame(faceRect, "Marco fino", 8f, 1.5f, new Color(Cafe.r, Cafe.g, Cafe.b, 0.55f));
+            TMP_Text text = CreateText("Texto", faceRect, label, font, 42, Cafe, stretch: true);
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.characterSpacing = 6f;
+
+            var button = root.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = fill;
+
+            var feedback = root.AddComponent<MenuButtonFeedback>();
+            SetField(feedback, "face", faceRect);
+            SetField(feedback, "fill", fill);
+            SetField(feedback, "label", text);
+            SetColor(feedback, "normalColor", new Color(1f, 0.98f, 0.93f, 0.3f));
+            SetColor(feedback, "selectedColor", Cafe);
+            SetColor(feedback, "pressedColor", Color.black);
+            SetColor(feedback, "labelNormalColor", Cafe);
+            SetColor(feedback, "labelSelectedColor", Crema);
+            var serialized = new SerializedObject(feedback);
+            serialized.FindProperty("selectedScale").floatValue = 1.03f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            root.AddComponent<SelectableSounds>();
+            return button;
         }
 
         internal static LevelCompleteScreen CreateLevelCompleteScreen(string title, string message)
