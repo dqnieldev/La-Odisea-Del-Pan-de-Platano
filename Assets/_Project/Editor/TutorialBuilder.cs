@@ -83,13 +83,13 @@ namespace Odisea.EditorTools
             // Torre de arena; la banderita de arriba es adorno (no se pisa).
             CreateSandBlock("Muro (doble salto)", root, square, ArtImportBuilder.TowerPath, 25f, new Vector2(2.4f, ArtImportBuilder.TowerHeight), ground);
 
-            // 4. Tablas rotas: escalera de tablas partidas a la mitad, que se cruzan saltando desde abajo (como los pasos
-            // del Mercado; las tablas enteras son firmes).
-            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Las rotas se cruzan\nsaltando desde abajo"),
+            // 4. Tablas: escalera de tablas enteras (firmes, como en el Mercado), separadas para subir por la orilla.
+            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Sube por la orilla:\nno se cruzan por abajo"),
                 checkpointLayer: level.PlayerLayer);
-            CreateBrokenPlank("Tabla 1", root, square, art, 33.5f, 37.5f, 2.6f, ground);
-            CreateBrokenPlank("Tabla 2", root, square, art, 37.5f, 41.5f, 5f, ground);
-            CreateBrokenPlank("Tabla 3", root, square, art, 42f, 46f, 7.4f, ground);
+            var noPasses = System.Array.Empty<(float, float)>();
+            PlayerSandboxBuilder.CreateFirmPlatform("Tabla 1", root, square, art, 33.5f, 36.5f, 2.6f, ground, noPasses, posts: true);
+            PlayerSandboxBuilder.CreateFirmPlatform("Tabla 2", root, square, art, 37.5f, 40.5f, 5f, ground, noPasses, posts: true);
+            PlayerSandboxBuilder.CreateFirmPlatform("Tabla 3", root, square, art, 41.5f, 45.5f, 7.4f, ground, noPasses, posts: true);
 
             // 5. Escaleras: sube a un tablón alto.
             CreateSign(root, square, titleFont, bodyFont, 50f, "ESCALERAS",
@@ -151,15 +151,6 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             AddToBuildSettings();
             Debug.Log($"[Odisea] Tutorial creado en {ScenePath}");
-        }
-
-        // Tabla rota a la mitad: se cruza desde abajo en todo su ancho (es de un sentido).
-        private static void CreateBrokenPlank(string name, Transform parent, Sprite square, PlayerSandboxBuilder.LevelArt art, float from,
-            float to, float surface, int layer)
-        {
-            float middle = (from + to) / 2f;
-            PlayerSandboxBuilder.CreateFirmPlatform(name, parent, square, art, from, to, surface, layer, new[] { (middle, (to - from) / 2f) },
-                posts: true);
         }
 
         // Música del tutorial; mientras no exista, la del nivel 1.
