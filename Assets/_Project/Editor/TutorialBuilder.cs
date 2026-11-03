@@ -83,19 +83,22 @@ namespace Odisea.EditorTools
             // Torre de arena; la banderita de arriba es adorno (no se pisa).
             CreateSandBlock("Muro (doble salto)", root, square, ArtImportBuilder.TowerPath, 25f, new Vector2(2.4f, ArtImportBuilder.TowerHeight), ground);
 
-            // 4. Tablas de un sentido: escalera de tablas que se cruzan desde abajo.
-            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Se cruzan saltando\ndesde abajo"),
+            // 4. Tablas rotas: escalera de tablas partidas a la mitad, que se cruzan saltando desde abajo (como los pasos
+            // del Mercado; las tablas enteras son firmes).
+            CreateSign(root, square, titleFont, bodyFont, 31f, "TABLAS", Prompt.Text("Las rotas se cruzan\nsaltando desde abajo"),
                 checkpointLayer: level.PlayerLayer);
-            PlayerSandboxBuilder.CreatePlatform("Tabla 1", root, square, art, new Vector2(35f, 2.4f), 3f, ground);
-            PlayerSandboxBuilder.CreatePlatform("Tabla 2", root, square, art, new Vector2(39f, 4.8f), 3f, ground);
-            PlayerSandboxBuilder.CreatePlatform("Tabla 3", root, square, art, new Vector2(43.5f, 7.2f), 4f, ground);
+            CreateBrokenPlank("Tabla 1", root, square, art, 33.5f, 37.5f, 2.6f, ground);
+            CreateBrokenPlank("Tabla 2", root, square, art, 37.5f, 41.5f, 5f, ground);
+            CreateBrokenPlank("Tabla 3", root, square, art, 42f, 46f, 7.4f, ground);
 
             // 5. Escaleras: sube a un tablón alto.
             CreateSign(root, square, titleFont, bodyFont, 50f, "ESCALERAS",
                 Prompt.Of(new[] { "kb_w", "kb_s" }, new[] { "xbox_stick_v" }, new[] { "ps_stick_v" }),
                 checkpointLayer: level.PlayerLayer);
             PlayerSandboxBuilder.CreateLadder("Escalera", root, square, art, 54f, 0f, 6.2f, level.LadderLayer);
-            PlayerSandboxBuilder.CreatePlatform("Tablón de la escalera", root, square, art, new Vector2(57.5f, 6f), 8f, ground);
+            // Tablón firme: solo se cruza por el paso de la escalera.
+            PlayerSandboxBuilder.CreateFirmPlatform("Tablón de la escalera", root, square, art, 51.5f, 61.5f, 6.2f, ground,
+                new[] { (54f, 0.8f) }, posts: true);
 
             // 6. Golpear con el rodillo.
             CreateSign(root, square, titleFont, bodyFont, 64f, "GOLPEAR",
@@ -148,6 +151,15 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             AddToBuildSettings();
             Debug.Log($"[Odisea] Tutorial creado en {ScenePath}");
+        }
+
+        // Tabla rota a la mitad: se cruza desde abajo en todo su ancho (es de un sentido).
+        private static void CreateBrokenPlank(string name, Transform parent, Sprite square, PlayerSandboxBuilder.LevelArt art, float from,
+            float to, float surface, int layer)
+        {
+            float middle = (from + to) / 2f;
+            PlayerSandboxBuilder.CreateFirmPlatform(name, parent, square, art, from, to, surface, layer, new[] { (middle, (to - from) / 2f) },
+                posts: true);
         }
 
         // Música del tutorial; mientras no exista, la del nivel 1.

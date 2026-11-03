@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Odisea.Core;
@@ -1011,6 +1012,97 @@ namespace Odisea.EditorTools
                     CreatePost(platform.transform, art.Post, new Vector2(x, 0f), bottom, layer);
             }
             return platform;
+        }
+
+        // Hueco que se deja entre las dos puntas rotas de un paso (se asoma lo que hay abajo, como la escalera).
+        private const float CrackHalfWidth = 0.3f;
+
+        /// <summary>
+        /// Plataforma firme (no se atraviesa desde abajo) de x = from a x = to, con la cara de arriba en surface. Solo los
+        /// pasos (centro y medio ancho) son de un sentido: ahí se cruza saltando desde abajo y las escaleras los
+        /// atraviesan al trepar. Se dibuja por tramos con los tablones rotos para que se note el paso: se parte encima de
+        /// cada uno, y las orillas marcadas con brokenStart / brokenEnd terminan astilladas. Sin los dibujos de tablones
+        /// rotos se queda el tablón entero. Con posts, vigas desde el suelo como en CreatePlatform.
+        /// </summary>
+        internal static GameObject CreateFirmPlatform(string name, Transform parent, Sprite square, LevelArt art, float from, float to,
+            float surface, int layer, IEnumerable<(float x, float halfWidth)> passes, bool brokenStart = false, bool brokenEnd = false,
+            bool posts = false)
+        {
+            GameObject platform = CreatePlatform(name, parent, square, art, new Vector2((from + to) / 2f, surface - PlatformThickness / 2f),
+                to - from, layer, posts);
+            List<(float x, float halfWidth)> sorted = passes.Where(pass => pass.x > from && pass.x < to).OrderBy(pass => pass.x).ToList();
+
+            // Collider: tramos sólidos y pasos de un sentido.
+            var box = platform.GetComponent<BoxCollider2D>();
+            float y = box.bounds.center.y;
+            UnityEngine.Object.DestroyImmediate(platform.GetComponent<PlatformEffector2D>());
+            UnityEngine.Object.DestroyImmediate(box);
+            float cursor = from;
+            foreach ((float x, float halfWidth) in sorted)
+            {
+                float start = Mathf.Max(from, x - halfWidth), end = Mathf.Min(to, x + halfWidth);
+                PlatformPiece(platform, "Tramo firme", cursor, start, y, layer, oneWay: false);
+                PlatformPiece(platform, "Paso", start, end, y, layer, oneWay: true);
+                cursor = end;
+            }
+            PlatformPiece(platform, "Tramo firme", cursor, to, y, layer, oneWay: false);
+
+            // Dibujo: partido en cada paso.
+            Transform whole = platform.transform.Find("Tablón");
+            if (whole == null || art.BrokenPlank == null || art.BrokenPlank2 == null)
+                return platform;
+            UnityEngine.Object.DestroyImmediate(whole.gameObject);
+            float segmentStart = from;
+            bool brokenSegmentStart = brokenStart;
+            foreach ((float x, _) in sorted)
+            {
+                DrawPlankSegment(platform, art, segmentStart, x - CrackHalfWidth, brokenSegmentStart, brokenEnd: true);
+                segmentStart = x + CrackHalfWidth;
+                brokenSegmentStart = true;
+            }
+            DrawPlankSegment(platform, art, segmentStart, to, brokenSegmentStart, brokenEnd);
+            return platform;
+        }
+
+        private static void DrawPlankSegment(GameObject platform, LevelArt art, float from, float to, bool brokenStart, bool brokenEnd)
+        {
+            // Las puntas enteras se pasan un poco del collider, como el tablón de siempre; las rotas acaban justo ahí.
+            if (!brokenStart)
+                from -= 0.1f;
+            if (!brokenEnd)
+                to += 0.1f;
+            Sprite sprite = brokenStart && brokenEnd && art.BrokenBoth != null ? art.BrokenBoth
+                : brokenEnd ? art.BrokenPlank : brokenStart ? art.BrokenPlank2 : art.Plank;
+            // Un tablón repetido a lo ancho: sus puntas (los bordes del sprite) no se estiran. La cara de arriba coincide
+            // con la del collider, como en CreatePlatform.
+            var drawing = new GameObject("Tablón") { layer = platform.layer };
+            drawing.transform.SetParent(platform.transform, false);
+            float height = sprite.bounds.size.y;
+            float emptyTop = ArtImportBuilder.Padding / sprite.pixelsPerUnit;
+            drawing.transform.position = new Vector3((from + to) / 2f,
+                platform.transform.position.y + PlatformThickness / 2f - height / 2f + emptyTop, 0f);
+            var renderer = drawing.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(to - from, height);
+            renderer.sortingOrder = 3;
+        }
+
+        // Un tramo de collider de la plataforma, de x = from a x = to (en el mundo).
+        private static void PlatformPiece(GameObject platform, string name, float from, float to, float y, int layer, bool oneWay)
+        {
+            if (to - from < 0.05f)
+                return;
+            var piece = new GameObject(name) { layer = layer };
+            piece.transform.SetParent(platform.transform, false);
+            piece.transform.position = new Vector3((from + to) / 2f, y, 0f);
+            // Si la plataforma está escalada (sin arte, el cuadro de color), el tramo se mide en el mundo de todos modos.
+            Vector3 scale = platform.transform.lossyScale;
+            piece.transform.localScale = new Vector3(1f / scale.x, 1f / scale.y, 1f);
+            piece.AddComponent<BoxCollider2D>().size = new Vector2(to - from, PlatformThickness);
+            if (oneWay)
+                MakeOneWay(piece);
         }
 
         // Viga decorativa del suelo (y = ground) hasta debajo de la plataforma; no tiene collider.
