@@ -52,15 +52,15 @@ namespace Odisea.EditorTools
         // Ancho del tramo de paso encima de cada escalera.
         private const float HatchWidth = 1.6f;
 
-        // Escaleras (x, del piso, al piso). Ruta: la torre izquierda hasta el piso 5, cruzar, y la derecha hasta arriba.
+        // Escaleras (x, del piso, al piso), entre las vigas para no quedar encimadas. Ruta: la torre izquierda hasta el piso 5, cruzar, y la derecha hasta arriba.
         // A cada torre le faltan escalones (hay que subir esos pisos con doble salto) y la izquierda de arriba no llega a
         // la cima: hay que saltar el hueco.
         private static readonly (float x, int from, int to)[] Ladders =
         {
-            (-6.5f, 0, 1), (-6.5f, 1, 2), (-11f, 2, 3), (-6.5f, 3, 4), (-11f, 4, 5),
-            (-6.5f, 5, 6), (-6.5f, 6, 7), (-11f, 8, 9),
-            (7f, 0, 1), (7f, 1, 2), (11f, 3, 4), (7f, 4, 5),
-            (5.5f, 5, 6), (11f, 6, 7), (6f, 7, 8), (11f, 8, 9), (6f, 9, 10),
+            (-6.5f, 0, 1), (-6.5f, 1, 2), (-9f, 2, 3), (-6.5f, 3, 4), (-9f, 4, 5),
+            (-6.5f, 5, 6), (-6.5f, 6, 7), (-9f, 8, 9),
+            (7f, 0, 1), (7f, 1, 2), (9f, 3, 4), (7f, 4, 5),
+            (7f, 5, 6), (9f, 6, 7), (7.5f, 7, 8), (9f, 8, 9), (7.5f, 9, 10),
         };
 
         // Lugares posibles de los ingredientes (x, piso, altura sobre el piso): en las orillas, sobre el hueco y en la torre
@@ -68,10 +68,14 @@ namespace Odisea.EditorTools
         private static readonly (float x, int floor, float height)[] IngredientSpots =
         {
             (-12f, 1, 1f), (12f, 1, 1f), (0f, 2, 1.6f), (10f, 2, 1f), (-12f, 3, 1f), (12.2f, 3, 1f),
-            (-3.8f, 4, 1f), (9f, 4, 1f), (0f, 5, 1f), (-12f, 5, 1f), (12f, 6, 1f), (-9f, 6, 1f),
-            (0f, 7, 1.6f), (-12f, 7, 1f), (12f, 8, 1f), (-3.6f, 8, 1f), (-12f, 9, 1f), (9f, 9, 1f),
+            (-3.8f, 4, 1f), (11.8f, 4, 1f), (0f, 5, 1f), (-12f, 5, 1f), (12f, 6, 1f), (-9f, 6, 1f),
+            (0f, 7, 1.6f), (-12f, 7, 1f), (12f, 8, 1f), (-3.6f, 8, 1f), (-12f, 9, 1f), (11.8f, 9, 1f),
         };
         private const int IngredientCount = 8;
+
+        // Lugares posibles del ítem de ayuda (pescado, hoja o café, al azar): sale uno solo por partida.
+        private static readonly (float x, int floor)[] HelperSpots = { (10f, 5), (-4f, 3), (11f, 7), (-6f, 8) };
+        private static readonly PickupKind[] HelperKinds = { PickupKind.Heal, PickupKind.Shield, PickupKind.Speed };
 
         private static float Surface(int floor) => floor * FloorGap;
 
@@ -121,7 +125,7 @@ namespace Odisea.EditorTools
             foreach ((float x, int from, int to) in Ladders)
                 PlayerSandboxBuilder.CreateLadder($"Escalera {from}-{to}", root, square, art, x, Surface(from), Surface(to), level.LadderLayer);
 
-            // ----- Ingredientes (en lugares al azar) y un pescado a la mitad -----
+            // ----- Ingredientes y el ítem de ayuda (en lugares al azar) -----
             var kinds = (PlayerSandboxBuilder.Ingredient[])System.Enum.GetValues(typeof(PlayerSandboxBuilder.Ingredient));
             var candidates = new Object[IngredientSpots.Length];
             for (int i = 0; i < IngredientSpots.Length; i++)
@@ -133,7 +137,16 @@ namespace Odisea.EditorTools
             var spawner = new GameObject("Ingredientes al azar").AddComponent<RandomPickups>();
             PlayerSandboxBuilder.SetSerialized(spawner, "candidates", candidates);
             PlayerSandboxBuilder.SetSerialized(spawner, "keep", IngredientCount);
-            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(8f, Surface(5) + 1f));
+            // Ítem de ayuda: los tres tipos en cada lugar posible, y al jugar queda solo uno (tipo y lugar al azar).
+            var helpers = new System.Collections.Generic.List<Object>();
+            foreach ((float x, int floor) in HelperSpots)
+            {
+                foreach (PickupKind kind in HelperKinds)
+                    helpers.Add(PlayerSandboxBuilder.CreatePickup(level, kind, new Vector2(x, Surface(floor) + 1f)).GetComponent<Pickup>());
+            }
+            var helperSpawner = new GameObject("Ítem de ayuda al azar").AddComponent<RandomPickups>();
+            PlayerSandboxBuilder.SetSerialized(helperSpawner, "candidates", helpers.ToArray());
+            PlayerSandboxBuilder.SetSerialized(helperSpawner, "keep", 1);
 
             // ----- Meta: el racimo de plátano en la cima -----
             CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
