@@ -94,7 +94,11 @@ namespace Odisea.EditorTools
             float top = Surface(TopFloor);
 
             // ----- Suelo, paredes y el fondo de las torres -----
-            PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1f), new Vector2(HalfWidth * 2f, 2f), Floor, ground);
+            var floorBlock = PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1f), new Vector2(HalfWidth * 2f, 2f), Floor, ground);
+            // Con el arte de los puestos, el suelo es su empedrado: el bloque solo choca.
+            bool stalls = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) != null;
+            if (stalls)
+                floorBlock.GetComponent<SpriteRenderer>().enabled = false;
             PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, top / 2f + 2f),
                 new Vector2(1f, top + 8f), Wall, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 2f),
@@ -163,7 +167,8 @@ namespace Odisea.EditorTools
             // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
-            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, 5f));
+            // Con los puestos, la cámara no baja más que el empedrado (tamaño 7: lo de abajo queda en y = -0.85).
+            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, stalls ? 6.15f : 5f));
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, top - 2f));
 
             PlayerSandboxBuilder.EndLevel(level);
@@ -201,8 +206,8 @@ namespace Odisea.EditorTools
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketGapPath) is { } gap)
                 Background("Hueco", parent, gap, new Vector2(0f, bottom + height / 2f), new Vector2(ArtImportBuilder.MarketGapWidth, height), -11);
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) is { } floor)
-                // A lo ancho de todo el mercado; el empedrado queda apenas debajo del suelo.
-                Background("Puestos", parent, floor, new Vector2(0f, -0.7f),
+                // A lo ancho de todo el mercado; la base de los cajones queda en el piso y el empedrado debajo.
+                Background("Puestos", parent, floor, new Vector2(0f, -0.9f),
                     new Vector2(ArtImportBuilder.MarketWideWidth, floor.bounds.size.y), -9);
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketRoofPath) is { } roof)
                 // Arriba de lo que ve la cámara en la cima (sube hasta top - 2 con tamaño 7).
