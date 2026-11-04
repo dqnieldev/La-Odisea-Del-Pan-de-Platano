@@ -6,16 +6,19 @@ namespace Odisea.Enemies
     /// <summary>
     /// Madame Circe en el Mercado: flota en el hueco del centro a la altura de Ulises (lo sigue al subir y al bajar) y
     /// cada tantos segundos le avienta algo en un arco bajo, para no chocar con la repisa de arriba: una caja directo
-    /// a él o una cáscara en la repisa por donde va. Antes de aventar se estira (aviso). No se le puede vencer; deja
-    /// de aventar al llegar Ulises a la cima o al morir.
+    /// a él o una cáscara en la repisa por donde va. Siempre mira hacia Ulises. Antes de aventar echa el brazo atrás
+    /// (aviso; sin su dibujo, se estira) y se ríe cuando a Ulises le pegan o se cae. No se le puede vencer; deja de
+    /// aventar al llegar Ulises a la cima o al morir.
     /// </summary>
     public class CirceThrower : MonoBehaviour
     {
         [SerializeField] private Health player;
         [SerializeField] private ThrownItem cratePrefab;
         [SerializeField] private ThrownItem peelPrefab;
-        [Tooltip("Lo que se mueve al aventar (el dibujo): se estira hacia arriba como aviso.")]
+        [Tooltip("El dibujo: se voltea hacia Ulises (y, sin Animator, se estira como aviso).")]
         [SerializeField] private Transform visual;
+        [Tooltip("Opcional: triggers \"Throw\" (echa el brazo y suelta al terminar el aviso) y \"Laugh\".")]
+        [SerializeField] private Animator animator;
         [Tooltip("De dónde sale lo que avienta (la mano).")]
         [SerializeField] private Transform hand;
 
@@ -35,6 +38,7 @@ namespace Odisea.Enemies
         [SerializeField] private float startHeight = 3f;
         [SerializeField] private Vector2 throwInterval = new(2.5f, 4f);
         [SerializeField, Range(0f, 1f)] private float peelChance = 0.5f;
+        [Tooltip("Del aviso a que suelta (con Animator, lo que tarda la animación en llegar al cuadro en que suelta).")]
         [SerializeField, Min(0.05f)] private float windUp = 0.45f;
         [Tooltip("Velocidad de lado de lo que avienta; el vuelo dura lo que tarde en llegar (entre min y max segundos).")]
         [SerializeField, Min(1f)] private float throwSpeed = 12f;
@@ -47,6 +51,40 @@ namespace Odisea.Enemies
         private float throwTimer;
         private float windUpTimer = -1f;
         private Vector3 visualScale = Vector3.one;
+
+        private static readonly int ThrowId = Animator.StringToHash("Throw");
+        private static readonly int LaughId = Animator.StringToHash("Laugh");
+
+        private void OnEnable()
+        {
+            if (player != null)
+            {
+                player.Damaged += OnPlayerDamaged;
+                player.Died += Laugh;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (player != null)
+            {
+                player.Damaged -= OnPlayerDamaged;
+                player.Died -= Laugh;
+            }
+        }
+
+        // Se burla cuando a Ulises le pegan (una caja, una cáscara, un secuaz), si no está aventando.
+        private void OnPlayerDamaged(DamageInfo info)
+        {
+            if (windUpTimer < 0f)
+                Laugh();
+        }
+
+        private void Laugh()
+        {
+            if (animator != null)
+                animator.SetTrigger(LaughId);
+        }
 
         private void Start()
         {
@@ -64,6 +102,7 @@ namespace Odisea.Enemies
             float height = Mathf.MoveTowards(position.y, TargetHeight(), climbSpeed * Time.deltaTime);
             float x = Mathf.Sin(Time.time * swaySpeed) * swayWidth;
             transform.position = new Vector3(x, height, position.z);
+            FacePlayer();
 
             if (!CanThrow())
             {
@@ -75,8 +114,9 @@ namespace Odisea.Enemies
             {
                 windUpTimer -= Time.deltaTime;
                 float t = 1f - Mathf.Clamp01(windUpTimer / windUp);
-                if (visual != null)
-                    visual.localScale = new Vector3(visualScale.x * (1f - 0.1f * t), visualScale.y * (1f + 0.15f * t), visualScale.z);
+                if (visual != null && animator == null)
+                    visual.localScale = new Vector3(Mathf.Sign(visual.localScale.x) * Mathf.Abs(visualScale.x) * (1f - 0.1f * t),
+                        visualScale.y * (1f + 0.15f * t), visualScale.z);
                 if (windUpTimer <= 0f)
                 {
                     windUpTimer = -1f;
@@ -90,6 +130,8 @@ namespace Odisea.Enemies
             {
                 throwTimer = Random.Range(throwInterval.x, throwInterval.y);
                 windUpTimer = windUp;
+                if (animator != null)
+                    animator.SetTrigger(ThrowId);
             }
         }
 
@@ -104,7 +146,18 @@ namespace Odisea.Enemies
         private void ResetPose()
         {
             if (visual != null)
-                visual.localScale = visualScale;
+                visual.localScale = new Vector3(Mathf.Sign(visual.localScale.x) * Mathf.Abs(visualScale.x), visualScale.y, visualScale.z);
+        }
+
+        // El dibujo mira a la derecha: se voltea si Ulises está a la izquierda.
+        private void FacePlayer()
+        {
+            if (visual == null)
+                return;
+            float side = player.transform.position.x < transform.position.x ? -1f : 1f;
+            Vector3 scale = visual.localScale;
+            scale.x = Mathf.Abs(scale.x) * side;
+            visual.localScale = scale;
         }
 
         private void Throw()

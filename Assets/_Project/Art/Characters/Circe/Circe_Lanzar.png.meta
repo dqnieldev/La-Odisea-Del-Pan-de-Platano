@@ -1,0 +1,275 @@
+fileFormatVersion: 2
+guid: 1344dd3ba5f2abd4f94cd4d8ab0a22e3
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6643307051319140559
+    second: Circe_Lanzar_0
+  - first:
+      213: 603200637842406691
+    second: Circe_Lanzar_1
+  - first:
+      213: 7035014625053771743
+    second: Circe_Lanzar_2
+  - first:
+      213: 4450539919174171992
+    second: Circe_Lanzar_3
+  - first:
+      213: -3902973020837032258
+    second: Circe_Lanzar_4
+  - first:
+      213: 8347150630440120659
+    second: Circe_Lanzar_5
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.002894356}
+  spritePixelsToUnits: 508.8889
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Circe_Lanzar_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1c7e781aef9a5b84cacf533972974bb4
+      internalID: 6643307051319140559
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Circe_Lanzar_1
+      rect:
+        serializedVersion: 2
+        x: 582
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b53ac06908a2d50438ff7f3fc4de6153
+      internalID: 603200637842406691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Circe_Lanzar_2
+      rect:
+        serializedVersion: 2
+        x: 1164
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9a82bd2fa58747d49aa0427afe956888
+      internalID: 7035014625053771743
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Circe_Lanzar_3
+      rect:
+        serializedVersion: 2
+        x: 1746
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7e24cfb1eb22bfd4a9a90c5eeeaec3bd
+      internalID: 4450539919174171992
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Circe_Lanzar_4
+      rect:
+        serializedVersion: 2
+        x: 2328
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 31d093cad1cef1a4399123dd1a3e44a7
+      internalID: -3902973020837032258
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Circe_Lanzar_5
+      rect:
+        serializedVersion: 2
+        x: 2910
+        y: 0
+        width: 582
+        height: 1382
+      alignment: 9
+      pivot: {x: 0.5, y: 0.002894356}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 453034e145c2a9a4fb653506bfd0ec5f
+      internalID: 8347150630440120659
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b8b7f14b59b19764cb84ab265f07c435
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Circe_Lanzar_0: 6643307051319140559
+      Circe_Lanzar_1: 603200637842406691
+      Circe_Lanzar_2: 7035014625053771743
+      Circe_Lanzar_3: 4450539919174171992
+      Circe_Lanzar_4: -3902973020837032258
+      Circe_Lanzar_5: 8347150630440120659
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

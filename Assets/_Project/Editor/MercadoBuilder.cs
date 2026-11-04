@@ -280,7 +280,7 @@ namespace Odisea.EditorTools
             circe.transform.SetParent(parent, false);
             circe.transform.position = new Vector3(0f, 4f, 0f);
 
-            // Tablita y cuerdas (no se mueven con el aviso).
+            // Tablita y cuerdas (no se mueven con el aviso ni se voltean).
             if (art.Plank != null)
             {
                 var plank = new GameObject("Tablita").AddComponent<SpriteRenderer>();
@@ -296,14 +296,38 @@ namespace Odisea.EditorTools
 
             var visual = new GameObject("Dibujo").transform;
             visual.SetParent(circe.transform, false);
-            Part("Vestido", visual, square, new Vector2(0f, 0.75f), new Vector2(0.9f, 1.5f), CircePurple, 5, null);
-            Part("Cabeza", visual, circle, new Vector2(0f, 1.75f), new Vector2(0.55f, 0.55f), Skin, 6, null);
-            Part("Chongo", visual, circle, new Vector2(0f, 2.1f), new Vector2(0.4f, 0.32f), new Color(0.2f, 0.12f, 0.1f), 5, null);
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.CirceControllerPath);
+            Animator animator = null;
             var hand = new GameObject("Mano").transform;
             hand.SetParent(visual, false);
-            hand.localPosition = new Vector3(0f, 1.3f, 0f);
+            if (controller != null)
+            {
+                var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
+                renderer.sprite = AssetDatabase.LoadAllAssetsAtPath(ArtImportBuilder.CirceIdlePath).OfType<Sprite>()
+                    .OrderBy(sprite => sprite.name.Length).ThenBy(sprite => sprite.name, System.StringComparer.Ordinal).FirstOrDefault();
+                renderer.sortingOrder = 5;
+                animator = visual.gameObject.AddComponent<Animator>();
+                animator.runtimeAnimatorController = controller;
+                // Donde queda la mano al soltar (cuadro 5 de "lanzar"): adelante, a la altura del hombro.
+                hand.localPosition = new Vector3(0.6f, 1.6f, 0f);
+            }
+            else
+            {
+                Part("Vestido", visual, square, new Vector2(0f, 0.75f), new Vector2(0.9f, 1.5f), CircePurple, 5, null);
+                Part("Cabeza", visual, circle, new Vector2(0f, 1.75f), new Vector2(0.55f, 0.55f), Skin, 6, null);
+                Part("Chongo", visual, circle, new Vector2(0f, 2.1f), new Vector2(0.4f, 0.32f), new Color(0.2f, 0.12f, 0.1f), 5, null);
+                hand.localPosition = new Vector3(0f, 1.3f, 0f);
+            }
 
             var thrower = circe.AddComponent<CirceThrower>();
+            if (animator != null)
+            {
+                PlayerSandboxBuilder.SetSerialized(thrower, "animator", animator);
+                // El aviso dura lo que tarda en llegar al cuadro en que suelta; y va un poco más abajo (mide más que la
+                // figura de relleno) para que lo que avienta no choque con la repisa de arriba.
+                PlayerSandboxBuilder.SetSerialized(thrower, "windUp", ArtImportBuilder.CirceReleaseFrame / ArtImportBuilder.CirceThrowFps);
+                PlayerSandboxBuilder.SetSerialized(thrower, "heightAbovePlayer", -0.4f);
+            }
             PlayerSandboxBuilder.SetSerialized(thrower, "player", player);
             PlayerSandboxBuilder.SetSerialized(thrower, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(thrower, "hand", hand);

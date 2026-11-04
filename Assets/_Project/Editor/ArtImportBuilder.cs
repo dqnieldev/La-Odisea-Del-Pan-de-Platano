@@ -90,6 +90,7 @@ namespace Odisea.EditorTools
             ImportCrocodile();
             ImportHenchman(male: true, "secuaz hombre/secuaz_hombre", "ataque_cuchara");
             ImportHenchman(male: false, "secuaz mujer/secuaz_mujer", "ataque_batidor");
+            ImportCirce();
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
@@ -530,6 +531,74 @@ namespace Odisea.EditorTools
                 }
             }
             EditorUtility.SetDirty(controller);
+        }
+
+        // ---------- Madame Circe ----------
+
+        public const string CirceFolder = "Assets/_Project/Art/Characters/Circe";
+        public const string CirceControllerPath = CirceFolder + "/Circe.controller";
+        /// <summary>Tira de Circe en reposo (el primer cuadro se ve en la escena antes de darle Play).</summary>
+        public const string CirceIdlePath = CirceFolder + "/Circe_Reposo.png";
+        private const string CirceSource = "Personajes/sprite en png/circe";
+        // Estatura con todo y su gorro alto: más alta que los secuaces.
+        private const float CirceHeight = 2.7f;
+        /// <summary>Cuadros por segundo de "lanzar": la mano suelta en el cuadro 5 (índice 4), a los 0.4 s.</summary>
+        public const float CirceThrowFps = 10f;
+        public const int CirceReleaseFrame = 4;
+
+        /// <summary>
+        /// Madame Circe (Odisea > Arte > Importar a Madame Circe): Idle (6 cuadros, en bucle), Throw (6: echa el brazo
+        /// atrás, suelta en el quinto y se recompone) y Laugh (4, se tapa la boca; dos vueltas). Las hojas traen fondo
+        /// blanco. Cada una se escala con su primer cuadro (parada) y los pies quedan a la misma altura.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar a Madame Circe")]
+        public static void ImportCirce()
+        {
+            EnsureFolder(CirceFolder);
+            List<Sprite> idle = ImportCirceStrip("circe_reposo.png", 245, CirceIdlePath, "Circe_Reposo");
+            if (idle == null)
+                return;
+            List<Sprite> toss = ImportCirceStrip("circe_lanzar.png", 245, $"{CirceFolder}/Circe_Lanzar.png", "Circe_Lanzar");
+            // La de reír es JPG: el ruido de compresión pide un umbral un poco más bajo.
+            List<Sprite> laugh = ImportCirceStrip("circe_reir.jfif", 238, $"{CirceFolder}/Circe_Reir.png", "Circe_Reir");
+
+            AnimatorController controller = ResetController(CirceControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState idleState = machine.AddState("Idle");
+            idleState.motion = CreateClip($"{CirceFolder}/Circe_Idle.anim", idle, 7f, loop: true);
+            machine.defaultState = idleState;
+            if (toss != null)
+            {
+                controller.AddParameter("Throw", AnimatorControllerParameterType.Trigger);
+                AnimatorState state = machine.AddState("Throw");
+                state.motion = CreateClip($"{CirceFolder}/Circe_Throw.anim", toss, CirceThrowFps, loop: false);
+                AnyState(machine, state, "Throw", toSelf: false);
+                ExitWhenDone(state, idleState);
+            }
+            if (laugh != null)
+            {
+                controller.AddParameter("Laugh", AnimatorControllerParameterType.Trigger);
+                AnimatorState state = machine.AddState("Laugh");
+                state.motion = CreateClip($"{CirceFolder}/Circe_Laugh.anim", laugh.Concat(laugh).ToList(), 8f, loop: false);
+                AnyState(machine, state, "Laugh", toSelf: false);
+                ExitWhenDone(state, idleState);
+            }
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+        }
+
+        private static List<Sprite> ImportCirceStrip(string file, int whiteThreshold, string path, string spriteName)
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/{file}", whiteThreshold, warnIfMissing: false);
+            if (sheet == null)
+                return null;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {spriteName}: {frames.Count} cuadros.");
+            float ppu = frames[0].Body.Height / CirceHeight;
+            int ground = frames.Min(f => f.Body.MinY);
+            frames = frames.Select(f => f.WithGroundAnchor(ground)).ToList();
+            return WriteStrip(sheet, frames, path, ppu, spriteName);
         }
 
         // ---------- Secuaces de Circe (cocinero y cocinera) ----------
