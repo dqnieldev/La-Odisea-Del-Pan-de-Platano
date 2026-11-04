@@ -94,6 +94,7 @@ namespace Odisea.EditorTools
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
+            ImportMercadoBackground();
             ImportItems();
             ImportIngredients();
             ImportCirceThrowables();
@@ -970,6 +971,147 @@ namespace Odisea.EditorTools
             return texture;
         }
 
+        // ---------- Fondo del Mercado ----------
+
+        private const string MercadoBackgroundSource = "Fondos/mercado/";
+        public const string MercadoBackgroundFolder = Level1Folder + "/Fondo";
+        /// <summary>Pared detrás de las repisas: un tramo que se repite a lo alto (Tiled).</summary>
+        public const string MarketWallPath = MercadoBackgroundFolder + "/Pared.png";
+        /// <summary>El hueco del centro (pisos del mercado a lo lejos): se repite a lo alto.</summary>
+        public const string MarketGapPath = MercadoBackgroundFolder + "/Hueco.png";
+        /// <summary>Puestos de la planta baja; pivote abajo, la parte de arriba se desvanece.</summary>
+        public const string MarketFloorPath = MercadoBackgroundFolder + "/Piso.png";
+        /// <summary>Techo con el tragaluz; pivote arriba, la parte de abajo se desvanece.</summary>
+        public const string MarketRoofPath = MercadoBackgroundFolder + "/Techo.png";
+        // Anchos en el juego: la pared, lo que mide cada torre; el hueco, un poco más que el hueco (lo tapan las torres);
+        // el piso y el techo, todo el mercado.
+        public const float MarketWallWidth = 10.5f;
+        public const float MarketGapWidth = 8f;
+        public const float MarketWideWidth = 27.5f;
+        // Los puestos miden lo de la planta baja (de los toldos al piso) y se repiten a lo ancho.
+        private const float MarketStallsHeight = 7.4f;
+
+        /// <summary>
+        /// Fondo del Mercado (Docs/Referencias/Fondos/mercado). Las imágenes que se repiten a lo alto vienen con el
+        /// dibujo duplicado dentro: de la pared se toma la primera copia (hasta la raya donde empieza la segunda) y
+        /// del hueco el tramo de en medio (entre el tragaluz de arriba y el de abajo), que empalma consigo mismo.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar fondo del Mercado")]
+        public static void ImportMercadoBackground()
+        {
+            if (ReadSource(MercadoBackgroundSource + "pared.png") is not { } wall)
+                return;
+            EnsureFolder(MercadoBackgroundFolder);
+            // Filas contadas desde arriba de la imagen.
+            int wallEnd = SeamRow(wall, 0.4f, 0.6f);
+            WriteRegion(wall, TopRows(wall, 0, wallEnd), MarketWallPath, wall.Width / MarketWallWidth, new Vector2(0.5f, 0.5f), padding: 0);
+
+            if (ReadSource(MercadoBackgroundSource + "hueco.png") is { } gap)
+            {
+                int from = SeamRow(gap, 0.45f, 0.55f) + 1, to = SeamRow(gap, 0.64f, 0.68f);
+                BlendSeam(gap, from, to, Mathf.Min(80, from));
+                WriteRegion(gap, TopRows(gap, from, to), MarketGapPath, gap.Width / MarketGapWidth, new Vector2(0.5f, 0.5f), padding: 0);
+            }
+            // Los puestos: de arriba hasta los toldos se desvanece (para fundirse con la pared). Se corta en el primer y
+            // el último poste de los puestos, para que al repetirse a lo ancho la unión caiga en un poste.
+            if (ReadSource(MercadoBackgroundSource + "piso.png") is { } floor)
+            {
+                FadeRows(floor, 0.12f, 0.25f);
+                int left = DarkestColumn(floor, 0.03f, 0.08f), right = DarkestColumn(floor, 0.92f, 0.98f);
+                WriteRegion(floor, new RectInt(left, 0, right - left, floor.Height), MarketFloorPath, floor.Height / MarketStallsHeight,
+                    new Vector2(0.5f, 0f), padding: 0);
+            }
+            // El techo: lo de abajo (ya casi liso) se desvanece.
+            if (ReadSource(MercadoBackgroundSource + "techo.png") is { } roof)
+            {
+                FadeRows(roof, 0.95f, 0.8f);
+                WriteRegion(roof, new RectInt(0, 0, roof.Width, roof.Height), MarketRoofPath, roof.Width / MarketWideWidth,
+                    new Vector2(0.5f, 1f), padding: 0);
+            }
+        }
+
+        // La fila (desde arriba) donde más cambia la imagen de una fila a la siguiente, entre esas fracciones del alto:
+        // la raya donde se pega una copia con la otra.
+        private static int SeamRow(Sheet sheet, float fromFraction, float toFraction)
+        {
+            int best = Mathf.RoundToInt(sheet.Height * fromFraction);
+            float bestDiff = -1f;
+            for (int row = best; row < Mathf.RoundToInt(sheet.Height * toFraction); row++)
+            {
+                int y = sheet.Height - 1 - row;
+                long diff = 0;
+                for (int x = 0; x < sheet.Width; x += 2)
+                {
+                    Color32 a = sheet.Pixels[y * sheet.Width + x], b = sheet.Pixels[(y - 1) * sheet.Width + x];
+                    diff += Mathf.Abs(a.r + a.g + a.b - b.r - b.g - b.b);
+                }
+                if (diff > bestDiff)
+                {
+                    bestDiff = diff;
+                    best = row;
+                }
+            }
+            return best;
+        }
+
+        // La columna más oscura (la raya de un poste) entre esas fracciones del ancho, a la altura de los puestos.
+        private static int DarkestColumn(Sheet sheet, float fromFraction, float toFraction)
+        {
+            int best = Mathf.RoundToInt(sheet.Width * fromFraction);
+            long bestSum = long.MaxValue;
+            int yFrom = Mathf.RoundToInt(sheet.Height * 0.2f), yTo = Mathf.RoundToInt(sheet.Height * 0.55f);
+            for (int x = best; x < Mathf.RoundToInt(sheet.Width * toFraction); x++)
+            {
+                long sum = 0;
+                for (int y = yFrom; y < yTo; y++)
+                {
+                    Color32 c = sheet.Pixels[y * sheet.Width + x];
+                    sum += c.r + c.g + c.b;
+                }
+                if (sum < bestSum)
+                {
+                    bestSum = sum;
+                    best = x;
+                }
+            }
+            return best;
+        }
+
+        // Para que el tramo [fromRow, toRow) empalme consigo mismo al repetirse: sus últimas filas se van mezclando con
+        // las que hay justo antes de su primera fila (lo que en la imagen original venía encima de ella).
+        private static void BlendSeam(Sheet sheet, int fromRow, int toRow, int rows)
+        {
+            for (int i = 0; i < rows; i++)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, (i + 1f) / rows);
+                int target = sheet.Height - 1 - (toRow - rows + i);
+                int source = sheet.Height - 1 - (fromRow - rows + i);
+                for (int x = 0; x < sheet.Width; x++)
+                {
+                    int index = target * sheet.Width + x;
+                    sheet.Pixels[index] = Color32.Lerp(sheet.Pixels[index], sheet.Pixels[source * sheet.Width + x], t);
+                }
+            }
+        }
+
+        // Rectángulo de las filas [fromRow, toRow) contadas desde arriba (las texturas cuentan desde abajo).
+        private static RectInt TopRows(Sheet sheet, int fromRow, int toRow) =>
+            new(0, sheet.Height - toRow, sheet.Width, toRow - fromRow);
+
+        // Transparencia por filas (fracciones desde arriba): invisible en "clear", opaca en "solid" (de un lado o del otro).
+        private static void FadeRows(Sheet sheet, float clear, float solid)
+        {
+            for (int y = 0; y < sheet.Height; y++)
+            {
+                float row = (sheet.Height - 1 - y) / (float)sheet.Height;
+                float alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(clear, solid, row));
+                if (alpha >= 1f)
+                    continue;
+                for (int x = 0; x < sheet.Width; x++)
+                    sheet.Pixels[y * sheet.Width + x].a = (byte)Mathf.RoundToInt(sheet.Pixels[y * sheet.Width + x].a * alpha);
+            }
+        }
+
         // ---------- Fondo del tutorial ----------
 
         private const string TutorialArtSource = "Sprites-por-revisar/Niveles/Tutorial/";
@@ -1399,9 +1541,12 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Imagen ya recortada con transparencia (sin quitar fondo ni buscar manchas). null si no existe.</summary>
-        private static Sheet ReadImage(string fileName)
+        private static Sheet ReadImage(string fileName) => ReadSource(TutorialArtSource + fileName);
+
+        // Una imagen de Docs/Referencias tal cual (sin quitar el fondo ni buscar manchas).
+        private static Sheet ReadSource(string relativePath)
         {
-            string path = Path.Combine(SourceFolder, TutorialArtSource + fileName);
+            string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
             {
                 Debug.LogWarning($"[Odisea] No se encontró {path}.");

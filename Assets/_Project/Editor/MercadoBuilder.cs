@@ -99,13 +99,7 @@ namespace Odisea.EditorTools
                 new Vector2(1f, top + 8f), Wall, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 2f),
                 new Vector2(1f, top + 8f), Wall, ground);
-            foreach (float side in new[] { -1f, 1f })
-            {
-                var back = PlayerSandboxBuilder.CreateBlock(side < 0f ? "Fondo torre izquierda" : "Fondo torre derecha", root, square,
-                    new Vector2(side * 8f, top / 2f), new Vector2(10.5f, top), BackWall, 0);
-                Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
-                back.GetComponent<SpriteRenderer>().sortingOrder = -10;
-            }
+            CreateBackground(root, square, top);
 
             // ----- Repisas, vigas y escaleras -----
             var art = PlayerSandboxBuilder.LevelArt.Load();
@@ -175,6 +169,59 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
+        }
+
+        /// <summary>
+        /// Fondo: la pared del mercado detrás de cada torre y los pisos lejanos en el hueco (los dos se repiten a lo
+        /// alto), los puestos de la planta baja abajo y el techo con su tragaluz arriba. Sin el arte, la pared es un
+        /// bloque de color.
+        /// </summary>
+        private static void CreateBackground(Transform root, Sprite square, float top)
+        {
+            var parent = new GameObject("Fondo").transform;
+            parent.SetParent(root, false);
+            // Desde abajo del suelo hasta arriba de lo que alcanza a ver la cámara en la cima.
+            const float bottom = -3f;
+            float height = top + 12f - bottom;
+            var wall = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketWallPath);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                string name = side < 0f ? "Pared izquierda" : "Pared derecha";
+                if (wall != null)
+                    Background(name, parent, wall, new Vector2(side * 8f, bottom + height / 2f),
+                        new Vector2(ArtImportBuilder.MarketWallWidth, height), -10);
+                else
+                {
+                    var back = PlayerSandboxBuilder.CreateBlock(name, parent, square, new Vector2(side * 8f, top / 2f),
+                        new Vector2(10.5f, top), BackWall, 0);
+                    Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
+                    back.GetComponent<SpriteRenderer>().sortingOrder = -10;
+                }
+            }
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketGapPath) is { } gap)
+                Background("Hueco", parent, gap, new Vector2(0f, bottom + height / 2f), new Vector2(ArtImportBuilder.MarketGapWidth, height), -11);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) is { } floor)
+                // A lo ancho de todo el mercado; el empedrado queda apenas debajo del suelo.
+                Background("Puestos", parent, floor, new Vector2(0f, -0.7f),
+                    new Vector2(ArtImportBuilder.MarketWideWidth, floor.bounds.size.y), -9);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketRoofPath) is { } roof)
+                // Arriba de lo que ve la cámara en la cima (sube hasta top - 2 con tamaño 7).
+                Background("Techo", parent, roof, new Vector2(0f, top + 5.2f), null, -9);
+        }
+
+        // Una capa del fondo; con tamaño, el dibujo se repite (Tiled) para llenarlo.
+        private static void Background(string name, Transform parent, Sprite sprite, Vector2 position, Vector2? size, int order)
+        {
+            var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
+            renderer.transform.SetParent(parent, false);
+            renderer.transform.position = position;
+            renderer.sprite = sprite;
+            renderer.sortingOrder = order;
+            if (size is { } tiled)
+            {
+                renderer.drawMode = SpriteDrawMode.Tiled;
+                renderer.size = tiled;
+            }
         }
 
         // ---------- Enemigos: los secuaces de Circe y Madame Circe ----------
