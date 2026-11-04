@@ -88,6 +88,8 @@ namespace Odisea.EditorTools
             ImportUlises();
             ImportDough();
             ImportCrocodile();
+            ImportHenchman(male: true, "secuaz hombre/secuaz_hombre", "ataque_cuchara");
+            ImportHenchman(male: false, "secuaz mujer/secuaz_mujer", "ataque_batidor");
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
@@ -520,6 +522,117 @@ namespace Odisea.EditorTools
                     List<Sprite> hurtSprites = WriteStrip(hurtSheet, hurt, $"{CrocodileFolder}/Cocodrilo_Hurt.png", hurtPpu, "Cocodrilo_Hurt");
                     // Lento a propósito (~0.65 s): el golpe tiene que notarse; el cocodrilo se queda quieto ese tiempo.
                     AnimationClip hurtClip = CreateClip($"{CrocodileFolder}/Cocodrilo_Hurt.anim", hurtSprites, 6f, loop: false, holdLast: 0.15f);
+                    controller.AddParameter("Hurt", AnimatorControllerParameterType.Trigger);
+                    AnimatorState hurtState = machine.AddState("Hurt");
+                    hurtState.motion = hurtClip;
+                    AnyState(machine, hurtState, "Hurt", toSelf: true);
+                    ExitWhenDone(hurtState, walkState);
+                }
+            }
+            EditorUtility.SetDirty(controller);
+        }
+
+        // ---------- Secuaces de Circe (cocinero y cocinera) ----------
+
+        private const string HenchmenSource = "Personajes/sprite en png/enemigos";
+        public const string HenchmenFolder = "Assets/_Project/Art/Characters/Enemigos";
+        // Estatura con todo y gorro: un poco más altos que Ulises.
+        private const float HenchmanHeight = 2.15f;
+
+        /// <summary>Controller del secuaz (hombre = cocinero con cuchara, mujer = cocinera con batidor).</summary>
+        public static string HenchmanControllerPath(bool male) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}.controller";
+
+        /// <summary>Primer cuadro de su caminar (para que la escena se vea bien antes de darle Play).</summary>
+        public static string HenchmanWalkPath(bool male) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}_Walk.png";
+
+        /// <summary>Animación del secuaz: Walk, Attack, Hurt o Die.</summary>
+        public static string HenchmanClipPath(bool male, string clip) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}_{clip}.anim";
+
+        private static string HenchmanFolder(bool male) => $"{HenchmenFolder}/Secuaz {(male ? "hombre" : "mujer")}";
+        private static string HenchmanPrefix(bool male) => male ? "SecuazHombre" : "SecuazMujer";
+
+        [MenuItem("Odisea/Arte/Importar secuaces de Circe")]
+        public static void ImportHenchmen()
+        {
+            ImportHenchman(male: true, "secuaz hombre/secuaz_hombre", "ataque_cuchara");
+            ImportHenchman(male: false, "secuaz mujer/secuaz_mujer", "ataque_batidor");
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Un secuaz con el mismo esquema que el cocodrilo (lo maneja PatrolEnemy): Walk (6 cuadros), Bite = el ataque
+        /// (4 cuadros: prepara, levanta, golpea —aquí daña— y se recompone; a 8 fps dura 0.5 s y pega a los 0.25 s),
+        /// Hurt (el gorro sale volando y se marea) y Die (el gorro sale volando y cae de espaldas). Cada hoja tiene su
+        /// propio lienzo: se escala para que mida HenchmanHeight parado, y los pies de cada hoja quedan a la misma altura.
+        /// </summary>
+        private static void ImportHenchman(bool male, string sourcePrefix, string attackName)
+        {
+            string folder = HenchmanFolder(male), prefix = HenchmanPrefix(male);
+            Sheet walkSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_caminar.png", warnIfMissing: false);
+            if (walkSheet == null)
+                return;
+            EnsureFolder(folder);
+            List<Frame> walk = FindFrames(walkSheet, coreFraction: 0.3f, attachDistance: 15).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {prefix}: caminar {walk.Count} cuadros.");
+            float ppu = MedianCoreHeight(walk) / HenchmanHeight;
+            List<Sprite> walkSprites = WriteStrip(walkSheet, walk, $"{folder}/{prefix}_Walk.png", ppu, $"{prefix}_Walk");
+            AnimationClip walkClip = CreateClip($"{folder}/{prefix}_Walk.anim", walkSprites, 10f, loop: true);
+
+            AnimatorController controller = ResetController(HenchmanControllerPath(male));
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState walkState = machine.AddState("Walk");
+            walkState.motion = walkClip;
+            machine.defaultState = walkState;
+
+            // Ataque: la escala sale del último cuadro (parado, con el utensilio abajo).
+            Sheet attackSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_{attackName}.png", warnIfMissing: false);
+            if (attackSheet != null)
+            {
+                List<Frame> attack = FindFrames(attackSheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] {prefix}: ataque {attack.Count} cuadros.");
+                if (attack.Count >= 4)
+                {
+                    float attackPpu = attack[attack.Count - 1].Core.Height / HenchmanHeight;
+                    int ground = attack.Min(f => f.Body.MinY);
+                    attack = attack.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    List<Sprite> sprites = WriteStrip(attackSheet, attack, $"{folder}/{prefix}_Attack.png", attackPpu, $"{prefix}_Attack");
+                    AnimationClip clip = CreateClip($"{folder}/{prefix}_Attack.anim", sprites, 8f, loop: false);
+                    controller.AddParameter("Bite", AnimatorControllerParameterType.Trigger);
+                    AnimatorState state = machine.AddState("Bite");
+                    state.motion = clip;
+                    AnyState(machine, state, "Bite", toSelf: false);
+                    ExitWhenDone(state, walkState);
+                }
+            }
+
+            // Golpe y muerte (5 cuadros): 0 el gorro sale volando, 1 mareado, 2-4 cae de espaldas. La escala sale del
+            // mareado (parado con el gorro puesto).
+            Sheet hitSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_golpe_muerte.png", warnIfMissing: false);
+            if (hitSheet != null)
+            {
+                List<Frame> hit = FindFrames(hitSheet, coreFraction: 0.3f, attachDistance: 60).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] {prefix}: golpe y muerte {hit.Count} cuadros.");
+                if (hit.Count >= 5)
+                {
+                    float hitPpu = hit[1].Core.Height / HenchmanHeight;
+                    int ground = hit.Min(f => f.Body.MinY);
+                    hit = hit.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    // Muerte primero: si el golpe mata, gana la muerte.
+                    List<Frame> death = new() { hit[0], hit[2], hit[3], hit[4] };
+                    List<Sprite> deathSprites = WriteStrip(hitSheet, death, $"{folder}/{prefix}_Die.png", hitPpu, $"{prefix}_Die");
+                    AnimationClip deathClip = CreateClip($"{folder}/{prefix}_Die.anim", deathSprites, 8f, loop: false,
+                        holdLast: CrocodileDeathHold);
+                    controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+                    AnimatorState deathState = machine.AddState("Die");
+                    deathState.motion = deathClip;
+                    AnyState(machine, deathState, "Die", toSelf: false);
+
+                    List<Sprite> hurtSprites = WriteStrip(hitSheet, new List<Frame> { hit[0], hit[1] }, $"{folder}/{prefix}_Hurt.png",
+                        hitPpu, $"{prefix}_Hurt");
+                    AnimationClip hurtClip = CreateClip($"{folder}/{prefix}_Hurt.anim", hurtSprites, 5f, loop: false, holdLast: 0.15f);
                     controller.AddParameter("Hurt", AnimatorControllerParameterType.Trigger);
                     AnimatorState hurtState = machine.AddState("Hurt");
                     hurtState.motion = hurtClip;

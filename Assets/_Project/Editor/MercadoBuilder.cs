@@ -74,8 +74,8 @@ namespace Odisea.EditorTools
         };
         private const int IngredientCount = 8;
 
-        // Cerditos de Circe (x, piso): uno cada uno o dos pisos, en las dos torres.
-        private static readonly (float x, int floor)[] PigSpots = { (-10f, 1), (10f, 3), (-10f, 4), (10.5f, 6), (10f, 8), (-8f, 9) };
+        // Secuaces de Circe (x, piso): uno cada uno o dos pisos, en las dos torres; se alternan cocinero y cocinera.
+        private static readonly (float x, int floor)[] HenchmanSpots = { (-10f, 1), (10f, 3), (-10f, 4), (10.5f, 6), (10f, 8), (-8f, 9) };
 
         // Lugares posibles del ítem de ayuda (pescado, hoja o café, al azar): sale uno solo por partida.
         private static readonly (float x, int floor)[] HelperSpots = { (10f, 5), (-4f, 3), (11f, 7), (-6f, 8) };
@@ -158,10 +158,13 @@ namespace Odisea.EditorTools
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
                 showControls: false, background: Backdrop);
 
-            // ----- Enemigos: cerditos en las repisas y Madame Circe en el hueco -----
+            // ----- Enemigos: secuaces en las repisas y Madame Circe en el hueco -----
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            for (int i = 0; i < PigSpots.Length; i++)
-                CreatePig(root, square, circle, new Vector2(PigSpots[i].x, Surface(PigSpots[i].floor)), i + 1, level);
+            for (int i = 0; i < HenchmanSpots.Length; i++)
+            {
+                (float x, int floor) = HenchmanSpots[i];
+                CreateHenchman(root, square, circle, new Vector2(x, Surface(floor)), i + 1, male: i % 2 == 0, level);
+            }
             CreateCirce(root, square, circle, art, player.GetComponent<Health>(), top, level);
             // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
@@ -174,64 +177,94 @@ namespace Odisea.EditorTools
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
         }
 
-        // ---------- Enemigos: los cerditos de Circe y Madame Circe ----------
+        // ---------- Enemigos: los secuaces de Circe y Madame Circe ----------
 
         private const string EnemyPrefabFolder = "Assets/_Project/Prefabs/Enemigos";
-        private static readonly Color PigPink = new(0.95f, 0.62f, 0.66f);
-        private static readonly Color PigDark = new(0.78f, 0.42f, 0.48f);
+        private static readonly Color ChefNavy = new(0.16f, 0.2f, 0.36f);
         private static readonly Color CircePurple = new(0.42f, 0.2f, 0.48f);
         private static readonly Color Skin = new(0.87f, 0.68f, 0.52f);
         private static readonly Color Peel = new(0.98f, 0.82f, 0.25f);
         private static readonly Color Crate = new(0.66f, 0.45f, 0.24f);
 
         /// <summary>
-        /// Cerdito de Circe (en la Odisea, Circe convierte a los hombres en cerdos): camina de orilla a orilla de su repisa,
-        /// quita un corazón al tocarlo y cae con 2 golpes; cuenta para el puntaje. Sin su dibujo, un cuerpo rosa con cabeza.
+        /// Secuaz de Circe: cocinero con cuchara (male) o cocinera con batidor. Camina de orilla a orilla de su repisa
+        /// (PatrolEnemy, como el cocodrilo), quita un corazón al tocarlo y, si tiene a Ulises enfrente, se detiene y le
+        /// pega con el utensilio. Cae con 2 golpes y cuenta para el puntaje. Sin su arte, una figura azul marino.
         /// </summary>
-        private static void CreatePig(Transform parent, Sprite square, Sprite circle, Vector2 feet, int number,
+        private static void CreateHenchman(Transform parent, Sprite square, Sprite circle, Vector2 feet, int number, bool male,
             PlayerSandboxBuilder.LevelContext level)
         {
-            var pig = new GameObject($"Cerdito de Circe {number}") { layer = level.EnemyLayer };
-            pig.transform.SetParent(parent, false);
-            pig.transform.position = feet;
-            var body = pig.AddComponent<Rigidbody2D>();
+            var henchman = new GameObject($"Secuaz de Circe {number} ({(male ? "cocinero" : "cocinera")})") { layer = level.EnemyLayer };
+            henchman.transform.SetParent(parent, false);
+            henchman.transform.position = feet;
+            var body = henchman.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Kinematic;
-            var collider = pig.AddComponent<BoxCollider2D>();
+            var collider = henchman.AddComponent<BoxCollider2D>();
             collider.isTrigger = true;
-            collider.size = new Vector2(1.3f, 0.9f);
-            collider.offset = new Vector2(0f, 0.45f);
+            collider.size = new Vector2(0.9f, 1.9f);
+            collider.offset = new Vector2(0f, 0.95f);
 
             var visual = new GameObject("Visual") { layer = level.EnemyLayer };
-            visual.transform.SetParent(pig.transform, false);
+            visual.transform.SetParent(henchman.transform, false);
             var flash = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
-            // Mira a la derecha: cuerpo, cabeza adelante con su trompa y una patita atrás.
-            SpriteRenderer[] parts =
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.HenchmanControllerPath(male));
+            SpriteRenderer[] renderers;
+            Animator animator = null;
+            if (controller != null)
             {
-                Part("Cuerpo", visual.transform, square, new Vector2(-0.1f, 0.42f), new Vector2(1.1f, 0.65f), PigPink, 6, flash),
-                Part("Cabeza", visual.transform, circle, new Vector2(0.5f, 0.6f), new Vector2(0.6f, 0.6f), PigPink, 7, flash),
-                Part("Trompa", visual.transform, circle, new Vector2(0.78f, 0.55f), new Vector2(0.24f, 0.2f), PigDark, 8, flash),
-                Part("Pata", visual.transform, square, new Vector2(-0.45f, 0.08f), new Vector2(0.18f, 0.18f), PigDark, 6, flash),
-                Part("Pata", visual.transform, square, new Vector2(0.25f, 0.08f), new Vector2(0.18f, 0.18f), PigDark, 6, flash),
-            };
+                var renderer = visual.AddComponent<SpriteRenderer>();
+                renderer.sprite = AssetDatabase.LoadAllAssetsAtPath(ArtImportBuilder.HenchmanWalkPath(male)).OfType<Sprite>()
+                    .OrderBy(sprite => sprite.name.Length).ThenBy(sprite => sprite.name, System.StringComparer.Ordinal).FirstOrDefault();
+                renderer.sharedMaterial = flash;
+                renderer.sortingOrder = 6;
+                animator = visual.AddComponent<Animator>();
+                animator.runtimeAnimatorController = controller;
+                renderers = new[] { renderer };
+            }
+            else
+            {
+                renderers = new[]
+                {
+                    Part("Cuerpo", visual.transform, square, new Vector2(0f, 0.75f), new Vector2(0.8f, 1.5f), ChefNavy, 6, flash),
+                    Part("Cabeza", visual.transform, circle, new Vector2(0.05f, 1.7f), new Vector2(0.5f, 0.5f), Skin, 7, flash),
+                };
+            }
 
-            var health = pig.AddComponent<Health>();
+            var health = henchman.AddComponent<Health>();
             PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
             PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.2f);
             PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false); // Lo destruye DamageFeedback.
-            var hazard = pig.AddComponent<Hazard>();
+            var hazard = henchman.AddComponent<Hazard>();
             PlayerSandboxBuilder.SetSerialized(hazard, "targetLayers", 1 << level.PlayerLayer);
-            var patrol = pig.AddComponent<PatrolEnemy>();
+            var patrol = henchman.AddComponent<PatrolEnemy>();
             PlayerSandboxBuilder.SetSerialized(patrol, "groundLayers", 1 << level.GroundLayer);
             PlayerSandboxBuilder.SetSerialized(patrol, "speed", 2f);
             PlayerSandboxBuilder.SetSerialized(patrol, "health", health);
             PlayerSandboxBuilder.SetSerialized(patrol, "startDirection", number % 2 == 0 ? 1 : -1);
-            var feedback = pig.AddComponent<DamageFeedback>();
+            if (animator != null)
+            {
+                // El ataque con el utensilio: alcanza un poco adelante, a la altura del pecho de Ulises.
+                PlayerSandboxBuilder.SetSerialized(patrol, "animator", animator);
+                PlayerSandboxBuilder.SetSerialized(patrol, "biteTargets", 1 << level.PlayerLayer);
+                PlayerSandboxBuilder.SetSerialized(patrol, "biteOffset", new Vector2(0.9f, 0.9f));
+                PlayerSandboxBuilder.SetSerialized(patrol, "biteSize", new Vector2(1.2f, 1.4f));
+                PlayerSandboxBuilder.SetSerialized(patrol, "lungeDistance", 0.3f);
+                PlayerSandboxBuilder.SetSerialized(patrol, "biteCooldown", 1.5f);
+                PlayerSandboxBuilder.SetSerialized(patrol, "counterBiteFromBehind", false);
+                var hurtClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.HenchmanClipPath(male, "Hurt"));
+                if (hurtClip != null)
+                    PlayerSandboxBuilder.SetSerialized(patrol, "hurtStun", hurtClip.length);
+            }
+            var feedback = henchman.AddComponent<DamageFeedback>();
             PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
             PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual.transform);
-            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", parts.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", renderers.Cast<Object>().ToArray());
             PlayerSandboxBuilder.SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
             PlayerSandboxBuilder.SetSerialized(feedback, "flashColor", Color.white);
             PlayerSandboxBuilder.SetSerialized(feedback, "flashDuration", 0.2f);
+            var deathClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.HenchmanClipPath(male, "Die"));
+            if (deathClip != null)
+                PlayerSandboxBuilder.SetSerialized(feedback, "deathAnimationTime", deathClip.length);
         }
 
         /// <summary>
