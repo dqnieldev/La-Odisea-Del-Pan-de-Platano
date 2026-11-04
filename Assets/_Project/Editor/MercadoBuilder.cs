@@ -10,9 +10,9 @@ namespace Odisea.EditorTools
     /// Nivel 1, El Mercado (Odisea > Niveles > Crear Mercado): nivel vertical sacado de estructura_nivel_1.jpg. Son dos
     /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba.
     /// Las repisas son firmes (no se atraviesan desde abajo): se sube por las escaleras (seguro y lento) o por las
-    /// orillas del hueco con doble salto (rápido; si falla, cae varios pisos). Hay ingredientes repartidos (algunos
-    /// escondidos o sobre el hueco) y la meta en la cima (el racimo de plátano). No hay puntos de control: al morir
-    /// se empieza desde abajo.
+    /// orillas del hueco con doble salto (rápido; si falla, cae varios pisos). Los ingredientes salen en lugares al azar
+    /// cada vez que se juega (algunos escondidos o sobre el hueco) y la meta está en la cima (el racimo de plátano). No
+    /// hay puntos de control: al morir se empieza desde abajo.
     /// Sin el arte del nivel, tablones, vigas y escaleras quedan de color.
     /// </summary>
     public static class MercadoBuilder
@@ -22,7 +22,7 @@ namespace Odisea.EditorTools
 
         // Medidas del nivel (unidades). El suelo está en y = 0 y cada piso queda FloorGap más arriba.
         private const float FloorGap = 4f;
-        private const int TopFloor = 7;
+        private const int TopFloor = 10;
         private const float HalfWidth = 13.5f;
         // Vigas (columnas de las dos torres), como en el boceto.
         private static readonly float[] PostXs = { -11.2f, -4.8f, 5f, 11.1f };
@@ -32,44 +32,46 @@ namespace Odisea.EditorTools
         private static readonly Color Wall = new(0.36f, 0.24f, 0.15f);
         private static readonly Color BackWall = new(0.86f, 0.78f, 0.64f);
 
-        // Repisas de cada piso (de dónde a dónde en x); los pisos 4 y 7 cruzan de lado a lado. Las orillas del hueco se
+        // Repisas de cada piso (de dónde a dónde en x); los pisos 5 y 10 cruzan de lado a lado. Las orillas del hueco se
         // alternan (una más adentro, la de arriba más afuera) para que se pueda subir saltando junto a ellas.
         private static readonly (int floor, float from, float to)[] Shelves =
         {
             (1, -13f, -3f), (1, 3f, 13f),
             (2, -13f, -4.5f), (2, 4.5f, 13f),
             (3, -13f, -2.5f), (3, 3f, 13f),
-            (4, -13f, 13f),
-            (5, -13f, -3f), (5, 2.5f, 13f),
-            (6, -13f, -4.5f), (6, 4.5f, 13f),
-            (7, -13f, 13f),
+            (4, -13f, -3.5f), (4, 2.5f, 13f),
+            (5, -13f, 13f),
+            (6, -13f, -3f), (6, 2.5f, 13f),
+            (7, -13f, -4.5f), (7, 4.5f, 13f),
+            (8, -13f, -2.5f), (8, 3f, 13f),
+            (9, -13f, -4f), (9, 4f, 13f),
+            (10, -13f, 13f),
         };
         // En los pisos completos, el tramo sobre el hueco se atraviesa desde abajo (la ruta por saltos sigue).
         private const float GapHalfWidth = 3f;
         // Ancho del tramo de paso encima de cada escalera.
         private const float HatchWidth = 1.6f;
 
-        // Escaleras (x, del piso, al piso). Ruta: la torre izquierda hasta el piso 4, cruzar, y la derecha hasta arriba.
-        // La derecha de abajo pide un doble salto (del 2 al 3) y la izquierda de arriba no llega a la cima: hay que
-        // saltar el hueco.
+        // Escaleras (x, del piso, al piso). Ruta: la torre izquierda hasta el piso 5, cruzar, y la derecha hasta arriba.
+        // A cada torre le faltan escalones (hay que subir esos pisos con doble salto) y la izquierda de arriba no llega a
+        // la cima: hay que saltar el hueco.
         private static readonly (float x, int from, int to)[] Ladders =
         {
-            (-6.5f, 0, 1), (-6.5f, 1, 2), (-6.5f, 2, 3), (-11f, 3, 4), (-6.5f, 4, 5), (-6.5f, 5, 6),
-            (7f, 0, 1), (7f, 1, 2), (11f, 3, 4), (5.5f, 4, 5), (11f, 5, 6), (6f, 6, 7),
+            (-6.5f, 0, 1), (-6.5f, 1, 2), (-11f, 2, 3), (-6.5f, 3, 4), (-11f, 4, 5),
+            (-6.5f, 5, 6), (-6.5f, 6, 7), (-11f, 8, 9),
+            (7f, 0, 1), (7f, 1, 2), (11f, 3, 4), (7f, 4, 5),
+            (5.5f, 5, 6), (11f, 6, 7), (6f, 7, 8), (11f, 8, 9), (6f, 9, 10),
         };
 
-        // Ingredientes: en las orillas, sobre el hueco y en la torre que no es la ruta.
-        private static readonly (PlayerSandboxBuilder.Ingredient kind, Vector2 position)[] Ingredients =
+        // Lugares posibles de los ingredientes (x, piso, altura sobre el piso): en las orillas, sobre el hueco y en la torre
+        // que no es la ruta. En cada partida salen IngredientCount de ellos, al azar.
+        private static readonly (float x, int floor, float height)[] IngredientSpots =
         {
-            (PlayerSandboxBuilder.Ingredient.Canela, new Vector2(-12f, Surface(1) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(12f, Surface(2) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Harina, new Vector2(0f, Surface(3) + 1.6f)),
-            (PlayerSandboxBuilder.Ingredient.Platano, new Vector2(12.2f, Surface(3) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Canela, new Vector2(0f, Surface(4) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Harina, new Vector2(9f, Surface(5) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Platano, new Vector2(-3.6f, Surface(5) + 1f)),
-            (PlayerSandboxBuilder.Ingredient.Azucar, new Vector2(-12f, Surface(6) + 1f)),
+            (-12f, 1, 1f), (12f, 1, 1f), (0f, 2, 1.6f), (10f, 2, 1f), (-12f, 3, 1f), (12.2f, 3, 1f),
+            (-3.8f, 4, 1f), (9f, 4, 1f), (0f, 5, 1f), (-12f, 5, 1f), (12f, 6, 1f), (-9f, 6, 1f),
+            (0f, 7, 1.6f), (-12f, 7, 1f), (12f, 8, 1f), (-3.6f, 8, 1f), (-12f, 9, 1f), (9f, 9, 1f),
         };
+        private const int IngredientCount = 8;
 
         private static float Surface(int floor) => floor * FloorGap;
 
@@ -119,10 +121,19 @@ namespace Odisea.EditorTools
             foreach ((float x, int from, int to) in Ladders)
                 PlayerSandboxBuilder.CreateLadder($"Escalera {from}-{to}", root, square, art, x, Surface(from), Surface(to), level.LadderLayer);
 
-            // ----- Ingredientes y un pescado a la mitad -----
-            foreach ((PlayerSandboxBuilder.Ingredient kind, Vector2 position) in Ingredients)
-                PlayerSandboxBuilder.CreateIngredient(level, kind, position);
-            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(8f, Surface(4) + 1f));
+            // ----- Ingredientes (en lugares al azar) y un pescado a la mitad -----
+            var kinds = (PlayerSandboxBuilder.Ingredient[])System.Enum.GetValues(typeof(PlayerSandboxBuilder.Ingredient));
+            var candidates = new Object[IngredientSpots.Length];
+            for (int i = 0; i < IngredientSpots.Length; i++)
+            {
+                (float x, int floor, float height) = IngredientSpots[i];
+                candidates[i] = PlayerSandboxBuilder.CreateIngredient(level, kinds[i % kinds.Length], new Vector2(x, Surface(floor) + height))
+                    .GetComponent<Pickup>();
+            }
+            var spawner = new GameObject("Ingredientes al azar").AddComponent<RandomPickups>();
+            PlayerSandboxBuilder.SetSerialized(spawner, "candidates", candidates);
+            PlayerSandboxBuilder.SetSerialized(spawner, "keep", IngredientCount);
+            PlayerSandboxBuilder.CreatePickup(level, PickupKind.Heal, new Vector2(8f, Surface(5) + 1f));
 
             // ----- Meta: el racimo de plátano en la cima -----
             CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
