@@ -358,32 +358,53 @@ namespace Odisea.EditorTools
                 EnsureThrownPrefab("Cascara", ThrownKind.Peel, square, Peel, new Vector2(0.65f, 0.18f), level));
         }
 
-        // Caja o cáscara como prefab (se instancia al aventarla). El dibujo es un cuadro de color mientras llega el arte.
+        // Caja o cáscara como prefab (se instancia al aventarla). Con su arte, el dibujo de Art/Characters/Circe (la
+        // caja rota o la cáscara en el piso como segundo dibujo); sin él, un cuadro de color.
         private static ThrownItem EnsureThrownPrefab(string name, ThrownKind kind, Sprite square, Color color, Vector2 size,
             PlayerSandboxBuilder.LevelContext level)
         {
             string path = $"{EnemyPrefabFolder}/{name}.prefab";
             if (!AssetDatabase.IsValidFolder(EnemyPrefabFolder))
                 AssetDatabase.CreateFolder("Assets/_Project/Prefabs", "Enemigos");
+            bool crate = kind == ThrownKind.Crate;
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>(crate ? ArtImportBuilder.CirceCratePath : ArtImportBuilder.CircePeelPath);
+            var second = AssetDatabase.LoadAssetAtPath<Sprite>(crate ? ArtImportBuilder.CirceBrokenCratePath : ArtImportBuilder.CirceLandedPeelPath);
+            if (art != null)
+                // Un poco más chico que el dibujo, para que no pegue con las puntas; la cáscara, del ancho de la tirada.
+                size = crate ? (Vector2)art.bounds.size * 0.85f : new Vector2((second != null ? second.bounds.size.x : art.bounds.size.x) * 0.8f, 0.2f);
+
             var root = new GameObject(name) { layer = level.EnemyLayer };
             root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var box = root.AddComponent<BoxCollider2D>();
             box.isTrigger = true;
             // La cáscara se apoya por abajo (su pivote es la base); la caja gira sobre su centro.
             box.size = size;
-            box.offset = kind == ThrownKind.Peel ? new Vector2(0f, size.y / 2f) : Vector2.zero;
+            box.offset = crate ? Vector2.zero : new Vector2(0f, size.y / 2f);
             var visual = new GameObject("Dibujo") { layer = level.EnemyLayer };
             visual.transform.SetParent(root.transform, false);
-            if (kind == ThrownKind.Peel)
-                visual.transform.localPosition = new Vector3(0f, size.y / 2f, 0f);
-            Part("Contorno", visual.transform, square, Vector2.zero, size + new Vector2(0.08f, 0.08f),
-                PlayerSandboxBuilder.Cafe, 9, null);
-            Part("Relleno", visual.transform, square, Vector2.zero, size, color, 10, null);
+            if (!crate)
+                visual.transform.localPosition = new Vector3(0f, art != null ? art.bounds.extents.y : size.y / 2f, 0f);
+            if (art != null)
+            {
+                var renderer = visual.AddComponent<SpriteRenderer>();
+                renderer.sprite = art;
+                renderer.sortingOrder = 10;
+            }
+            else
+            {
+                Part("Contorno", visual.transform, square, Vector2.zero, size + new Vector2(0.08f, 0.08f),
+                    PlayerSandboxBuilder.Cafe, 9, null);
+                Part("Relleno", visual.transform, square, Vector2.zero, size, color, 10, null);
+            }
             var item = root.AddComponent<ThrownItem>();
             PlayerSandboxBuilder.SetSerialized(item, "kind", (int)kind);
             PlayerSandboxBuilder.SetSerialized(item, "visual", visual.transform);
             PlayerSandboxBuilder.SetSerialized(item, "playerLayers", 1 << level.PlayerLayer);
             PlayerSandboxBuilder.SetSerialized(item, "groundLayers", 1 << level.GroundLayer);
+            if (second != null)
+                PlayerSandboxBuilder.SetSerialized(item, crate ? "brokenSprite" : "landedSprite", second);
+            GameSoundsBuilder.SetSound(item, crate ? "breakSound" : "slipSound",
+                GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, crate ? "caja_golpe" : "resbalon"), 0.8f);
             PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             return AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<ThrownItem>();

@@ -32,6 +32,10 @@ namespace Odisea.Enemies
         [Tooltip("Velocidad del resbalón (x hacia donde iba Ulises, y un saltito).")]
         [SerializeField] private Vector2 slipVelocity = new(9f, 3f);
         [SerializeField, Min(0f)] private float slipControlLock = 0.6f;
+        [Tooltip("Cáscara: su dibujo ya tirada en el piso (pivote abajo).")]
+        [SerializeField] private Sprite landedSprite;
+        [Tooltip("Caja: sus pedazos, que se ven un instante al romperse.")]
+        [SerializeField] private Sprite brokenSprite;
         [SerializeField] private SoundEffect breakSound = new();
         [SerializeField] private SoundEffect slipSound = new();
 
@@ -117,7 +121,14 @@ namespace Odisea.Enemies
                 lifeTimer = peelLifetime;
                 transform.position = new Vector3(transform.position.x, top, transform.position.z);
                 if (visual != null)
+                {
                     visual.localRotation = Quaternion.identity;
+                    if (landedSprite != null && visual.TryGetComponent(out SpriteRenderer peel))
+                    {
+                        peel.sprite = landedSprite;
+                        visual.localPosition = Vector3.zero;
+                    }
+                }
             }
             else if (!other.usedByEffector)
             {
@@ -153,6 +164,11 @@ namespace Odisea.Enemies
         private void Break()
         {
             breakSound.Play();
+            if (brokenSprite != null)
+            {
+                int order = visual != null && visual.TryGetComponent(out SpriteRenderer crate) ? crate.sortingOrder : 10;
+                ThrownDebris.Spawn(brokenSprite, transform.position, order, Mathf.Sign(velocity.x == 0f ? 1f : velocity.x));
+            }
             Destroy(gameObject);
         }
     }

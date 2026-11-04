@@ -95,6 +95,8 @@ namespace Odisea.EditorTools
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
             ImportItems();
+            ImportIngredients();
+            ImportCirceThrowables();
             ImportDonLupe();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
@@ -166,6 +168,35 @@ namespace Odisea.EditorTools
                 return;
             RectInt bounds = OpaqueBounds(sheet);
             WriteRegion(sheet, bounds, path, Mathf.Max(bounds.width, bounds.height) / ItemSize, new Vector2(0.5f, 0.5f));
+        }
+
+        // ---------- Ingredientes del pan de plátano ----------
+
+        private const string IngredientsSource = "Items/ingredientes.png";
+        private static readonly string[] IngredientNames = { "Canela", "Azucar", "Harina", "Platano" };
+
+        /// <summary>
+        /// Los 4 ingredientes de una hoja en fila (canela, azúcar, harina, plátano), cada uno a su archivo en
+        /// Art/Items/Ingredientes, del mismo tamaño que los demás ítems. El costal de harina es casi blanco: el
+        /// umbral del fondo va alto para no borrarlo.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar ingredientes")]
+        public static void ImportIngredients()
+        {
+            Sheet sheet = LoadSheet(IngredientsSource, whiteThreshold: 248, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            List<RectInt> parts = SplitByGaps(sheet, OpaqueBounds(sheet), minGap: 60)
+                .Where(part => part.width > 40 && part.height > 40).ToList();
+            if (parts.Count != IngredientNames.Length)
+            {
+                Debug.LogError($"[Odisea] ingredientes.png: se esperaban {IngredientNames.Length} dibujos y hay {parts.Count}.");
+                return;
+            }
+            EnsureFolder(IngredientsFolder);
+            for (int i = 0; i < parts.Count; i++)
+                WriteRegion(sheet, parts[i], $"{IngredientsFolder}/{IngredientNames[i]}.png",
+                    Mathf.Max(parts[i].width, parts[i].height) / ItemSize, new Vector2(0.5f, 0.5f));
         }
 
         // ---------- Ulises ----------
@@ -670,6 +701,44 @@ namespace Odisea.EditorTools
             WritePng(CirceRopePath, pixels, width, period);
             ConfigureTexture(CirceRopePath, width / CirceRopeWidth, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
             Debug.Log($"[Odisea] Soga de Circe: {width}x{period} px por tramo.");
+        }
+
+        /// <summary>Caja entera (vuela girando sobre su centro).</summary>
+        public const string CirceCratePath = CirceFolder + "/Caja.png";
+        /// <summary>La caja hecha pedazos (se ve un instante al romperse).</summary>
+        public const string CirceBrokenCratePath = CirceFolder + "/Caja_Rota.png";
+        /// <summary>Cáscara en el aire (gira sobre su centro).</summary>
+        public const string CircePeelPath = CirceFolder + "/Cascara.png";
+        /// <summary>Cáscara tirada en la repisa: pivote abajo, para apoyarla en el piso.</summary>
+        public const string CirceLandedPeelPath = CirceFolder + "/Cascara_Piso.png";
+        private const float CrateWidth = 0.8f;
+        private const float LandedPeelWidth = 0.95f;
+
+        /// <summary>
+        /// Lo que avienta Circe: caja.png (izquierda la caja, derecha sus pedazos) y cascara.png (izquierda volando,
+        /// derecha en el piso). Cada hoja usa una sola escala para sus dos dibujos.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar lo que avienta Circe")]
+        public static void ImportCirceThrowables()
+        {
+            EnsureFolder(CirceFolder);
+            ImportHalves("caja.png", CirceCratePath, CirceBrokenCratePath, new Vector2(0.5f, 0.5f), (left, _) => left.width / CrateWidth);
+            ImportHalves("cascara.png", CircePeelPath, CirceLandedPeelPath, new Vector2(0.5f, 0f),
+                (_, right) => right.width / LandedPeelWidth);
+        }
+
+        private static void ImportHalves(string file, string leftPath, string rightPath, Vector2 rightPivot,
+            Func<RectInt, RectInt, float> pixelsPerUnit)
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/{file}", 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            int half = sheet.Width / 2;
+            RectInt left = OpaqueBounds(sheet, new RectInt(0, 0, half, sheet.Height));
+            RectInt right = OpaqueBounds(sheet, new RectInt(half, 0, sheet.Width - half, sheet.Height));
+            float ppu = pixelsPerUnit(left, right);
+            WriteRegion(sheet, left, leftPath, ppu, new Vector2(0.5f, 0.5f));
+            WriteRegion(sheet, right, rightPath, ppu, rightPivot);
         }
 
         // ---------- Secuaces de Circe (cocinero y cocinera) ----------
