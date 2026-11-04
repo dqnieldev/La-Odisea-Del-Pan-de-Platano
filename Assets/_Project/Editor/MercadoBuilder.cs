@@ -1,5 +1,6 @@
 using System.Linq;
 using Odisea.Core;
+using Odisea.Enemies;
 using Odisea.Level;
 using UnityEditor;
 using UnityEngine;
@@ -72,6 +73,9 @@ namespace Odisea.EditorTools
             (0f, 7, 1.6f), (-12f, 7, 1f), (12f, 8, 1f), (-3.6f, 8, 1f), (-12f, 9, 1f), (11.8f, 9, 1f),
         };
         private const int IngredientCount = 8;
+
+        // Cerditos de Circe (x, piso): uno cada uno o dos pisos, en las dos torres.
+        private static readonly (float x, int floor)[] PigSpots = { (-10f, 1), (10f, 3), (-10f, 4), (10.5f, 6), (10f, 8), (-8f, 9) };
 
         // Lugares posibles del ítem de ayuda (pescado, hoja o café, al azar): sale uno solo por partida.
         private static readonly (float x, int floor)[] HelperSpots = { (10f, 5), (-4f, 3), (11f, 7), (-6f, 8) };
@@ -151,8 +155,14 @@ namespace Odisea.EditorTools
             // ----- Meta: el racimo de plátano en la cima -----
             CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
 
-            PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
+            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
                 showControls: false, background: Backdrop);
+
+            // ----- Enemigos: cerditos en las repisas y Madame Circe en el hueco -----
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            for (int i = 0; i < PigSpots.Length; i++)
+                CreatePig(root, square, circle, new Vector2(PigSpots[i].x, Surface(PigSpots[i].floor)), i + 1, level);
+            CreateCirce(root, square, circle, art, player.GetComponent<Health>(), top, level);
             // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
@@ -162,6 +172,157 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
+        }
+
+        // ---------- Enemigos: los cerditos de Circe y Madame Circe ----------
+
+        private const string EnemyPrefabFolder = "Assets/_Project/Prefabs/Enemigos";
+        private static readonly Color PigPink = new(0.95f, 0.62f, 0.66f);
+        private static readonly Color PigDark = new(0.78f, 0.42f, 0.48f);
+        private static readonly Color CircePurple = new(0.42f, 0.2f, 0.48f);
+        private static readonly Color Skin = new(0.87f, 0.68f, 0.52f);
+        private static readonly Color Peel = new(0.98f, 0.82f, 0.25f);
+        private static readonly Color Crate = new(0.66f, 0.45f, 0.24f);
+
+        /// <summary>
+        /// Cerdito de Circe (en la Odisea, Circe convierte a los hombres en cerdos): camina de orilla a orilla de su repisa,
+        /// quita un corazón al tocarlo y cae con 2 golpes; cuenta para el puntaje. Sin su dibujo, un cuerpo rosa con cabeza.
+        /// </summary>
+        private static void CreatePig(Transform parent, Sprite square, Sprite circle, Vector2 feet, int number,
+            PlayerSandboxBuilder.LevelContext level)
+        {
+            var pig = new GameObject($"Cerdito de Circe {number}") { layer = level.EnemyLayer };
+            pig.transform.SetParent(parent, false);
+            pig.transform.position = feet;
+            var body = pig.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            var collider = pig.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = new Vector2(1.3f, 0.9f);
+            collider.offset = new Vector2(0f, 0.45f);
+
+            var visual = new GameObject("Visual") { layer = level.EnemyLayer };
+            visual.transform.SetParent(pig.transform, false);
+            var flash = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
+            // Mira a la derecha: cuerpo, cabeza adelante con su trompa y una patita atrás.
+            SpriteRenderer[] parts =
+            {
+                Part("Cuerpo", visual.transform, square, new Vector2(-0.1f, 0.42f), new Vector2(1.1f, 0.65f), PigPink, 6, flash),
+                Part("Cabeza", visual.transform, circle, new Vector2(0.5f, 0.6f), new Vector2(0.6f, 0.6f), PigPink, 7, flash),
+                Part("Trompa", visual.transform, circle, new Vector2(0.78f, 0.55f), new Vector2(0.24f, 0.2f), PigDark, 8, flash),
+                Part("Pata", visual.transform, square, new Vector2(-0.45f, 0.08f), new Vector2(0.18f, 0.18f), PigDark, 6, flash),
+                Part("Pata", visual.transform, square, new Vector2(0.25f, 0.08f), new Vector2(0.18f, 0.18f), PigDark, 6, flash),
+            };
+
+            var health = pig.AddComponent<Health>();
+            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
+            PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.2f);
+            PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false); // Lo destruye DamageFeedback.
+            var hazard = pig.AddComponent<Hazard>();
+            PlayerSandboxBuilder.SetSerialized(hazard, "targetLayers", 1 << level.PlayerLayer);
+            var patrol = pig.AddComponent<PatrolEnemy>();
+            PlayerSandboxBuilder.SetSerialized(patrol, "groundLayers", 1 << level.GroundLayer);
+            PlayerSandboxBuilder.SetSerialized(patrol, "speed", 2f);
+            PlayerSandboxBuilder.SetSerialized(patrol, "health", health);
+            PlayerSandboxBuilder.SetSerialized(patrol, "startDirection", number % 2 == 0 ? 1 : -1);
+            var feedback = pig.AddComponent<DamageFeedback>();
+            PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
+            PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", parts.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashColor", Color.white);
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashDuration", 0.2f);
+        }
+
+        /// <summary>
+        /// Madame Circe: flota en el hueco del centro, parada en una tablita colgada de dos cuerdas, a la altura de
+        /// Ulises, y le avienta cajas y cáscaras (<see cref="CirceThrower"/>). Sin su dibujo, una figura morada.
+        /// </summary>
+        private static void CreateCirce(Transform parent, Sprite square, Sprite circle, PlayerSandboxBuilder.LevelArt art,
+            Health player, float top, PlayerSandboxBuilder.LevelContext level)
+        {
+            var circe = new GameObject("Madame Circe");
+            circe.transform.SetParent(parent, false);
+            circe.transform.position = new Vector3(0f, 4f, 0f);
+
+            // Tablita y cuerdas (no se mueven con el aviso).
+            if (art.Plank != null)
+            {
+                var plank = new GameObject("Tablita").AddComponent<SpriteRenderer>();
+                plank.transform.SetParent(circe.transform, false);
+                plank.transform.localPosition = new Vector3(0f, -0.15f, 0f);
+                plank.sprite = art.Plank;
+                plank.drawMode = SpriteDrawMode.Tiled;
+                plank.size = new Vector2(1.8f, art.Plank.bounds.size.y);
+                plank.sortingOrder = 4;
+            }
+            foreach (float side in new[] { -0.8f, 0.8f })
+                Part("Cuerda", circe.transform, square, new Vector2(side, 10f), new Vector2(0.06f, 20f), new Color(0.45f, 0.33f, 0.2f), 2, null);
+
+            var visual = new GameObject("Dibujo").transform;
+            visual.SetParent(circe.transform, false);
+            Part("Vestido", visual, square, new Vector2(0f, 0.75f), new Vector2(0.9f, 1.5f), CircePurple, 5, null);
+            Part("Cabeza", visual, circle, new Vector2(0f, 1.75f), new Vector2(0.55f, 0.55f), Skin, 6, null);
+            Part("Chongo", visual, circle, new Vector2(0f, 2.1f), new Vector2(0.4f, 0.32f), new Color(0.2f, 0.12f, 0.1f), 5, null);
+            var hand = new GameObject("Mano").transform;
+            hand.SetParent(visual, false);
+            hand.localPosition = new Vector3(0f, 1.3f, 0f);
+
+            var thrower = circe.AddComponent<CirceThrower>();
+            PlayerSandboxBuilder.SetSerialized(thrower, "player", player);
+            PlayerSandboxBuilder.SetSerialized(thrower, "visual", visual);
+            PlayerSandboxBuilder.SetSerialized(thrower, "hand", hand);
+            PlayerSandboxBuilder.SetSerialized(thrower, "maxHeight", top);
+            PlayerSandboxBuilder.SetSerialized(thrower, "cratePrefab",
+                EnsureThrownPrefab("Caja", ThrownKind.Crate, square, Crate, new Vector2(0.6f, 0.6f), level));
+            PlayerSandboxBuilder.SetSerialized(thrower, "peelPrefab",
+                EnsureThrownPrefab("Cascara", ThrownKind.Peel, square, Peel, new Vector2(0.65f, 0.18f), level));
+        }
+
+        // Caja o cáscara como prefab (se instancia al aventarla). El dibujo es un cuadro de color mientras llega el arte.
+        private static ThrownItem EnsureThrownPrefab(string name, ThrownKind kind, Sprite square, Color color, Vector2 size,
+            PlayerSandboxBuilder.LevelContext level)
+        {
+            string path = $"{EnemyPrefabFolder}/{name}.prefab";
+            if (!AssetDatabase.IsValidFolder(EnemyPrefabFolder))
+                AssetDatabase.CreateFolder("Assets/_Project/Prefabs", "Enemigos");
+            var root = new GameObject(name) { layer = level.EnemyLayer };
+            root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var box = root.AddComponent<BoxCollider2D>();
+            box.isTrigger = true;
+            // La cáscara se apoya por abajo (su pivote es la base); la caja gira sobre su centro.
+            box.size = size;
+            box.offset = kind == ThrownKind.Peel ? new Vector2(0f, size.y / 2f) : Vector2.zero;
+            var visual = new GameObject("Dibujo") { layer = level.EnemyLayer };
+            visual.transform.SetParent(root.transform, false);
+            if (kind == ThrownKind.Peel)
+                visual.transform.localPosition = new Vector3(0f, size.y / 2f, 0f);
+            Part("Contorno", visual.transform, square, Vector2.zero, size + new Vector2(0.08f, 0.08f),
+                PlayerSandboxBuilder.Cafe, 9, null);
+            Part("Relleno", visual.transform, square, Vector2.zero, size, color, 10, null);
+            var item = root.AddComponent<ThrownItem>();
+            PlayerSandboxBuilder.SetSerialized(item, "kind", (int)kind);
+            PlayerSandboxBuilder.SetSerialized(item, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(item, "playerLayers", 1 << level.PlayerLayer);
+            PlayerSandboxBuilder.SetSerialized(item, "groundLayers", 1 << level.GroundLayer);
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<ThrownItem>();
+        }
+
+        private static SpriteRenderer Part(string name, Transform parent, Sprite sprite, Vector2 position, Vector2 size, Color color,
+            int order, Material material)
+        {
+            var part = new GameObject(name) { layer = parent.gameObject.layer }.AddComponent<SpriteRenderer>();
+            part.transform.SetParent(parent, false);
+            part.transform.localPosition = position;
+            part.transform.localScale = new Vector3(size.x, size.y, 1f);
+            part.sprite = sprite;
+            part.color = color;
+            part.sortingOrder = order;
+            if (material != null)
+                part.sharedMaterial = material;
+            return part;
         }
 
         /// <summary>Meta en la cima: el racimo de plátano dorado (círculos de color mientras llega su dibujo).</summary>

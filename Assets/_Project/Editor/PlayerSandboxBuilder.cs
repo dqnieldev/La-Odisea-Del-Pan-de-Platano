@@ -1492,7 +1492,7 @@ namespace Odisea.EditorTools
             importer.SaveAndReimport();
         }
 
-        private const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
+        internal const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
         private const string SwooshPath = "Assets/_Project/Art/VFX/EstelaGolpe.png";
 
         /// <summary>
