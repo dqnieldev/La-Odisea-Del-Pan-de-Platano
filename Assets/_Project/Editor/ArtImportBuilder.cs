@@ -992,9 +992,9 @@ namespace Odisea.EditorTools
         private const float MarketStallsHeight = 7.4f;
 
         /// <summary>
-        /// Fondo del Mercado (Docs/Referencias/Fondos/mercado). Las imágenes que se repiten a lo alto vienen con el
-        /// dibujo duplicado dentro: de la pared se toma la primera copia (hasta la raya donde empieza la segunda) y
-        /// del hueco el tramo de en medio (entre el tragaluz de arriba y el de abajo), que empalma consigo mismo.
+        /// Fondo del Mercado (Docs/Referencias/Fondos/mercado). La pared (tablas) y el hueco (azulejos) son texturas
+        /// que se repiten a lo alto: cada una mide de ancho lo que ocupa en el nivel, y su orilla de abajo se mezcla
+        /// con la de arriba para que la unión no se note aunque la imagen no empate perfecto.
         /// </summary>
         [MenuItem("Odisea/Arte/Importar fondo del Mercado")]
         public static void ImportMercadoBackground()
@@ -1002,16 +1002,9 @@ namespace Odisea.EditorTools
             if (ReadSource(MercadoBackgroundSource + "pared.png") is not { } wall)
                 return;
             EnsureFolder(MercadoBackgroundFolder);
-            // Filas contadas desde arriba de la imagen.
-            int wallEnd = SeamRow(wall, 0.4f, 0.6f);
-            WriteRegion(wall, TopRows(wall, 0, wallEnd), MarketWallPath, wall.Width / MarketWallWidth, new Vector2(0.5f, 0.5f), padding: 0);
-
+            WriteVerticalTile(wall, MarketWallPath, MarketWallWidth);
             if (ReadSource(MercadoBackgroundSource + "hueco.png") is { } gap)
-            {
-                int from = SeamRow(gap, 0.45f, 0.55f) + 1, to = SeamRow(gap, 0.64f, 0.68f);
-                BlendSeam(gap, from, to, Mathf.Min(80, from));
-                WriteRegion(gap, TopRows(gap, from, to), MarketGapPath, gap.Width / MarketGapWidth, new Vector2(0.5f, 0.5f), padding: 0);
-            }
+                WriteVerticalTile(gap, MarketGapPath, MarketGapWidth);
             // Los puestos: de arriba hasta los toldos se desvanece (para fundirse con la pared). Se corta en el primer y
             // el último poste de los puestos, para que al repetirse a lo ancho la unión caiga en un poste.
             if (ReadSource(MercadoBackgroundSource + "piso.png") is { } floor)
@@ -1030,28 +1023,13 @@ namespace Odisea.EditorTools
             }
         }
 
-        // La fila (desde arriba) donde más cambia la imagen de una fila a la siguiente, entre esas fracciones del alto:
-        // la raya donde se pega una copia con la otra.
-        private static int SeamRow(Sheet sheet, float fromFraction, float toFraction)
+        // Textura que se repite a lo alto: se quita una franja de arriba y con ella se mezclan las últimas filas, así lo
+        // de abajo termina igual que lo que venía antes de la nueva primera fila.
+        private static void WriteVerticalTile(Sheet sheet, string path, float width)
         {
-            int best = Mathf.RoundToInt(sheet.Height * fromFraction);
-            float bestDiff = -1f;
-            for (int row = best; row < Mathf.RoundToInt(sheet.Height * toFraction); row++)
-            {
-                int y = sheet.Height - 1 - row;
-                long diff = 0;
-                for (int x = 0; x < sheet.Width; x += 2)
-                {
-                    Color32 a = sheet.Pixels[y * sheet.Width + x], b = sheet.Pixels[(y - 1) * sheet.Width + x];
-                    diff += Mathf.Abs(a.r + a.g + a.b - b.r - b.g - b.b);
-                }
-                if (diff > bestDiff)
-                {
-                    bestDiff = diff;
-                    best = row;
-                }
-            }
-            return best;
+            int blend = sheet.Height / 12;
+            BlendSeam(sheet, blend, sheet.Height, blend);
+            WriteRegion(sheet, TopRows(sheet, blend, sheet.Height), path, sheet.Width / width, new Vector2(0.5f, 0.5f), padding: 0);
         }
 
         // La columna más oscura (la raya de un poste) entre esas fracciones del ancho, a la altura de los puestos.
