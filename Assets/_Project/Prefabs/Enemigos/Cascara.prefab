@@ -234,7 +234,9 @@ MonoBehaviour:
     pitchVariation: 0.06
     clipVolumes: []
   slipSound:
-    clips: []
+    clips:
+    - {fileID: 8300000, guid: 71b68cdff6436174688a68991796cd81, type: 3}
     volume: 0.8
     pitchVariation: 0.06
-    clipVolumes: []
+    clipVolumes:
+    - 1
