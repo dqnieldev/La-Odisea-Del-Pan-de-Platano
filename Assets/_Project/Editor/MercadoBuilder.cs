@@ -269,6 +269,9 @@ namespace Odisea.EditorTools
                 PlayerSandboxBuilder.SetSerialized(feedback, "deathAnimationTime", deathClip.length);
         }
 
+        // Lo que miden las sogas sobre la tablita: alcanzan más allá de lo que se ve de la cima.
+        private const float RopeLength = 20f;
+
         /// <summary>
         /// Madame Circe: flota en el hueco del centro, parada en una tablita colgada de dos cuerdas, a la altura de
         /// Ulises, y le avienta cajas y cáscaras (<see cref="CirceThrower"/>). Sin su dibujo, una figura morada.
@@ -291,8 +294,24 @@ namespace Odisea.EditorTools
                 plank.size = new Vector2(1.8f, art.Plank.bounds.size.y);
                 plank.sortingOrder = 4;
             }
+            // Las sogas suben fuera de la vista; con su dibujo se repite el trenzado, sin él una raya café.
+            var rope = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.CirceRopePath);
             foreach (float side in new[] { -0.8f, 0.8f })
-                Part("Cuerda", circe.transform, square, new Vector2(side, 10f), new Vector2(0.06f, 20f), new Color(0.45f, 0.33f, 0.2f), 2, null);
+            {
+                if (rope != null)
+                {
+                    var cord = new GameObject("Cuerda").AddComponent<SpriteRenderer>();
+                    cord.transform.SetParent(circe.transform, false);
+                    cord.transform.localPosition = new Vector3(side, RopeLength / 2f, 0f);
+                    cord.sprite = rope;
+                    cord.drawMode = SpriteDrawMode.Tiled;
+                    cord.size = new Vector2(rope.bounds.size.x, RopeLength);
+                    cord.sortingOrder = 2;
+                }
+                else
+                    Part("Cuerda", circe.transform, square, new Vector2(side, RopeLength / 2f), new Vector2(0.06f, RopeLength),
+                        new Color(0.45f, 0.33f, 0.2f), 2, null);
+            }
 
             var visual = new GameObject("Dibujo").transform;
             visual.SetParent(circe.transform, false);
@@ -332,6 +351,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(thrower, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(thrower, "hand", hand);
             PlayerSandboxBuilder.SetSerialized(thrower, "maxHeight", top);
+            GameSoundsBuilder.SetSound(thrower, "laughSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "circe_risa"), 0.8f);
             PlayerSandboxBuilder.SetSerialized(thrower, "cratePrefab",
                 EnsureThrownPrefab("Caja", ThrownKind.Crate, square, Crate, new Vector2(0.6f, 0.6f), level));
             PlayerSandboxBuilder.SetSerialized(thrower, "peelPrefab",

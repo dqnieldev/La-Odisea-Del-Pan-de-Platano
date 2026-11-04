@@ -17,6 +17,8 @@ namespace Odisea.EditorTools
         public const string UlisesFolder = "Assets/_Project/Audio/SFX/Ulises";
         public const string CrocodileFolder = "Assets/_Project/Audio/SFX/Cocodrilo";
         public const string ItemsFolder = "Assets/_Project/Audio/SFX/Items";
+        /// <summary>Madame Circe: circe_risa (su carcajada).</summary>
+        public const string CirceFolder = "Assets/_Project/Audio/SFX/Circe";
         private static readonly string[] Extensions = { ".wav", ".ogg", ".mp3" };
 
         private const string UlisesNotes =

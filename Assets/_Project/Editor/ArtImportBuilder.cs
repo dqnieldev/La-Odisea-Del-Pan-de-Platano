@@ -555,6 +555,7 @@ namespace Odisea.EditorTools
         public static void ImportCirce()
         {
             EnsureFolder(CirceFolder);
+            ImportCirceRope();
             List<Sprite> idle = ImportCirceStrip("circe_reposo.png", 245, CirceIdlePath, "Circe_Reposo");
             if (idle == null)
                 return;
@@ -599,6 +600,76 @@ namespace Odisea.EditorTools
             int ground = frames.Min(f => f.Body.MinY);
             frames = frames.Select(f => f.WithGroundAnchor(ground)).ToList();
             return WriteStrip(sheet, frames, path, ppu, spriteName);
+        }
+
+        /// <summary>Soga que cuelga la tablita de Circe: un tramo que se repite a lo alto (Tiled) sin que se note la unión.</summary>
+        public const string CirceRopePath = CirceFolder + "/Circe_Soga.png";
+        // Grosor de la soga en el juego.
+        private const float CirceRopeWidth = 0.16f;
+
+        /// <summary>
+        /// Recorta de soga.png un tramo exacto del trenzado: busca cada cuánto se repite (el desfase con el que la soga
+        /// se parece más a sí misma) y corta una vuelta del centro de la imagen, sin margen arriba ni abajo.
+        /// </summary>
+        private static void ImportCirceRope()
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/soga.png", 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            int minX = sheet.Width, maxX = -1;
+            for (int x = 0; x < sheet.Width; x++)
+            {
+                int filled = 0;
+                for (int y = 0; y < sheet.Height; y++)
+                    if (sheet.Pixels[y * sheet.Width + x].a > 24)
+                        filled++;
+                if (filled > sheet.Height / 4)
+                {
+                    minX = Mathf.Min(minX, x);
+                    maxX = x;
+                }
+            }
+            if (maxX < 0)
+            {
+                Debug.LogError("[Odisea] soga.png: no se encontró la soga.");
+                return;
+            }
+            int width = maxX - minX + 1;
+            // Desfase vertical con la menor diferencia; de los que casi empatan (múltiplos), el más chico.
+            int maxLag = Mathf.Min(sheet.Height / 3, 600);
+            var diffs = new float[maxLag + 1];
+            float best = float.MaxValue;
+            for (int lag = 20; lag <= maxLag; lag++)
+            {
+                double sum = 0;
+                for (int y = 0; y + lag < sheet.Height; y += 2)
+                for (int x = minX; x <= maxX; x += 2)
+                {
+                    Color32 a = sheet.Pixels[y * sheet.Width + x], b = sheet.Pixels[(y + lag) * sheet.Width + x];
+                    sum += Mathf.Abs(a.r + a.g + a.b - b.r - b.g - b.b) + Mathf.Abs(a.a - b.a);
+                }
+                diffs[lag] = (float)(sum / (sheet.Height - lag));
+                best = Mathf.Min(best, diffs[lag]);
+            }
+            int period = 20;
+            for (int lag = 20; lag <= maxLag; lag++)
+            {
+                if (diffs[lag] > best * 1.15f)
+                    continue;
+                period = lag;
+                // El mínimo local de ese valle.
+                while (period < maxLag && diffs[period + 1] < diffs[period])
+                    period++;
+                break;
+            }
+            int startY = (sheet.Height - period) / 2;
+            var pixels = new Color32[width * period];
+            for (int y = 0; y < period; y++)
+            for (int x = 0; x < width; x++)
+                pixels[y * width + x] = sheet.Pixels[(startY + y) * sheet.Width + minX + x];
+            WritePng(CirceRopePath, pixels, width, period);
+            ConfigureTexture(CirceRopePath, width / CirceRopeWidth, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
+            Debug.Log($"[Odisea] Soga de Circe: {width}x{period} px por tramo.");
         }
 
         // ---------- Secuaces de Circe (cocinero y cocinera) ----------

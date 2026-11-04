@@ -8,7 +8,7 @@ namespace Odisea.Enemies
     /// cada tantos segundos le avienta algo en un arco bajo, para no chocar con la repisa de arriba: una caja directo
     /// a él o una cáscara en la repisa por donde va. Siempre mira hacia Ulises. Antes de aventar echa el brazo atrás
     /// (aviso; sin su dibujo, se estira) y se ríe cuando a Ulises le pegan o se cae. No se le puede vencer; deja de
-    /// aventar al llegar Ulises a la cima o al morir.
+    /// aventar si Ulises muere, y cuando él llega al último piso se va: la suben por sus sogas, riéndose, fuera de la vista.
     /// </summary>
     public class CirceThrower : MonoBehaviour
     {
@@ -47,10 +47,27 @@ namespace Odisea.Enemies
         [Tooltip("Qué tan adelante de Ulises cae la cáscara.")]
         [SerializeField] private Vector2 peelLead = new(1.5f, 3.5f);
         [SerializeField] private SoundEffect throwSound = new();
+        [Tooltip("Su carcajada: no vuelve a sonar hasta que termine la anterior.")]
+        [SerializeField] private SoundEffect laughSound = new();
+
+        [Header("Salida (Ulises llega al último piso)")]
+        [Tooltip("Se ríe este tiempo antes de que la empiecen a subir.")]
+        [SerializeField, Min(0f)] private float leaveDelay = 0.6f;
+        [SerializeField, Min(0.1f)] private float leaveSpeed = 7f;
+        [SerializeField, Min(0.1f)] private float leaveAcceleration = 6f;
+        [Tooltip("Cuánto sube arriba de la cima antes de desaparecer (fuera de la vista).")]
+        [SerializeField, Min(1f)] private float leaveDistance = 14f;
+        [Tooltip("Cada cuánto vuelve a reírse mientras sube.")]
+        [SerializeField, Min(0.2f)] private float laughInterval = 1f;
 
         private float throwTimer;
         private float windUpTimer = -1f;
         private Vector3 visualScale = Vector3.one;
+        private bool leaving;
+        private float leaveTimer;
+        private float laughTimer;
+        private float riseSpeed;
+        private float laughSoundUntil;
 
         private static readonly int ThrowId = Animator.StringToHash("Throw");
         private static readonly int LaughId = Animator.StringToHash("Laugh");
@@ -84,6 +101,11 @@ namespace Odisea.Enemies
         {
             if (animator != null)
                 animator.SetTrigger(LaughId);
+            if (!laughSound.HasClips || Time.time < laughSoundUntil)
+                return;
+            AudioClip clip = laughSound.NextClip(out _);
+            laughSoundUntil = Time.time + (clip != null ? clip.length : 0f);
+            laughSound.Play();
         }
 
         private void Start()
@@ -98,6 +120,11 @@ namespace Odisea.Enemies
         {
             if (player == null)
                 return;
+            if (leaving || ReachedTop())
+            {
+                Leave();
+                return;
+            }
             Vector3 position = transform.position;
             float height = Mathf.MoveTowards(position.y, TargetHeight(), climbSpeed * Time.deltaTime);
             float x = Mathf.Sin(Time.time * swaySpeed) * swayWidth;
@@ -133,6 +160,34 @@ namespace Odisea.Enemies
                 if (animator != null)
                     animator.SetTrigger(ThrowId);
             }
+        }
+
+        // Con los pies ya sobre la cima (desde el piso de abajo, el techo no deja subir tanto aunque salte).
+        private bool ReachedTop() => !player.IsDead && player.transform.position.y >= maxHeight - 0.3f;
+
+        // Ulises llegó arriba: se ríe y la suben por sus sogas hasta perderse de vista.
+        private void Leave()
+        {
+            if (!leaving)
+            {
+                leaving = true;
+                windUpTimer = -1f;
+                ResetPose();
+            }
+            FacePlayer();
+            leaveTimer += Time.deltaTime;
+            laughTimer -= Time.deltaTime;
+            if (laughTimer <= 0f)
+            {
+                laughTimer = laughInterval;
+                Laugh();
+            }
+            if (leaveTimer < leaveDelay)
+                return;
+            riseSpeed = Mathf.MoveTowards(riseSpeed, leaveSpeed, leaveAcceleration * Time.deltaTime);
+            transform.position += Vector3.up * (riseSpeed * Time.deltaTime);
+            if (transform.position.y > maxHeight + leaveDistance)
+                gameObject.SetActive(false);
         }
 
         private float TargetHeight() => Mathf.Clamp(player.transform.position.y + heightAbovePlayer, minHeight, maxHeight);
