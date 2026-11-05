@@ -98,6 +98,7 @@ namespace Odisea.EditorTools
             ImportItems();
             ImportIngredients();
             ImportGoldenBunch();
+            ImportScoreBoard();
             ImportCirceThrowables();
             ImportDonLupe();
             AssetDatabase.SaveAssets();
@@ -176,6 +177,42 @@ namespace Odisea.EditorTools
 
         private const string IngredientsSource = "Items/ingredientes.png";
         private static readonly string[] IngredientNames = { "Canela", "Azucar", "Harina", "Platano" };
+
+        /// <summary>
+        /// Letrero de pizarra con marco de madera (Menu/hud_marcador.png) para el puntaje del HUD. Se estira por
+        /// nueve partes: el marco (y un poco de la pizarra) queda fijo en las orillas y solo crece el centro.
+        /// </summary>
+        public const string ScoreBoardPath = "Assets/_Project/Art/UI/Marcador.png";
+
+        [MenuItem("Odisea/Arte/Importar letrero del puntaje")]
+        public static void ImportScoreBoard()
+        {
+            Sheet sheet = LoadSheet("Menu/hud_marcador.png", whiteThreshold: 240, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt board = OpaqueBounds(sheet);
+            // La pizarra: desde la mitad de cada orilla, el primer punto verde (el marco es café).
+            bool Green(int x, int y)
+            {
+                Color32 c = sheet.Pixels[y * sheet.Width + x];
+                return c.a > 200 && c.g > c.r + 12;
+            }
+            int midY = (int)board.center.y, midX = (int)board.center.x;
+            int left = board.xMin, right = board.xMax - 1, bottom = board.yMin, top = board.yMax - 1;
+            while (left < midX && !Green(left, midY)) left++;
+            while (right > midX && !Green(right, midY)) right--;
+            while (bottom < midY && !Green(midX, bottom)) bottom++;
+            while (top > midY && !Green(midX, top)) top--;
+            // Un poco adentro de la pizarra, para que la orilla del corte caiga en el verde parejo.
+            const int inset = 24;
+            var face = new RectInt(left + inset, bottom + inset, right - left - inset * 2, top - bottom - inset * 2);
+            EnsureFolder("Assets/_Project/Art/UI");
+            WriteRegion(sheet, board, ScoreBoardPath, 100f, new Vector2(0.5f, 0.5f), padding: 0, inner: face);
+            // Se ve mucho más chico que la imagen: con mipmaps no se le hacen dientes al marco.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreBoardPath);
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+        }
 
         /// <summary>El racimo de plátano dorado (Items/racimo.png): la meta del Mercado y el premio de Polifemo.</summary>
         public const string GoldenBunchPath = "Assets/_Project/Art/Items/Racimo.png";

@@ -532,6 +532,9 @@ namespace Odisea.EditorTools
         /// Bandeja café arriba a la derecha: el ingrediente con "recogidos/total" y el cronómetro. Se acomoda sola
         /// al ancho (sin ingredientes en el nivel queda solo el reloj).
         /// </summary>
+        // Lo que mide en pantalla la orilla fija del letrero del puntaje (el marco y un poco de pizarra).
+        private const float ScoreBoardFrame = 22f;
+
         private static void CreateScoreHud(Transform canvas, LevelScore score)
         {
             TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
@@ -543,12 +546,24 @@ namespace Odisea.EditorTools
             rect.anchoredPosition = new Vector2(-48f, -48f);
             rect.sizeDelta = new Vector2(300f, 76f);
             var background = tray.GetComponent<Image>();
-            background.sprite = UiAssetsBuilder.EnsureRoundedSprite();
             background.type = Image.Type.Sliced;
-            background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
             background.raycastTarget = false;
             var layout = tray.GetComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(22, 26, 8, 8);
+            // Con el dibujo, una pizarra de precios con marco de madera; sin él, la bandeja café del design system.
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreBoardPath) is { } board)
+            {
+                background.sprite = board;
+                // El marco se ve de unos 14 px de grueso, aunque en la imagen mida mucho más.
+                background.pixelsPerUnitMultiplier = board.border.x / ScoreBoardFrame;
+                rect.sizeDelta = new Vector2(300f, 84f);
+                layout.padding = new RectOffset(34, 38, 12, 12);
+            }
+            else
+            {
+                background.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+                background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+                layout.padding = new RectOffset(22, 26, 8, 8);
+            }
             layout.spacing = 30f;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = true;
