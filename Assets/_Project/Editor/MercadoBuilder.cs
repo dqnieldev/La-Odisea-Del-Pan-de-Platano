@@ -568,6 +568,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Mercado);
+            // Después de la tarjeta: la historieta de salida (el racimo, Circe huye y todo listo en la mesa) y luego el mapa.
+            PlayerSandboxBuilder.SetSerialized(component, "outroStory", SceneFlow.MercadoOutroStory);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Mercado completado!", "Ulises llegó a la cima con el racimo de plátano."));
         }

@@ -18,6 +18,8 @@ namespace Odisea.Level
         [SerializeField] private string completesLocation;
         [Tooltip("Opcional: tarjeta de \"¡Nivel completado!\" que se muestra antes de irse.")]
         [SerializeField] private LevelCompleteScreen completeScreen;
+        [Tooltip("Opcional: historieta de salida (por su nombre) que se ve después de la tarjeta y antes de la escena siguiente.")]
+        [SerializeField] private string outroStory;
 
         private bool reached;
 
@@ -41,14 +43,15 @@ namespace Odisea.Level
             // El tutorial de práctica (abierto desde el menú) regresa al menú y no cuenta para la partida.
             bool practice = SceneFlow.TutorialFromMenu && completesLocation == GameProgress.Tutorial;
             string destination = practice ? SceneFlow.MainMenu : nextScene;
+            string story = practice ? null : outroStory;
             if (!practice)
                 GameProgress.Complete(completesLocation);
             // El puntaje (si el nivel lleva): el de práctica se muestra pero no se guarda.
             ScoreResult? result = LevelScore.Current != null ? LevelScore.Current.Finish(completesLocation, save: !practice) : null;
             if (completeScreen != null)
-                completeScreen.Show(() => SceneFlow.Load(destination, center), result);
+                completeScreen.Show(() => SceneFlow.PlayStory(story, destination, center), result);
             else
-                SceneFlow.Load(destination, center);
+                SceneFlow.PlayStory(story, destination, center);
         }
     }
 }

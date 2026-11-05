@@ -65,6 +65,49 @@ namespace Odisea.EditorTools
              "Amanecer en la puerta de la panadería; Don Lupe le ofrece el rodillo a Ulises, el puerto de fondo."),
         };
 
+        // ---------- Acto I: el Mercado ----------
+        // La receta de verdad va en los textos: lo que se junta en el Mercado (plátanos muy maduros, harina, azúcar de
+        // caña, canela) y lo que ya hay en la panadería (huevos, mantequilla, bicarbonato, vainilla, sal).
+
+        private static readonly string[] MercadoTitles =
+        {
+            "El Mercado de San Blas", "La Receta de Don Lupe", "Lo que Hay en la Alacena", "Los Puestos",
+            "Los Plátanos de la Cima", "Una Risa en las Vigas",
+        };
+
+        private static readonly (string caption, string note)[] MercadoIntro =
+        {
+            ("Amanece en San Blas. Ulises llega al Mercado Municipal con su morral vacío y la receta de Don Lupe en la cabeza.",
+             "Entrada del mercado al amanecer: toldos, papel picado y puestos; Ulises con el morral vacío, mirando hacia arriba."),
+            ("«Tres plátanos bien maduros, con pecas negras, que se machaquen solitos», le dijo Don Lupe. «Nada de plátanos verdes.»",
+             "Recuerdo en la panadería: Don Lupe muestra tres plátanos con pecas y rechaza uno verde; Ulises escucha."),
+            ("En la panadería ya esperan dos huevos, media taza de mantequilla, una cucharadita de bicarbonato, un chorrito " +
+             "de vainilla y una pizca de sal. Lo demás hay que conseguirlo aquí.",
+             "Ulises en la alacena: huevos, mantequilla, bicarbonato, vainilla y sal; al lado, frascos vacíos y una canasta."),
+            ("Dos tazas de harina, tres cuartos de taza de azúcar de caña y una cucharadita de canela… y los plátanos más " +
+             "dulces de la costa. Todo está en algún rincón del Mercado.",
+             "Pasillos del mercado: costales de harina, piloncillo y caña, canela en rama y racimos maduros; Ulises huele la canela."),
+            ("Pero los plátanos que pide la receta no están en un puesto: un racimo dorado cuelga en lo más alto, bajo el " +
+             "tragaluz. Para llegar hay que escalar.",
+             "Desde abajo: las torres de repisas y escaleras suben hasta el tragaluz; arriba brilla el racimo dorado."),
+            ("Desde las vigas, una risa conocida: Madame Circe se columpia sobre el hueco, rodeada de cajas y cáscaras de " +
+             "plátano. Sus ayudantes ya patrullan las repisas.",
+             "Circe en su columpio entre las vigas, riéndose, con cajas y cáscaras; abajo sus dos ayudantes; Ulises de espaldas."),
+        };
+
+        private static readonly string[] MercadoOutroTitles = { "El Racimo Dorado", "Circe Escapa", "Todo Listo en la Mesa" };
+
+        private static readonly (string caption, string note)[] MercadoOutro =
+        {
+            ("En la cima, Ulises arranca el racimo de plátanos más maduro y dulce de toda la costa. Con eso, el morral queda completo.",
+             "Ulises bajo el tragaluz levantando el racimo dorado; del morral asoman la harina, el azúcar y la canela."),
+            ("Afuera, Madame Circe se sube a su camioneta y huye entre bocinazos: «¡Esto no se ha terminado, panadero!»",
+             "Circe huye en su camioneta azul con sus ayudantes colgados atrás; Ulises se despide con el racimo en la mano."),
+            ("De vuelta en el taller, todo cabe en la mesa: plátanos, harina, azúcar de caña, canela, huevos, mantequilla, " +
+             "bicarbonato, vainilla y sal. Don Lupe sonríe: «Ahora viene lo difícil: hornearlo.»",
+             "La mesa de la panadería con todos los ingredientes en fila; Ulises los presenta y Don Lupe sonríe de brazos cruzados."),
+        };
+
         [MenuItem("Odisea/Menús/Crear escena de historietas")]
         public static void Build()
         {
@@ -76,6 +119,18 @@ namespace Odisea.EditorTools
             {
                 prologue.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
                 EditorUtility.SetDirty(prologue);
+            }
+            // Las del Mercado van con la misma canción de cuento (si diseño no les puso otra).
+            foreach (ComicSequence act in new[]
+                     {
+                         EnsureStory(SceneFlow.MercadoStory, "Acto I · El Mercado", MercadoIntro, MercadoTitles),
+                         EnsureStory(SceneFlow.MercadoOutroStory, "Acto I · El racimo dorado", MercadoOutro, MercadoOutroTitles),
+                     })
+            {
+                if (act.music != null)
+                    continue;
+                act.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
+                EditorUtility.SetDirty(act);
             }
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
