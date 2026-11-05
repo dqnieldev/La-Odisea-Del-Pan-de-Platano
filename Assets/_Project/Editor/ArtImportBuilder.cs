@@ -653,15 +653,84 @@ namespace Odisea.EditorTools
 
         /// <summary>Soga que cuelga la tablita de Circe: un tramo que se repite a lo alto (Tiled) sin que se note la unión.</summary>
         public const string CirceRopePath = CirceFolder + "/Circe_Soga.png";
-        // Grosor de la soga en el juego.
+        // Grosor de la soga en el juego (la de soga.png; la del columpio sale de su dibujo).
         private const float CirceRopeWidth = 0.16f;
+
+        /// <summary>
+        /// El columpio de Circe (columpio.png): la tabla con las sogas amarradas, hasta un poco arriba de los nudos.
+        /// Pivote en la orilla de arriba de la tabla, al centro entre las dos sogas. Las sogas siguen hacia arriba con
+        /// <see cref="CirceRopePath"/>, recortada de la misma soga del dibujo para que empaten.
+        /// </summary>
+        public const string CirceSwingPath = CirceFolder + "/Circe_Columpio.png";
+        /// <summary>Distancia entre las dos sogas del columpio en el juego (fija el tamaño de la tabla).</summary>
+        public const float CirceSwingRopeSpacing = 1.5f;
+
+        /// <summary>
+        /// Del columpio se toma la mitad izquierda de la imagen (el tramo suelto de la derecha es otra soga, trenzada
+        /// distinto). La tabla es la primera fila, desde arriba, más ancha que la mitad del columpio; las sogas, las dos
+        /// bandas que hay a media altura entre lo de arriba y la tabla.
+        /// </summary>
+        private static bool ImportCirceSwing()
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/columpio.png", 245, warnIfMissing: false);
+            if (sheet == null)
+                return false;
+            RectInt item = OpaqueBounds(sheet, new RectInt(0, 0, sheet.Width * 6 / 10, sheet.Height));
+            bool Opaque(int x, int y) => sheet.Pixels[y * sheet.Width + x].a > 24;
+
+            // Las filas cuentan desde abajo (como la textura).
+            int plankTop = -1;
+            for (int y = item.yMax - 1; y >= item.yMin && plankTop < 0; y--)
+            {
+                int count = 0;
+                for (int x = item.xMin; x < item.xMax; x++)
+                    if (Opaque(x, y))
+                        count++;
+                if (count > item.width / 2)
+                    plankTop = y;
+            }
+            int sampleY = (item.yMax + plankTop) / 2;
+            var bands = new List<(int from, int to)>();
+            for (int x = item.xMin; x < item.xMax; x++)
+            {
+                if (!Opaque(x, sampleY))
+                    continue;
+                int from = x;
+                while (x < item.xMax && Opaque(x, sampleY))
+                    x++;
+                if (x - from > 8)
+                    bands.Add((from, x - 1));
+            }
+            if (plankTop < 0 || bands.Count != 2)
+            {
+                Debug.LogError($"[Odisea] columpio.png: no se encontraron la tabla y las dos sogas ({bands.Count} sogas).");
+                return false;
+            }
+            float left = (bands[0].from + bands[0].to) / 2f, right = (bands[1].from + bands[1].to) / 2f;
+            float ppu = (right - left) / CirceSwingRopeSpacing;
+
+            // Hasta un poco arriba de los nudos (que envuelven la tabla y suben un poco por la soga).
+            int cropTop = plankTop + (item.yMax - plankTop) / 4;
+            var region = new RectInt(item.xMin, item.yMin, item.width, cropTop - item.yMin);
+            var pivot = new Vector2(((left + right) / 2f - item.xMin) / item.width, (plankTop - item.yMin) / (float)region.height);
+            WriteRegion(sheet, region, CirceSwingPath, ppu, pivot, padding: 0);
+
+            // La soga que sigue: una vuelta del torcido de la soga izquierda, de arriba de los nudos a la punta.
+            int margin = 3;
+            WriteRopeTile(sheet, bands[0].from - margin, bands[0].to + margin, cropTop + 10, item.yMax - 10, ppu);
+            Debug.Log($"[Odisea] Columpio de Circe: {region.width}x{region.height} px, {ppu:0} px por unidad.");
+            return true;
+        }
 
         /// <summary>
         /// Recorta de soga.png un tramo exacto del trenzado: busca cada cuánto se repite (el desfase con el que la soga
         /// se parece más a sí misma) y corta una vuelta del centro de la imagen, sin margen arriba ni abajo.
+        /// Si está el dibujo del columpio, la soga sale de él.
         /// </summary>
         private static void ImportCirceRope()
         {
+            if (ImportCirceSwing())
+                return;
             Sheet sheet = LoadSheet($"{CirceSource}/soga.png", 245, warnIfMissing: false);
             if (sheet == null)
                 return;
@@ -683,21 +752,28 @@ namespace Odisea.EditorTools
                 Debug.LogError("[Odisea] soga.png: no se encontró la soga.");
                 return;
             }
+            WriteRopeTile(sheet, minX, maxX, 0, sheet.Height, (maxX - minX + 1) / CirceRopeWidth);
+        }
+
+        // Una vuelta de la soga que está entre las columnas [minX, maxX] y las filas [yFrom, yTo) (desde abajo).
+        private static void WriteRopeTile(Sheet sheet, int minX, int maxX, int yFrom, int yTo, float ppu)
+        {
             int width = maxX - minX + 1;
+            int span = yTo - yFrom;
             // Desfase vertical con la menor diferencia; de los que casi empatan (múltiplos), el más chico.
-            int maxLag = Mathf.Min(sheet.Height / 3, 600);
+            int maxLag = Mathf.Min(span / 3, 600);
             var diffs = new float[maxLag + 1];
             float best = float.MaxValue;
             for (int lag = 20; lag <= maxLag; lag++)
             {
                 double sum = 0;
-                for (int y = 0; y + lag < sheet.Height; y += 2)
+                for (int y = yFrom; y + lag < yTo; y += 2)
                 for (int x = minX; x <= maxX; x += 2)
                 {
                     Color32 a = sheet.Pixels[y * sheet.Width + x], b = sheet.Pixels[(y + lag) * sheet.Width + x];
                     sum += Mathf.Abs(a.r + a.g + a.b - b.r - b.g - b.b) + Mathf.Abs(a.a - b.a);
                 }
-                diffs[lag] = (float)(sum / (sheet.Height - lag));
+                diffs[lag] = (float)(sum / (span - lag));
                 best = Mathf.Min(best, diffs[lag]);
             }
             int period = 20;
@@ -711,13 +787,13 @@ namespace Odisea.EditorTools
                     period++;
                 break;
             }
-            int startY = (sheet.Height - period) / 2;
+            int startY = yFrom + (span - period) / 2;
             var pixels = new Color32[width * period];
             for (int y = 0; y < period; y++)
             for (int x = 0; x < width; x++)
                 pixels[y * width + x] = sheet.Pixels[(startY + y) * sheet.Width + minX + x];
             WritePng(CirceRopePath, pixels, width, period);
-            ConfigureTexture(CirceRopePath, width / CirceRopeWidth, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
+            ConfigureTexture(CirceRopePath, ppu, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
             Debug.Log($"[Odisea] Soga de Circe: {width}x{period} px por tramo.");
         }
 

@@ -358,6 +358,9 @@ namespace Odisea.EditorTools
 
         // Lo que miden las sogas sobre la tablita: alcanzan más allá de lo que se ve de la cima.
         private const float RopeLength = 20f;
+        // Dónde queda la orilla de arriba de la tabla del columpio respecto a los pies de Circe (un poco arriba: así se
+        // ve parada sobre la cara de la tabla).
+        private const float SwingSurface = 0.08f;
 
         /// <summary>
         /// Madame Circe: flota en el hueco del centro, parada en una tablita colgada de dos cuerdas, a la altura de
@@ -370,8 +373,21 @@ namespace Odisea.EditorTools
             circe.transform.SetParent(parent, false);
             circe.transform.position = new Vector3(0f, 4f, 0f);
 
-            // Tablita y cuerdas (no se mueven con el aviso ni se voltean).
-            if (art.Plank != null)
+            // Tablita y cuerdas (no se mueven con el aviso ni se voltean). Con el dibujo del columpio, la tabla con sus
+            // nudos; si no, un tablón del nivel.
+            var swing = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.CirceSwingPath);
+            float ropeBase = 0f, ropeSide = 0.8f;
+            if (swing != null)
+            {
+                var plank = new GameObject("Columpio").AddComponent<SpriteRenderer>();
+                plank.transform.SetParent(circe.transform, false);
+                plank.transform.localPosition = new Vector3(0f, SwingSurface, 0f);
+                plank.sprite = swing;
+                plank.sortingOrder = 4;
+                ropeBase = SwingSurface + swing.bounds.max.y;
+                ropeSide = ArtImportBuilder.CirceSwingRopeSpacing / 2f;
+            }
+            else if (art.Plank != null)
             {
                 var plank = new GameObject("Tablita").AddComponent<SpriteRenderer>();
                 plank.transform.SetParent(circe.transform, false);
@@ -383,13 +399,13 @@ namespace Odisea.EditorTools
             }
             // Las sogas suben fuera de la vista; con su dibujo se repite el trenzado, sin él una raya café.
             var rope = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.CirceRopePath);
-            foreach (float side in new[] { -0.8f, 0.8f })
+            foreach (float side in new[] { -ropeSide, ropeSide })
             {
                 if (rope != null)
                 {
                     var cord = new GameObject("Cuerda").AddComponent<SpriteRenderer>();
                     cord.transform.SetParent(circe.transform, false);
-                    cord.transform.localPosition = new Vector3(side, RopeLength / 2f, 0f);
+                    cord.transform.localPosition = new Vector3(side, ropeBase + RopeLength / 2f, 0f);
                     cord.sprite = rope;
                     cord.drawMode = SpriteDrawMode.Tiled;
                     cord.size = new Vector2(rope.bounds.size.x, RopeLength);
