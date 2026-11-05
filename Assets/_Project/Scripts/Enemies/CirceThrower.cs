@@ -68,6 +68,8 @@ namespace Odisea.Enemies
         private float laughTimer;
         private float riseSpeed;
         private float laughSoundUntil;
+        // El último golpe que recibió Ulises fue de una caja o una cáscara (para reírse si con eso se muere).
+        private bool lastHitMine;
 
         private static readonly int ThrowId = Animator.StringToHash("Throw");
         private static readonly int LaughId = Animator.StringToHash("Laugh");
@@ -77,7 +79,7 @@ namespace Odisea.Enemies
             if (player != null)
             {
                 player.Damaged += OnPlayerDamaged;
-                player.Died += Laugh;
+                player.Died += OnPlayerDied;
             }
         }
 
@@ -86,14 +88,22 @@ namespace Odisea.Enemies
             if (player != null)
             {
                 player.Damaged -= OnPlayerDamaged;
-                player.Died -= Laugh;
+                player.Died -= OnPlayerDied;
             }
         }
 
-        // Se burla cuando a Ulises le pegan (una caja, una cáscara, un secuaz), si no está aventando.
+        // Se burla solo de sus golpes (una caja o una cáscara), si no está aventando: de los golpes de los secuaces se
+        // ríen ellos, y si se rieran los dos a la vez no se oiría ninguno.
         private void OnPlayerDamaged(DamageInfo info)
         {
-            if (windUpTimer < 0f)
+            lastHitMine = info.Source != null && info.Source.GetComponentInParent<ThrownItem>() != null;
+            if (lastHitMine && windUpTimer < 0f)
+                Laugh();
+        }
+
+        private void OnPlayerDied()
+        {
+            if (lastHitMine)
                 Laugh();
         }
 

@@ -333,13 +333,14 @@ namespace Odisea.EditorTools
                 if (hurtClip != null)
                     PlayerSandboxBuilder.SetSerialized(patrol, "hurtStun", hurtClip.length);
             }
-            // Efectos de sonido (Audio/SFX/Secuaz): el golpe al tirarlo y la burla cuando le pega a Ulises.
+            // Efectos de sonido (Audio/SFX/Secuaz): el golpe cuando lo suelta (no al echar el brazo: si Ulises lo
+            // derriba antes, no suena) y la burla cuando le pega a Ulises.
             var sounds = henchman.AddComponent<PatrolEnemySounds>();
             PlayerSandboxBuilder.SetSerialized(sounds, "enemy", patrol);
             PlayerSandboxBuilder.SetSerialized(sounds, "health", health);
             PlayerSandboxBuilder.SetSerialized(sounds, "contact", hazard);
-            GameSoundsBuilder.SetSound(sounds, "biteStart", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.8f);
-            GameSoundsBuilder.SetSound(sounds, "hitTarget", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_risa"), 0.8f);
+            GameSoundsBuilder.SetSound(sounds, "biteSnap", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.8f);
+            GameSoundsBuilder.SetSound(sounds, "hitTarget", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_risa"), 1f);
 
             var feedback = henchman.AddComponent<DamageFeedback>();
             PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
