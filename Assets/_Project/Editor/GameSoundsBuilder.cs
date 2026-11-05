@@ -19,6 +19,8 @@ namespace Odisea.EditorTools
         public const string ItemsFolder = "Assets/_Project/Audio/SFX/Items";
         /// <summary>Madame Circe: circe_risa (su carcajada), caja_golpe (la caja se rompe) y resbalon (la cáscara).</summary>
         public const string CirceFolder = "Assets/_Project/Audio/SFX/Circe";
+        /// <summary>Secuaces de Circe: secuaz_golpe (tira el golpe con el utensilio) y secuaz_risa (le pegó a Ulises).</summary>
+        public const string HenchmanFolder = "Assets/_Project/Audio/SFX/Secuaz";
         private static readonly string[] Extensions = { ".wav", ".ogg", ".mp3" };
 
         private const string UlisesNotes =

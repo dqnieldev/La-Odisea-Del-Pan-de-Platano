@@ -103,7 +103,7 @@ namespace Odisea.EditorTools
                 new Vector2(1f, top + 8f), Wall, ground);
             PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 2f),
                 new Vector2(1f, top + 8f), Wall, ground);
-            CreateBackground(root, square, top);
+            CreateBackground(root, square, top, CameraMinY(stalls), top - 2f);
 
             // ----- Repisas, vigas y escaleras -----
             var art = PlayerSandboxBuilder.LevelArt.Load();
@@ -168,7 +168,7 @@ namespace Odisea.EditorTools
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
             // Con los puestos, la cámara no baja más que el empedrado (tamaño 7: lo de abajo queda en y = -0.85).
-            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, stalls ? 6.15f : 5f));
+            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, CameraMinY(stalls)));
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, top - 2f));
 
             PlayerSandboxBuilder.EndLevel(level);
@@ -181,13 +181,43 @@ namespace Odisea.EditorTools
         /// alto), los puestos de la planta baja abajo y el techo con su tragaluz arriba. Sin el arte, la pared es un
         /// bloque de color.
         /// </summary>
-        private static void CreateBackground(Transform root, Sprite square, float top)
+        // Lo más abajo que baja la cámara: con los puestos, lo justo para no enseñar lo de abajo del empedrado.
+        private static float CameraMinY(bool stalls) => stalls ? 6.15f : 5f;
+
+        private static void CreateBackground(Transform root, Sprite square, float top, float cameraMinY, float cameraMaxY)
         {
             var parent = new GameObject("Fondo").transform;
             parent.SetParent(root, false);
             // Desde abajo del suelo hasta arriba de lo que alcanza a ver la cámara en la cima.
             const float bottom = -3f;
             float height = top + 12f - bottom;
+            // El mercado entero en una imagen alta que sube con la cámara (trae su propio techo); si no está, una imagen
+            // que se repite a lo alto, o la pared de cada torre y el hueco por separado.
+            var tall = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketTallPath);
+            if (tall != null)
+            {
+                var backdrop = Background("Mercado al fondo", parent, tall, new Vector2(0f, cameraMinY), null, -10);
+                var scroll = backdrop.gameObject.AddComponent<TallBackdrop>();
+                PlayerSandboxBuilder.SetSerialized(scroll, "cameraMinY", cameraMinY);
+                PlayerSandboxBuilder.SetSerialized(scroll, "cameraMaxY", cameraMaxY);
+            }
+            else if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketBackPath) is { } back)
+                Background("Pared del mercado", parent, back, new Vector2(0f, bottom + height / 2f),
+                    new Vector2(ArtImportBuilder.MarketWideWidth, height), -10);
+            else
+                CreateWallsAndGap(parent, square, top, bottom, height);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) is { } floor)
+                // A lo ancho de todo el mercado; la base de los cajones queda en el piso y el empedrado debajo.
+                Background("Puestos", parent, floor, new Vector2(0f, -0.9f),
+                    new Vector2(ArtImportBuilder.MarketWideWidth, floor.bounds.size.y), -9);
+            if (tall == null && AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketRoofPath) is { } roof)
+                // Arriba de lo que ve la cámara en la cima (sube hasta top - 2 con tamaño 7).
+                Background("Techo", parent, roof, new Vector2(0f, top + 5.2f), null, -9);
+        }
+
+        // El fondo de antes: la pared de cada torre (o un bloque de color) y el hueco del centro.
+        private static void CreateWallsAndGap(Transform parent, Sprite square, float top, float bottom, float height)
+        {
             var wall = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketWallPath);
             foreach (float side in new[] { -1f, 1f })
             {
@@ -205,17 +235,10 @@ namespace Odisea.EditorTools
             }
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketGapPath) is { } gap)
                 Background("Hueco", parent, gap, new Vector2(0f, bottom + height / 2f), new Vector2(ArtImportBuilder.MarketGapWidth, height), -11);
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) is { } floor)
-                // A lo ancho de todo el mercado; la base de los cajones queda en el piso y el empedrado debajo.
-                Background("Puestos", parent, floor, new Vector2(0f, -0.9f),
-                    new Vector2(ArtImportBuilder.MarketWideWidth, floor.bounds.size.y), -9);
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketRoofPath) is { } roof)
-                // Arriba de lo que ve la cámara en la cima (sube hasta top - 2 con tamaño 7).
-                Background("Techo", parent, roof, new Vector2(0f, top + 5.2f), null, -9);
         }
 
         // Una capa del fondo; con tamaño, el dibujo se repite (Tiled) para llenarlo.
-        private static void Background(string name, Transform parent, Sprite sprite, Vector2 position, Vector2? size, int order)
+        private static SpriteRenderer Background(string name, Transform parent, Sprite sprite, Vector2 position, Vector2? size, int order)
         {
             var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
             renderer.transform.SetParent(parent, false);
@@ -227,6 +250,7 @@ namespace Odisea.EditorTools
                 renderer.drawMode = SpriteDrawMode.Tiled;
                 renderer.size = tiled;
             }
+            return renderer;
         }
 
         // ---------- Enemigos: los secuaces de Circe y Madame Circe ----------
@@ -309,6 +333,14 @@ namespace Odisea.EditorTools
                 if (hurtClip != null)
                     PlayerSandboxBuilder.SetSerialized(patrol, "hurtStun", hurtClip.length);
             }
+            // Efectos de sonido (Audio/SFX/Secuaz): el golpe al tirarlo y la burla cuando le pega a Ulises.
+            var sounds = henchman.AddComponent<PatrolEnemySounds>();
+            PlayerSandboxBuilder.SetSerialized(sounds, "enemy", patrol);
+            PlayerSandboxBuilder.SetSerialized(sounds, "health", health);
+            PlayerSandboxBuilder.SetSerialized(sounds, "contact", hazard);
+            GameSoundsBuilder.SetSound(sounds, "biteStart", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.8f);
+            GameSoundsBuilder.SetSound(sounds, "hitTarget", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_risa"), 0.8f);
+
             var feedback = henchman.AddComponent<DamageFeedback>();
             PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
             PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual.transform);
@@ -493,7 +525,15 @@ namespace Odisea.EditorTools
             glow.sprite = circle;
             glow.color = new Color(1f, 0.93f, 0.6f, 0.6f);
             glow.sortingOrder = 4;
-            for (int i = 0; i < 3; i++)
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.GoldenBunchPath) is { } bunch)
+            {
+                var art = new GameObject("Racimo").AddComponent<SpriteRenderer>();
+                art.transform.SetParent(goal.transform, false);
+                art.sprite = bunch;
+                art.sortingOrder = 5;
+                glow.transform.localScale = Vector3.one * 3.2f;
+            }
+            else for (int i = 0; i < 3; i++)
             {
                 var banana = new GameObject($"Plátano {i + 1}").AddComponent<SpriteRenderer>();
                 banana.transform.SetParent(goal.transform, false);

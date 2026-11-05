@@ -97,6 +97,7 @@ namespace Odisea.EditorTools
             ImportMercadoBackground();
             ImportItems();
             ImportIngredients();
+            ImportGoldenBunch();
             ImportCirceThrowables();
             ImportDonLupe();
             AssetDatabase.SaveAssets();
@@ -175,6 +176,22 @@ namespace Odisea.EditorTools
 
         private const string IngredientsSource = "Items/ingredientes.png";
         private static readonly string[] IngredientNames = { "Canela", "Azucar", "Harina", "Platano" };
+
+        /// <summary>El racimo de plátano dorado (Items/racimo.png): la meta del Mercado y el premio de Polifemo.</summary>
+        public const string GoldenBunchPath = "Assets/_Project/Art/Items/Racimo.png";
+        /// <summary>Lo que mide el racimo en el juego (lo más largo).</summary>
+        public const float GoldenBunchSize = 2.2f;
+
+        [MenuItem("Odisea/Arte/Importar racimo de plátano")]
+        public static void ImportGoldenBunch()
+        {
+            Sheet sheet = LoadSheet("Items/racimo.png", whiteThreshold: 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            EnsureFolder("Assets/_Project/Art/Items");
+            WriteRegion(sheet, bounds, GoldenBunchPath, Mathf.Max(bounds.width, bounds.height) / GoldenBunchSize, new Vector2(0.5f, 0.5f));
+        }
 
         /// <summary>
         /// Los 4 ingredientes de una hoja en fila (canela, azúcar, harina, plátano), cada uno a su archivo en
@@ -979,6 +996,18 @@ namespace Odisea.EditorTools
         public const string MarketWallPath = MercadoBackgroundFolder + "/Pared.png";
         /// <summary>El hueco del centro (pisos del mercado a lo lejos): se repite a lo alto.</summary>
         public const string MarketGapPath = MercadoBackgroundFolder + "/Hueco.png";
+        /// <summary>
+        /// La pared del fondo completa (las dos torres y el hueco en una sola imagen, fondo.png): se repite a lo alto.
+        /// Si existe, reemplaza a la pared y al hueco.
+        /// </summary>
+        public const string MarketBackPath = MercadoBackgroundFolder + "/Fondo.png";
+        /// <summary>
+        /// El mercado entero en una imagen alta con perspectiva (fondo_alto.png: del pasillo al tragaluz). No se repite:
+        /// sube con la cámara (TallBackdrop). Si existe, reemplaza a la pared, al hueco y al techo.
+        /// </summary>
+        public const string MarketTallPath = MercadoBackgroundFolder + "/FondoAlto.png";
+        /// <summary>Ancho de la imagen alta: lo que ve la cámara de lado a lado más lo que se mueve de lado.</summary>
+        public const float MarketTallWidth = 28f;
         /// <summary>Puestos de la planta baja; pivote abajo, la parte de arriba se desvanece.</summary>
         public const string MarketFloorPath = MercadoBackgroundFolder + "/Piso.png";
         /// <summary>Techo con el tragaluz; pivote arriba, la parte de abajo se desvanece.</summary>
@@ -999,6 +1028,17 @@ namespace Odisea.EditorTools
         [MenuItem("Odisea/Arte/Importar fondo del Mercado")]
         public static void ImportMercadoBackground()
         {
+            if (ReadSource(MercadoBackgroundSource + "fondo_alto.png") is { } tall)
+            {
+                EnsureFolder(MercadoBackgroundFolder);
+                WriteRegion(tall, new RectInt(0, 0, tall.Width, tall.Height), MarketTallPath, tall.Width / MarketTallWidth,
+                    new Vector2(0.5f, 0.5f), padding: 0);
+            }
+            if (ReadSource(MercadoBackgroundSource + "fondo.png") is { } back)
+            {
+                EnsureFolder(MercadoBackgroundFolder);
+                WriteVerticalTile(back, MarketBackPath, MarketWideWidth);
+            }
             if (ReadSource(MercadoBackgroundSource + "pared.png") is not { } wall)
                 return;
             EnsureFolder(MercadoBackgroundFolder);

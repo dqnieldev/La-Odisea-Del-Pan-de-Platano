@@ -67,6 +67,8 @@ namespace Odisea.Enemies
         public event Action BiteStarted;
         /// <summary>Cierra el hocico (el momento en que la mordida hace daño).</summary>
         public event Action BiteSnapped;
+        /// <summary>La mordida le hizo daño a Ulises (no la esquivó ni la detuvo el escudo).</summary>
+        public event Action BiteHit;
 
         private readonly List<Collider2D> hits = new();
         private readonly HashSet<IDamageable> bitten = new();
@@ -263,8 +265,8 @@ namespace Odisea.Enemies
                 foreach (Collider2D hit in hits)
                 {
                     var target = hit.GetComponentInParent<IDamageable>();
-                    if (target != null && bitten.Add(target))
-                        target.TakeDamage(new DamageInfo(biteDamage, transform.position, gameObject));
+                    if (target != null && bitten.Add(target) && target.TakeDamage(new DamageInfo(biteDamage, transform.position, gameObject)))
+                        BiteHit?.Invoke();
                 }
             }
 
