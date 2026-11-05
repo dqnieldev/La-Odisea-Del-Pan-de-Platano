@@ -483,6 +483,7 @@ namespace Odisea.EditorTools
             drawing.sprite = sprite;
             drawing.color = color;
             drawing.transform.localScale = isArt ? Vector3.one : new Vector3(0.6f, 0.6f, 1f);
+            DecorateIngredient(item, drawing);
             if (!isArt)
             {
                 var outline = new GameObject("Contorno").AddComponent<SpriteRenderer>();
@@ -495,10 +496,45 @@ namespace Odisea.EditorTools
             return item;
         }
 
+        // Lo que distingue a un ingrediente de los ítems de ayuda: brillo dorado que late, rayos de sol que giran
+        // detrás y, al tomarlo, un estallido de destellos.
+        private static readonly Color IngredientGlow = new(1f, 0.78f, 0.2f, 0.6f);
+        private static readonly Color IngredientRays = new(1f, 0.86f, 0.35f, 0.45f);
+
+        private static void DecorateIngredient(GameObject item, SpriteRenderer drawing)
+        {
+            var circle = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            Transform visual = drawing.transform.parent;
+            var glow = visual.Find("Brillo").GetComponent<SpriteRenderer>();
+            glow.color = IngredientGlow;
+
+            var rays = new GameObject("Rayos").transform;
+            rays.SetParent(visual, false);
+            for (int i = 0; i < 6; i++)
+            {
+                var ray = new GameObject("Rayo").AddComponent<SpriteRenderer>();
+                ray.transform.SetParent(rays, false);
+                ray.transform.localRotation = Quaternion.Euler(0f, 0f, i * 30f);
+                ray.transform.localScale = new Vector3(0.16f, 1.9f, 1f);
+                ray.sprite = circle;
+                ray.color = IngredientRays;
+                ray.sortingOrder = 3;
+            }
+
+            var pickup = item.GetComponent<Pickup>();
+            SetSerialized(pickup, "rays", rays);
+            SetSerialized(pickup, "pulse", glow.transform);
+            SetSerialized(pickup, "burstDrawing", drawing);
+            SetSerialized(pickup, "sparkle", circle);
+        }
+
         /// <summary>
         /// Bandeja café arriba a la derecha: el ingrediente con "recogidos/total" y el cronómetro. Se acomoda sola
         /// al ancho (sin ingredientes en el nivel queda solo el reloj).
         /// </summary>
+        // Lo que mide en pantalla la orilla fija del letrero del puntaje (el marco y un poco de pizarra).
+        private const float ScoreBoardFrame = 22f;
+
         private static void CreateScoreHud(Transform canvas, LevelScore score)
         {
             TMP_FontAsset font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
@@ -510,22 +546,43 @@ namespace Odisea.EditorTools
             rect.anchoredPosition = new Vector2(-48f, -48f);
             rect.sizeDelta = new Vector2(300f, 76f);
             var background = tray.GetComponent<Image>();
-            background.sprite = UiAssetsBuilder.EnsureRoundedSprite();
             background.type = Image.Type.Sliced;
-            background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
             background.raycastTarget = false;
             var layout = tray.GetComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(22, 26, 8, 8);
+            // Con el dibujo, una pizarra de precios con marco de madera; sin él, la bandeja café del design system.
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreBoardPath) is { } board)
+            {
+                background.sprite = board;
+                // El marco se ve de unos 14 px de grueso, aunque en la imagen mida mucho más.
+                background.pixelsPerUnitMultiplier = board.border.x / ScoreBoardFrame;
+                rect.sizeDelta = new Vector2(300f, 84f);
+                layout.padding = new RectOffset(34, 38, 12, 12);
+            }
+            else
+            {
+                background.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+                background.color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.85f);
+                layout.padding = new RectOffset(22, 26, 8, 8);
+            }
             layout.spacing = 30f;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
             tray.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            // La canasta con los ingredientes; sin su dibujo, el plátano.
             (Sprite sprite, Color color, _) = IngredientSprite(Ingredient.Platano);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreIngredientsPath) is { } basket)
+                (sprite, color) = (basket, Color.white);
             (GameObject ingredients, Image icon, TMP_Text count) = CreateHudEntry(rect, "Ingredientes", sprite, color, font, "0/0", 90f);
-            (_, Image clock, TMP_Text time) = CreateHudEntry(rect, "Tiempo", UiAssetsBuilder.EnsureRingSprite(), Crema, font, "0:00", 100f);
-            clock.rectTransform.localScale = Vector3.one * 0.75f;
+            // El reloj de pared; sin su dibujo, un aro.
+            var clockArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockPath);
+            (_, Image clock, TMP_Text time) = CreateHudEntry(rect, "Tiempo", clockArt != null ? clockArt : UiAssetsBuilder.EnsureRingSprite(),
+                clockArt != null ? Color.white : Crema, font, "0:00", 100f);
+            if (clockArt == null)
+                clock.rectTransform.localScale = Vector3.one * 0.75f;
+            else
+                CreateClockHands(clock, clockArt, score);
 
             var hud = tray.AddComponent<ScoreHud>();
             SetSerialized(hud, "score", score);
@@ -533,6 +590,40 @@ namespace Odisea.EditorTools
             SetSerialized(hud, "ingredientsIcon", icon.rectTransform);
             SetSerialized(hud, "ingredientsText", count);
             SetSerialized(hud, "timeText", time);
+        }
+
+        // Las manecillas del reloj encima de la carátula, girando sobre su eje (el pivote del dibujo) con el cronómetro.
+        private static void CreateClockHands(Image clock, Sprite face, LevelScore score)
+        {
+            var minute = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockMinutePath);
+            var hour = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockHourPath);
+            var cap = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockCapPath);
+            if (minute == null || hour == null || cap == null)
+                return;
+            // La carátula se ve completa dentro del ícono (preserveAspect): lo que mide en pantalla cada pixel del dibujo.
+            float iconSize = clock.GetComponent<LayoutElement>().preferredWidth;
+            float scale = iconSize / Mathf.Max(face.rect.width, face.rect.height);
+            Vector2 axis = (face.pivot - face.rect.size / 2f) * scale;
+            RectTransform Layer(string name, Sprite sprite)
+            {
+                var layer = new GameObject(name, typeof(RectTransform), typeof(Image));
+                var rect = (RectTransform)layer.transform;
+                rect.SetParent(clock.rectTransform, false);
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = axis;
+                rect.sizeDelta = sprite.rect.size * scale;
+                var image = layer.GetComponent<Image>();
+                image.sprite = sprite;
+                image.raycastTarget = false;
+                return rect;
+            }
+            RectTransform hourHand = Layer("Horario", hour);
+            RectTransform minuteHand = Layer("Minutero", minute);
+            Layer("Centro", cap);
+            var hands = clock.gameObject.AddComponent<ClockHands>();
+            SetSerialized(hands, "score", score);
+            SetSerialized(hands, "minuteHand", minuteHand);
+            SetSerialized(hands, "hourHand", hourHand);
         }
 
         // Ícono y texto de la bandeja del puntaje. El texto tiene ancho fijo para que la bandeja no baile cada segundo.
@@ -1492,7 +1583,7 @@ namespace Odisea.EditorTools
             importer.SaveAndReimport();
         }
 
-        private const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
+        internal const string FlashMaterialPath = "Assets/_Project/Art/Shaders/SpriteFlash.mat";
         private const string SwooshPath = "Assets/_Project/Art/VFX/EstelaGolpe.png";
 
         /// <summary>

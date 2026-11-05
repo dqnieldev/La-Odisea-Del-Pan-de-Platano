@@ -17,6 +17,10 @@ namespace Odisea.EditorTools
         public const string UlisesFolder = "Assets/_Project/Audio/SFX/Ulises";
         public const string CrocodileFolder = "Assets/_Project/Audio/SFX/Cocodrilo";
         public const string ItemsFolder = "Assets/_Project/Audio/SFX/Items";
+        /// <summary>Madame Circe: circe_risa (su carcajada), caja_golpe (la caja se rompe) y resbalon (la cáscara).</summary>
+        public const string CirceFolder = "Assets/_Project/Audio/SFX/Circe";
+        /// <summary>Secuaces de Circe: secuaz_golpe (tira el golpe con el utensilio) y secuaz_risa (le pegó a Ulises).</summary>
+        public const string HenchmanFolder = "Assets/_Project/Audio/SFX/Secuaz";
         private static readonly string[] Extensions = { ".wav", ".ogg", ".mp3" };
 
         private const string UlisesNotes =
@@ -47,6 +51,7 @@ namespace Odisea.EditorTools
             "  recoger_pescado al tomar el pescado zarandeado\n" +
             "  recoger_hoja    al tomar la hoja de plátano\n" +
             "  recoger_cafe    al tomar el café de olla (un sorbo)\n" +
+            "  recoger_ingrediente al tomar un ingrediente (canela, azúcar, harina, plátano); seguidos suenan más agudo\n" +
             "  recoger         el de cualquier ítem que no tenga el suyo (si tampoco está, suena el brillo del logo)\n" +
             "  romper_escudo   cuando el escudo de hoja de plátano detiene un golpe\n" +
             "Después: Odisea > Niveles > Crear tutorial y Odisea > Sandbox > Crear escena de prueba del jugador.\n";

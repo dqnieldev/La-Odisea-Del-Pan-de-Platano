@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Odisea.Core
@@ -13,6 +14,9 @@ namespace Odisea.Core
         [SerializeField] private LayerMask targetLayers = ~0;
         [Tooltip("Destruye este objeto al dañar a alguien (proyectiles).")]
         [SerializeField] private bool destroyOnHit;
+
+        /// <summary>Le hizo daño a alguien (el golpe sí entró); lleva dónde está a quien le pegó.</summary>
+        public event Action<Vector2> Hit;
 
         private void OnCollisionStay2D(Collision2D collision) => TryDamage(collision.collider);
 
@@ -30,6 +34,8 @@ namespace Odisea.Core
                 return;
 
             bool applied = target.TakeDamage(new DamageInfo(damage, transform.position, gameObject));
+            if (applied)
+                Hit?.Invoke(other.transform.position);
             if (applied && destroyOnHit)
                 Destroy(gameObject);
         }

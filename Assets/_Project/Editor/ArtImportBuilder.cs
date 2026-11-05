@@ -88,10 +88,18 @@ namespace Odisea.EditorTools
             ImportUlises();
             ImportDough();
             ImportCrocodile();
+            ImportHenchman(male: true, "secuaz hombre/secuaz_hombre", "ataque_cuchara");
+            ImportHenchman(male: false, "secuaz mujer/secuaz_mujer", "ataque_batidor");
+            ImportCirce();
             ImportLevelPieces(Level1Sheet, whiteThreshold: 232, Level1Folder, "Nivel 1");
             ImportLevelPieces(TutorialSheet, whiteThreshold: 232, TutorialFolder, "Tutorial");
             ImportTutorialBackground();
+            ImportMercadoBackground();
             ImportItems();
+            ImportIngredients();
+            ImportGoldenBunch();
+            ImportScoreBoard();
+            ImportCirceThrowables();
             ImportDonLupe();
             AssetDatabase.SaveAssets();
             Debug.Log("[Odisea] Arte de la sandbox importado.");
@@ -163,6 +171,358 @@ namespace Odisea.EditorTools
                 return;
             RectInt bounds = OpaqueBounds(sheet);
             WriteRegion(sheet, bounds, path, Mathf.Max(bounds.width, bounds.height) / ItemSize, new Vector2(0.5f, 0.5f));
+        }
+
+        // ---------- Ingredientes del pan de plátano ----------
+
+        private const string IngredientsSource = "Items/ingredientes.png";
+        private static readonly string[] IngredientNames = { "Canela", "Azucar", "Harina", "Platano" };
+
+        /// <summary>
+        /// Letrero de pizarra con marco de madera (Menu/hud_marcador.png) para el puntaje del HUD. Se estira por
+        /// nueve partes: el marco (y un poco de la pizarra) queda fijo en las orillas y solo crece el centro.
+        /// </summary>
+        public const string ScoreBoardPath = "Assets/_Project/Art/UI/Marcador.png";
+
+        /// <summary>
+        /// Reloj de pared (Menu/hud_reloj.jfif): el ícono del cronómetro del puntaje, sin manecillas (se borran y se
+        /// rellena la carátula). El pivote del sprite es el centro de las manecillas.
+        /// </summary>
+        public const string ScoreClockPath = "Assets/_Project/Art/UI/Reloj.png";
+        /// <summary>
+        /// Las manecillas del reloj (la larga, la corta) y el botón del centro, como quedan en el dibujo: cuadros del
+        /// mismo tamaño centrados en el eje, para girarlos sobre la carátula.
+        /// </summary>
+        public const string ScoreClockMinutePath = "Assets/_Project/Art/UI/Reloj_Minutero.png";
+        public const string ScoreClockHourPath = "Assets/_Project/Art/UI/Reloj_Horario.png";
+        public const string ScoreClockCapPath = "Assets/_Project/Art/UI/Reloj_Centro.png";
+
+        /// <summary>Canasta con los cuatro ingredientes (Menu/hud_ingredientes.png): el ícono del contador.</summary>
+        public const string ScoreIngredientsPath = "Assets/_Project/Art/UI/Canasta.png";
+
+        // El reloj es JPG: umbral un poco más bajo por el ruido. Sin borrar huecos encerrados (la carátula es crema
+        // claro, la harina casi blanca).
+        private static void ImportScoreIcons()
+        {
+            ImportClock();
+            ImportHudIcon("Menu/hud_ingredientes.png", 245, ScoreIngredientsPath);
+        }
+
+        // Separa las manecillas del reloj: lo oscuro (y su sombra) conectado al botón del centro se borra de la
+        // carátula rellenándolo con lo de alrededor, y cada manecilla se guarda aparte, con su transparencia según
+        // qué tan oscura es contra la carátula.
+        private static void ImportClock()
+        {
+            Sheet sheet = LoadSheet("Menu/hud_reloj.jfif", 238, warnIfMissing: false, holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            int width = sheet.Width;
+            Color32[] pixels = sheet.Pixels;
+            float Lum(Color32 c) => (c.r + c.g + c.b) / 3f;
+
+            // La carátula: lo color crema. Su centro aproximado y su radio.
+            double sumX = 0, sumY = 0;
+            int area = 0;
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                Color32 c = pixels[y * width + x];
+                if (c.a > 200 && c.r > 220 && c.b > 165 && c.r - c.b > 15)
+                {
+                    sumX += x;
+                    sumY += y;
+                    area++;
+                }
+            }
+            if (area == 0)
+            {
+                Debug.LogError("[Odisea] hud_reloj: no se encontró la carátula.");
+                return;
+            }
+            float faceRadius = Mathf.Sqrt(area / Mathf.PI);
+            var guess = new Vector2Int((int)(sumX / area), (int)(sumY / area));
+
+            // El eje: donde cabe el disco oscuro (el botón) más lleno. Si varios empatan, el promedio.
+            bool Dark(int x, int y) => Lum(pixels[y * width + x]) < 110f;
+            int capRadius = Mathf.Max(2, Mathf.RoundToInt(faceRadius * 0.08f));
+            int reach = Mathf.RoundToInt(faceRadius * 0.35f);
+            int best = -1;
+            var ties = new List<Vector2Int>();
+            for (int y = guess.y - reach; y <= guess.y + reach; y += 2)
+            for (int x = guess.x - reach; x <= guess.x + reach; x += 2)
+            {
+                int count = 0;
+                for (int dy = -capRadius; dy <= capRadius; dy += 2)
+                for (int dx = -capRadius; dx <= capRadius; dx += 2)
+                    if (dx * dx + dy * dy <= capRadius * capRadius && Dark(x + dx, y + dy))
+                        count++;
+                if (count > best)
+                {
+                    best = count;
+                    ties.Clear();
+                }
+                if (count == best)
+                    ties.Add(new Vector2Int(x, y));
+            }
+            var center = new Vector2Int((int)ties.Average(p => p.x), (int)ties.Average(p => p.y));
+
+            // Lo que se borra: lo más oscuro que la carátula unido al eje (manecillas y su sombra), un poco más ancho.
+            float maxReach = faceRadius * 0.94f;
+            float Distance(int x, int y) => Mathf.Sqrt((x - center.x) * (x - center.x) + (y - center.y) * (y - center.y));
+            var erase = new bool[pixels.Length];
+            var stack = new Stack<int>();
+            stack.Push(center.y * width + center.x);
+            erase[center.y * width + center.x] = true;
+            while (stack.Count > 0)
+            {
+                int i = stack.Pop();
+                int x = i % width, y = i / width;
+                foreach ((int nx, int ny) in new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) })
+                {
+                    int n = ny * width + nx;
+                    if (!erase[n] && Lum(pixels[n]) < 228f && Distance(nx, ny) < maxReach)
+                    {
+                        erase[n] = true;
+                        stack.Push(n);
+                    }
+                }
+            }
+            int minX = width, minY = sheet.Height, maxX = 0, maxY = 0;
+            for (int i = 0; i < erase.Length; i++)
+            {
+                if (!erase[i])
+                    continue;
+                int x = i % width, y = i / width;
+                minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
+            }
+            const int grow = 4;
+            minX -= grow + 2; minY -= grow + 2; maxX += grow + 2; maxY += grow + 2;
+            for (int step = 0; step < grow; step++)
+            {
+                var grown = (bool[])erase.Clone();
+                for (int y = minY + 1; y < maxY; y++)
+                for (int x = minX + 1; x < maxX; x++)
+                {
+                    int i = y * width + x;
+                    if (erase[i - 1] || erase[i + 1] || erase[i - width] || erase[i + width])
+                        grown[i] = true;
+                }
+                erase = grown;
+            }
+
+            // Rellena lo borrado desde la orilla hacia adentro con el promedio de los vecinos ya conocidos.
+            var face = (Color32[])pixels.Clone();
+            var known = new bool[pixels.Length];
+            for (int i = 0; i < known.Length; i++)
+                known[i] = !erase[i];
+            var offsets = new[] { -1, 1, -width, width, -width - 1, -width + 1, width - 1, width + 1 };
+            while (true)
+            {
+                var filled = new List<(int index, Color32 color)>();
+                for (int y = minY + 1; y < maxY; y++)
+                for (int x = minX + 1; x < maxX; x++)
+                {
+                    int i = y * width + x;
+                    if (known[i])
+                        continue;
+                    int r = 0, g = 0, b = 0, count = 0;
+                    foreach (int o in offsets)
+                    {
+                        if (!known[i + o])
+                            continue;
+                        r += face[i + o].r; g += face[i + o].g; b += face[i + o].b;
+                        count++;
+                    }
+                    if (count >= 3)
+                        filled.Add((i, new Color32((byte)(r / count), (byte)(g / count), (byte)(b / count), 255)));
+                }
+                if (filled.Count == 0)
+                    break;
+                foreach ((int index, Color32 color) in filled)
+                {
+                    face[index] = color;
+                    known[index] = true;
+                }
+            }
+
+            // Las manecillas: qué tan oscuro es cada punto contra la carátula rellenada (la sombra casi no cuenta).
+            double handR = 0, handG = 0, handB = 0;
+            int handCount = 0;
+            var alpha = new float[pixels.Length];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                int i = y * width + x;
+                if (!erase[i])
+                    continue;
+                float lum = Lum(pixels[i]);
+                if (lum < 110f)
+                {
+                    handR += pixels[i].r; handG += pixels[i].g; handB += pixels[i].b;
+                    handCount++;
+                }
+                float a = Mathf.InverseLerp(Lum(face[i]) - 25f, 95f, lum);
+                alpha[i] = a < 0.05f ? 0f : a;
+            }
+            var handColor = new Color32((byte)(handR / handCount), (byte)(handG / handCount), (byte)(handB / handCount), 255);
+
+            // Las dos direcciones con más tinta entre un quinto y la mitad del radio.
+            var bins = new float[72];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                float d = Distance(x, y);
+                if (d < faceRadius * 0.2f || d > faceRadius * 0.5f)
+                    continue;
+                float angle = Mathf.Atan2(y - center.y, x - center.x) * Mathf.Rad2Deg;
+                bins[(int)Mathf.Repeat(angle / 5f, 72f) % 72] += alpha[y * width + x];
+            }
+            int first = Array.IndexOf(bins, bins.Max());
+            int second = -1;
+            for (int k = 0; k < 72; k++)
+            {
+                int gap = Mathf.Abs(k - first);
+                if (Mathf.Min(gap, 72 - gap) >= 8 && (second < 0 || bins[k] > bins[second]))
+                    second = k;
+            }
+            float[] directions = { first * 5f + 2.5f, second * 5f + 2.5f };
+            float capOuter = capRadius * 1.3f;
+            int Owner(int x, int y)
+            {
+                if (Distance(x, y) < capOuter)
+                    return 2;
+                float angle = Mathf.Atan2(y - center.y, x - center.x) * Mathf.Rad2Deg;
+                return Mathf.Abs(Mathf.DeltaAngle(angle, directions[0])) <= Mathf.Abs(Mathf.DeltaAngle(angle, directions[1])) ? 0 : 1;
+            }
+            var lengths = new float[2];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                int owner = Owner(x, y);
+                if (owner < 2 && alpha[y * width + x] > 0.5f)
+                    lengths[owner] = Mathf.Max(lengths[owner], Distance(x, y));
+            }
+            int minute = lengths[0] >= lengths[1] ? 0 : 1;
+
+            EnsureFolder("Assets/_Project/Art/UI");
+            var faceSheet = new Sheet { Width = width, Height = sheet.Height, Pixels = face };
+            var pivot = new Vector2((center.x + 0.5f - bounds.xMin) / bounds.width, (center.y + 0.5f - bounds.yMin) / bounds.height);
+            WriteRegion(faceSheet, bounds, ScoreClockPath, 100f, pivot);
+            int half = Mathf.CeilToInt(Mathf.Max(lengths[0], lengths[1])) + 6;
+            void WriteLayer(int owner, string path)
+            {
+                int side = half * 2 + 1;
+                var layer = new Color32[side * side];
+                for (int y = 0; y < side; y++)
+                for (int x = 0; x < side; x++)
+                {
+                    int sx = center.x - half + x, sy = center.y - half + y;
+                    if (sx < 0 || sy < 0 || sx >= width || sy >= sheet.Height || Owner(sx, sy) != owner)
+                        continue;
+                    Color32 c = handColor;
+                    c.a = (byte)(alpha[sy * width + sx] * 255f);
+                    layer[y * side + x] = c;
+                }
+                WritePng(path, layer, side, side);
+                ConfigureTexture(path, 100f, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
+            }
+            WriteLayer(minute, ScoreClockMinutePath);
+            WriteLayer(1 - minute, ScoreClockHourPath);
+            WriteLayer(2, ScoreClockCapPath);
+            foreach (string path in new[] { ScoreClockPath, ScoreClockMinutePath, ScoreClockHourPath, ScoreClockCapPath })
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.mipmapEnabled = true;
+                importer.SaveAndReimport();
+            }
+            Debug.Log($"[Odisea] Reloj: eje en {center - bounds.min}, manecillas a {directions[minute]:0}° y {directions[1 - minute]:0}°.");
+        }
+
+        private static void ImportHudIcon(string source, int whiteThreshold, string path)
+        {
+            Sheet sheet = LoadSheet(source, whiteThreshold, warnIfMissing: false, holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            EnsureFolder("Assets/_Project/Art/UI");
+            WriteRegion(sheet, bounds, path, 100f, new Vector2(0.5f, 0.5f));
+            // Se ve mucho más chico que la imagen: con mipmaps no se le hacen dientes.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+        }
+
+        [MenuItem("Odisea/Arte/Importar letrero del puntaje")]
+        public static void ImportScoreBoard()
+        {
+            ImportScoreIcons();
+            Sheet sheet = LoadSheet("Menu/hud_marcador.png", whiteThreshold: 240, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt board = OpaqueBounds(sheet);
+            // La pizarra: desde la mitad de cada orilla, el primer punto verde (el marco es café).
+            bool Green(int x, int y)
+            {
+                Color32 c = sheet.Pixels[y * sheet.Width + x];
+                return c.a > 200 && c.g > c.r + 12;
+            }
+            int midY = (int)board.center.y, midX = (int)board.center.x;
+            int left = board.xMin, right = board.xMax - 1, bottom = board.yMin, top = board.yMax - 1;
+            while (left < midX && !Green(left, midY)) left++;
+            while (right > midX && !Green(right, midY)) right--;
+            while (bottom < midY && !Green(midX, bottom)) bottom++;
+            while (top > midY && !Green(midX, top)) top--;
+            // Un poco adentro de la pizarra, para que la orilla del corte caiga en el verde parejo.
+            const int inset = 24;
+            var face = new RectInt(left + inset, bottom + inset, right - left - inset * 2, top - bottom - inset * 2);
+            EnsureFolder("Assets/_Project/Art/UI");
+            WriteRegion(sheet, board, ScoreBoardPath, 100f, new Vector2(0.5f, 0.5f), padding: 0, inner: face);
+            // Se ve mucho más chico que la imagen: con mipmaps no se le hacen dientes al marco.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreBoardPath);
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+        }
+
+        /// <summary>El racimo de plátano dorado (Items/racimo.png): la meta del Mercado y el premio de Polifemo.</summary>
+        public const string GoldenBunchPath = "Assets/_Project/Art/Items/Racimo.png";
+        /// <summary>Lo que mide el racimo en el juego (lo más largo).</summary>
+        public const float GoldenBunchSize = 2.2f;
+
+        [MenuItem("Odisea/Arte/Importar racimo de plátano")]
+        public static void ImportGoldenBunch()
+        {
+            Sheet sheet = LoadSheet("Items/racimo.png", whiteThreshold: 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            EnsureFolder("Assets/_Project/Art/Items");
+            WriteRegion(sheet, bounds, GoldenBunchPath, Mathf.Max(bounds.width, bounds.height) / GoldenBunchSize, new Vector2(0.5f, 0.5f));
+        }
+
+        /// <summary>
+        /// Los 4 ingredientes de una hoja en fila (canela, azúcar, harina, plátano), cada uno a su archivo en
+        /// Art/Items/Ingredientes, del mismo tamaño que los demás ítems. El costal de harina es casi blanco: el
+        /// umbral del fondo va alto para no borrarlo.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar ingredientes")]
+        public static void ImportIngredients()
+        {
+            Sheet sheet = LoadSheet(IngredientsSource, whiteThreshold: 248, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            List<RectInt> parts = SplitByGaps(sheet, OpaqueBounds(sheet), minGap: 60)
+                .Where(part => part.width > 40 && part.height > 40).ToList();
+            if (parts.Count != IngredientNames.Length)
+            {
+                Debug.LogError($"[Odisea] ingredientes.png: se esperaban {IngredientNames.Length} dibujos y hay {parts.Count}.");
+                return;
+            }
+            EnsureFolder(IngredientsFolder);
+            for (int i = 0; i < parts.Count; i++)
+                WriteRegion(sheet, parts[i], $"{IngredientsFolder}/{IngredientNames[i]}.png",
+                    Mathf.Max(parts[i].width, parts[i].height) / ItemSize, new Vector2(0.5f, 0.5f));
         }
 
         // ---------- Ulises ----------
@@ -276,6 +636,19 @@ namespace Odisea.EditorTools
             else
                 clips["Die"] = clips["Hurt"];
 
+            // Resbalón con la cáscara (6 cuadros): 0 corre hacia la cáscara, 1 la pisa, 2 se le van los pies, 3 en el
+            // aire, 4 cae sentado, 5 mareado en el piso. Los dos primeros traen la cáscara dibujada: se usan 2-5, con
+            // el suelo común (los del aire conservan su altura). Fondo blanco: sin borrar huecos (ojos, camisa). Dura lo que el resbalón le quita el control (0.6 s).
+            if (TryLoadRow("ulises_resbalon.png", attachDistance: 40, minFrames: 6, out Sheet slipSheet, out List<Frame> slip,
+                whiteThreshold: 240, holeMinArea: int.MaxValue))
+            {
+                float slipPpu = slip[0].Body.Height / UlisesRunHeight;
+                List<Frame> fall = PickFrames(slip, 2, 3, 4, 5);
+                int ground = fall.Min(f => f.Body.MinY);
+                clips["Slip"] = StripClip(slipSheet, fall.Select(f => f.WithGroundAnchor(ground)).ToList(), slipPpu, "Slip", 8f,
+                    loop: false, holdLast: 0.1f);
+            }
+
             // Correr: el polvo suelto se descarta (solo se pega lo que toca al cuerpo) para no mezclarlo con el cuadro vecino.
             if (TryLoadRow("ulises_correr.png", attachDistance: 8, minFrames: 4, out Sheet runNewSheet, out List<Frame> run))
             {
@@ -387,7 +760,7 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
-            foreach (string item in new[] { "Drink", "Eat", "Leaf" })
+            foreach (string item in new[] { "Drink", "Eat", "Leaf", "Slip" })
             {
                 if (!states.TryGetValue(item, out AnimatorState itemState))
                     continue;
@@ -530,6 +903,374 @@ namespace Odisea.EditorTools
             EditorUtility.SetDirty(controller);
         }
 
+        // ---------- Madame Circe ----------
+
+        public const string CirceFolder = "Assets/_Project/Art/Characters/Circe";
+        public const string CirceControllerPath = CirceFolder + "/Circe.controller";
+        /// <summary>Tira de Circe en reposo (el primer cuadro se ve en la escena antes de darle Play).</summary>
+        public const string CirceIdlePath = CirceFolder + "/Circe_Reposo.png";
+        private const string CirceSource = "Personajes/sprite en png/circe";
+        // Estatura con todo y su gorro alto: más alta que los secuaces.
+        private const float CirceHeight = 2.7f;
+        /// <summary>Cuadros por segundo de "lanzar": la mano suelta en el cuadro 5 (índice 4), a los 0.4 s.</summary>
+        public const float CirceThrowFps = 10f;
+        public const int CirceReleaseFrame = 4;
+
+        /// <summary>
+        /// Madame Circe (Odisea > Arte > Importar a Madame Circe): Idle (6 cuadros, en bucle), Throw (6: echa el brazo
+        /// atrás, suelta en el quinto y se recompone) y Laugh (4, se tapa la boca; dos vueltas). Las hojas traen fondo
+        /// blanco. Cada una se escala con su primer cuadro (parada) y los pies quedan a la misma altura.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar a Madame Circe")]
+        public static void ImportCirce()
+        {
+            EnsureFolder(CirceFolder);
+            ImportCirceRope();
+            List<Sprite> idle = ImportCirceStrip("circe_reposo.png", 245, CirceIdlePath, "Circe_Reposo");
+            if (idle == null)
+                return;
+            List<Sprite> toss = ImportCirceStrip("circe_lanzar.png", 245, $"{CirceFolder}/Circe_Lanzar.png", "Circe_Lanzar");
+            // La de reír es JPG: el ruido de compresión pide un umbral un poco más bajo.
+            List<Sprite> laugh = ImportCirceStrip("circe_reir.jfif", 238, $"{CirceFolder}/Circe_Reir.png", "Circe_Reir");
+
+            AnimatorController controller = ResetController(CirceControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState idleState = machine.AddState("Idle");
+            idleState.motion = CreateClip($"{CirceFolder}/Circe_Idle.anim", idle, 7f, loop: true);
+            machine.defaultState = idleState;
+            if (toss != null)
+            {
+                controller.AddParameter("Throw", AnimatorControllerParameterType.Trigger);
+                AnimatorState state = machine.AddState("Throw");
+                state.motion = CreateClip($"{CirceFolder}/Circe_Throw.anim", toss, CirceThrowFps, loop: false);
+                AnyState(machine, state, "Throw", toSelf: false);
+                ExitWhenDone(state, idleState);
+            }
+            if (laugh != null)
+            {
+                controller.AddParameter("Laugh", AnimatorControllerParameterType.Trigger);
+                AnimatorState state = machine.AddState("Laugh");
+                state.motion = CreateClip($"{CirceFolder}/Circe_Laugh.anim", laugh.Concat(laugh).ToList(), 8f, loop: false);
+                AnyState(machine, state, "Laugh", toSelf: false);
+                ExitWhenDone(state, idleState);
+            }
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+        }
+
+        private const int CirceHoleMinArea = 720;
+
+        private static List<Sprite> ImportCirceStrip(string file, int whiteThreshold, string path, string spriteName)
+        {
+            // Las hojas de Circe vienen en alta resolución: lo blanco de los ojos llega a ~660 px y los huecos entre
+            // los brazos y el cuerpo (manos en la cintura) empiezan en ~760.
+            Sheet sheet = LoadSheet($"{CirceSource}/{file}", whiteThreshold, warnIfMissing: false, holeMinArea: CirceHoleMinArea);
+            if (sheet == null)
+                return null;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {spriteName}: {frames.Count} cuadros.");
+            float ppu = frames[0].Body.Height / CirceHeight;
+            int ground = frames.Min(f => f.Body.MinY);
+            frames = frames.Select(f => f.WithGroundAnchor(ground)).ToList();
+            return WriteStrip(sheet, frames, path, ppu, spriteName);
+        }
+
+        /// <summary>Soga que cuelga la tablita de Circe: un tramo que se repite a lo alto (Tiled) sin que se note la unión.</summary>
+        public const string CirceRopePath = CirceFolder + "/Circe_Soga.png";
+        // Grosor de la soga en el juego (la de soga.png; la del columpio sale de su dibujo).
+        private const float CirceRopeWidth = 0.16f;
+
+        /// <summary>
+        /// El columpio de Circe (columpio.png): la tabla con las sogas amarradas, hasta un poco arriba de los nudos.
+        /// Pivote en la orilla de arriba de la tabla, al centro entre las dos sogas. Las sogas siguen hacia arriba con
+        /// <see cref="CirceRopePath"/>, recortada de la misma soga del dibujo para que empaten.
+        /// </summary>
+        public const string CirceSwingPath = CirceFolder + "/Circe_Columpio.png";
+        /// <summary>Distancia entre las dos sogas del columpio en el juego (fija el tamaño de la tabla).</summary>
+        public const float CirceSwingRopeSpacing = 1.5f;
+
+        /// <summary>
+        /// Del columpio se toma la mitad izquierda de la imagen (el tramo suelto de la derecha es otra soga, trenzada
+        /// distinto). La tabla es la primera fila, desde arriba, más ancha que la mitad del columpio; las sogas, las dos
+        /// bandas que hay a media altura entre lo de arriba y la tabla.
+        /// </summary>
+        private static bool ImportCirceSwing()
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/columpio.png", 245, warnIfMissing: false);
+            if (sheet == null)
+                return false;
+            RectInt item = OpaqueBounds(sheet, new RectInt(0, 0, sheet.Width * 6 / 10, sheet.Height));
+            bool Opaque(int x, int y) => sheet.Pixels[y * sheet.Width + x].a > 24;
+
+            // Las filas cuentan desde abajo (como la textura).
+            int plankTop = -1;
+            for (int y = item.yMax - 1; y >= item.yMin && plankTop < 0; y--)
+            {
+                int count = 0;
+                for (int x = item.xMin; x < item.xMax; x++)
+                    if (Opaque(x, y))
+                        count++;
+                if (count > item.width / 2)
+                    plankTop = y;
+            }
+            int sampleY = (item.yMax + plankTop) / 2;
+            var bands = new List<(int from, int to)>();
+            for (int x = item.xMin; x < item.xMax; x++)
+            {
+                if (!Opaque(x, sampleY))
+                    continue;
+                int from = x;
+                while (x < item.xMax && Opaque(x, sampleY))
+                    x++;
+                if (x - from > 8)
+                    bands.Add((from, x - 1));
+            }
+            if (plankTop < 0 || bands.Count != 2)
+            {
+                Debug.LogError($"[Odisea] columpio.png: no se encontraron la tabla y las dos sogas ({bands.Count} sogas).");
+                return false;
+            }
+            float left = (bands[0].from + bands[0].to) / 2f, right = (bands[1].from + bands[1].to) / 2f;
+            float ppu = (right - left) / CirceSwingRopeSpacing;
+
+            // Hasta un poco arriba de los nudos (que envuelven la tabla y suben un poco por la soga).
+            int cropTop = plankTop + (item.yMax - plankTop) / 4;
+            var region = new RectInt(item.xMin, item.yMin, item.width, cropTop - item.yMin);
+            var pivot = new Vector2(((left + right) / 2f - item.xMin) / item.width, (plankTop - item.yMin) / (float)region.height);
+            WriteRegion(sheet, region, CirceSwingPath, ppu, pivot, padding: 0);
+
+            // La soga que sigue: una vuelta del torcido de la soga izquierda, de arriba de los nudos a la punta.
+            int margin = 3;
+            WriteRopeTile(sheet, bands[0].from - margin, bands[0].to + margin, cropTop + 10, item.yMax - 10, ppu);
+            Debug.Log($"[Odisea] Columpio de Circe: {region.width}x{region.height} px, {ppu:0} px por unidad.");
+            return true;
+        }
+
+        /// <summary>
+        /// Recorta de soga.png un tramo exacto del trenzado: busca cada cuánto se repite (el desfase con el que la soga
+        /// se parece más a sí misma) y corta una vuelta del centro de la imagen, sin margen arriba ni abajo.
+        /// Si está el dibujo del columpio, la soga sale de él.
+        /// </summary>
+        private static void ImportCirceRope()
+        {
+            if (ImportCirceSwing())
+                return;
+            Sheet sheet = LoadSheet($"{CirceSource}/soga.png", 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            int minX = sheet.Width, maxX = -1;
+            for (int x = 0; x < sheet.Width; x++)
+            {
+                int filled = 0;
+                for (int y = 0; y < sheet.Height; y++)
+                    if (sheet.Pixels[y * sheet.Width + x].a > 24)
+                        filled++;
+                if (filled > sheet.Height / 4)
+                {
+                    minX = Mathf.Min(minX, x);
+                    maxX = x;
+                }
+            }
+            if (maxX < 0)
+            {
+                Debug.LogError("[Odisea] soga.png: no se encontró la soga.");
+                return;
+            }
+            WriteRopeTile(sheet, minX, maxX, 0, sheet.Height, (maxX - minX + 1) / CirceRopeWidth);
+        }
+
+        // Una vuelta de la soga que está entre las columnas [minX, maxX] y las filas [yFrom, yTo) (desde abajo).
+        private static void WriteRopeTile(Sheet sheet, int minX, int maxX, int yFrom, int yTo, float ppu)
+        {
+            int width = maxX - minX + 1;
+            int span = yTo - yFrom;
+            // Desfase vertical con la menor diferencia; de los que casi empatan (múltiplos), el más chico.
+            int maxLag = Mathf.Min(span / 3, 600);
+            var diffs = new float[maxLag + 1];
+            float best = float.MaxValue;
+            for (int lag = 20; lag <= maxLag; lag++)
+            {
+                double sum = 0;
+                for (int y = yFrom; y + lag < yTo; y += 2)
+                for (int x = minX; x <= maxX; x += 2)
+                {
+                    Color32 a = sheet.Pixels[y * sheet.Width + x], b = sheet.Pixels[(y + lag) * sheet.Width + x];
+                    sum += Mathf.Abs(a.r + a.g + a.b - b.r - b.g - b.b) + Mathf.Abs(a.a - b.a);
+                }
+                diffs[lag] = (float)(sum / (span - lag));
+                best = Mathf.Min(best, diffs[lag]);
+            }
+            int period = 20;
+            for (int lag = 20; lag <= maxLag; lag++)
+            {
+                if (diffs[lag] > best * 1.15f)
+                    continue;
+                period = lag;
+                // El mínimo local de ese valle.
+                while (period < maxLag && diffs[period + 1] < diffs[period])
+                    period++;
+                break;
+            }
+            int startY = yFrom + (span - period) / 2;
+            var pixels = new Color32[width * period];
+            for (int y = 0; y < period; y++)
+            for (int x = 0; x < width; x++)
+                pixels[y * width + x] = sheet.Pixels[(startY + y) * sheet.Width + minX + x];
+            WritePng(CirceRopePath, pixels, width, period);
+            ConfigureTexture(CirceRopePath, ppu, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
+            Debug.Log($"[Odisea] Soga de Circe: {width}x{period} px por tramo.");
+        }
+
+        /// <summary>Caja entera (vuela girando sobre su centro).</summary>
+        public const string CirceCratePath = CirceFolder + "/Caja.png";
+        /// <summary>La caja hecha pedazos (se ve un instante al romperse).</summary>
+        public const string CirceBrokenCratePath = CirceFolder + "/Caja_Rota.png";
+        /// <summary>Cáscara en el aire (gira sobre su centro).</summary>
+        public const string CircePeelPath = CirceFolder + "/Cascara.png";
+        /// <summary>Cáscara tirada en la repisa: pivote abajo, para apoyarla en el piso.</summary>
+        public const string CirceLandedPeelPath = CirceFolder + "/Cascara_Piso.png";
+        private const float CrateWidth = 0.8f;
+        private const float LandedPeelWidth = 0.95f;
+
+        /// <summary>
+        /// Lo que avienta Circe: caja.png (izquierda la caja, derecha sus pedazos) y cascara.png (izquierda volando,
+        /// derecha en el piso). Cada hoja usa una sola escala para sus dos dibujos.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar lo que avienta Circe")]
+        public static void ImportCirceThrowables()
+        {
+            EnsureFolder(CirceFolder);
+            ImportHalves("caja.png", CirceCratePath, CirceBrokenCratePath, new Vector2(0.5f, 0.5f), (left, _) => left.width / CrateWidth);
+            ImportHalves("cascara.png", CircePeelPath, CirceLandedPeelPath, new Vector2(0.5f, 0f),
+                (_, right) => right.width / LandedPeelWidth);
+        }
+
+        private static void ImportHalves(string file, string leftPath, string rightPath, Vector2 rightPivot,
+            Func<RectInt, RectInt, float> pixelsPerUnit)
+        {
+            Sheet sheet = LoadSheet($"{CirceSource}/{file}", 245, warnIfMissing: false);
+            if (sheet == null)
+                return;
+            int half = sheet.Width / 2;
+            RectInt left = OpaqueBounds(sheet, new RectInt(0, 0, half, sheet.Height));
+            RectInt right = OpaqueBounds(sheet, new RectInt(half, 0, sheet.Width - half, sheet.Height));
+            float ppu = pixelsPerUnit(left, right);
+            WriteRegion(sheet, left, leftPath, ppu, new Vector2(0.5f, 0.5f));
+            WriteRegion(sheet, right, rightPath, ppu, rightPivot);
+        }
+
+        // ---------- Secuaces de Circe (cocinero y cocinera) ----------
+
+        private const string HenchmenSource = "Personajes/sprite en png/enemigos";
+        public const string HenchmenFolder = "Assets/_Project/Art/Characters/Enemigos";
+        // Estatura con todo y gorro: un poco más altos que Ulises.
+        private const float HenchmanHeight = 2.15f;
+
+        /// <summary>Controller del secuaz (hombre = cocinero con cuchara, mujer = cocinera con batidor).</summary>
+        public static string HenchmanControllerPath(bool male) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}.controller";
+
+        /// <summary>Primer cuadro de su caminar (para que la escena se vea bien antes de darle Play).</summary>
+        public static string HenchmanWalkPath(bool male) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}_Walk.png";
+
+        /// <summary>Animación del secuaz: Walk, Attack, Hurt o Die.</summary>
+        public static string HenchmanClipPath(bool male, string clip) => $"{HenchmanFolder(male)}/{HenchmanPrefix(male)}_{clip}.anim";
+
+        private static string HenchmanFolder(bool male) => $"{HenchmenFolder}/Secuaz {(male ? "hombre" : "mujer")}";
+        private static string HenchmanPrefix(bool male) => male ? "SecuazHombre" : "SecuazMujer";
+
+        [MenuItem("Odisea/Arte/Importar secuaces de Circe")]
+        public static void ImportHenchmen()
+        {
+            ImportHenchman(male: true, "secuaz hombre/secuaz_hombre", "ataque_cuchara");
+            ImportHenchman(male: false, "secuaz mujer/secuaz_mujer", "ataque_batidor");
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Un secuaz con el mismo esquema que el cocodrilo (lo maneja PatrolEnemy): Walk (6 cuadros), Bite = el ataque
+        /// (4 cuadros: prepara, levanta, golpea —aquí daña— y se recompone; a 8 fps dura 0.5 s y pega a los 0.25 s),
+        /// Hurt (el gorro sale volando y se marea) y Die (el gorro sale volando y cae de espaldas). Cada hoja tiene su
+        /// propio lienzo: se escala para que mida HenchmanHeight parado, y los pies de cada hoja quedan a la misma altura.
+        /// </summary>
+        private static void ImportHenchman(bool male, string sourcePrefix, string attackName)
+        {
+            string folder = HenchmanFolder(male), prefix = HenchmanPrefix(male);
+            Sheet walkSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_caminar.png", warnIfMissing: false);
+            if (walkSheet == null)
+                return;
+            EnsureFolder(folder);
+            List<Frame> walk = FindFrames(walkSheet, coreFraction: 0.3f, attachDistance: 15).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {prefix}: caminar {walk.Count} cuadros.");
+            float ppu = MedianCoreHeight(walk) / HenchmanHeight;
+            List<Sprite> walkSprites = WriteStrip(walkSheet, walk, $"{folder}/{prefix}_Walk.png", ppu, $"{prefix}_Walk");
+            AnimationClip walkClip = CreateClip($"{folder}/{prefix}_Walk.anim", walkSprites, 10f, loop: true);
+
+            AnimatorController controller = ResetController(HenchmanControllerPath(male));
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState walkState = machine.AddState("Walk");
+            walkState.motion = walkClip;
+            machine.defaultState = walkState;
+
+            // Ataque: la escala sale del último cuadro (parado, con el utensilio abajo).
+            Sheet attackSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_{attackName}.png", warnIfMissing: false);
+            if (attackSheet != null)
+            {
+                List<Frame> attack = FindFrames(attackSheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] {prefix}: ataque {attack.Count} cuadros.");
+                if (attack.Count >= 4)
+                {
+                    float attackPpu = attack[attack.Count - 1].Core.Height / HenchmanHeight;
+                    int ground = attack.Min(f => f.Body.MinY);
+                    attack = attack.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    List<Sprite> sprites = WriteStrip(attackSheet, attack, $"{folder}/{prefix}_Attack.png", attackPpu, $"{prefix}_Attack");
+                    AnimationClip clip = CreateClip($"{folder}/{prefix}_Attack.anim", sprites, 8f, loop: false);
+                    controller.AddParameter("Bite", AnimatorControllerParameterType.Trigger);
+                    AnimatorState state = machine.AddState("Bite");
+                    state.motion = clip;
+                    AnyState(machine, state, "Bite", toSelf: false);
+                    ExitWhenDone(state, walkState);
+                }
+            }
+
+            // Golpe y muerte (5 cuadros): 0 el gorro sale volando, 1 mareado, 2-4 cae de espaldas. La escala sale del
+            // mareado (parado con el gorro puesto).
+            Sheet hitSheet = LoadSheet($"{HenchmenSource}/{sourcePrefix}_golpe_muerte.png", warnIfMissing: false);
+            if (hitSheet != null)
+            {
+                List<Frame> hit = FindFrames(hitSheet, coreFraction: 0.3f, attachDistance: 60).SelectMany(r => r)
+                    .OrderBy(f => f.Core.MinX).ToList();
+                Debug.Log($"[Odisea] {prefix}: golpe y muerte {hit.Count} cuadros.");
+                if (hit.Count >= 5)
+                {
+                    float hitPpu = hit[1].Core.Height / HenchmanHeight;
+                    int ground = hit.Min(f => f.Body.MinY);
+                    hit = hit.Select(f => f.WithGroundAnchor(ground)).ToList();
+                    // Muerte primero: si el golpe mata, gana la muerte.
+                    List<Frame> death = new() { hit[0], hit[2], hit[3], hit[4] };
+                    List<Sprite> deathSprites = WriteStrip(hitSheet, death, $"{folder}/{prefix}_Die.png", hitPpu, $"{prefix}_Die");
+                    AnimationClip deathClip = CreateClip($"{folder}/{prefix}_Die.anim", deathSprites, 8f, loop: false,
+                        holdLast: CrocodileDeathHold);
+                    controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+                    AnimatorState deathState = machine.AddState("Die");
+                    deathState.motion = deathClip;
+                    AnyState(machine, deathState, "Die", toSelf: false);
+
+                    List<Sprite> hurtSprites = WriteStrip(hitSheet, new List<Frame> { hit[0], hit[1] }, $"{folder}/{prefix}_Hurt.png",
+                        hitPpu, $"{prefix}_Hurt");
+                    AnimationClip hurtClip = CreateClip($"{folder}/{prefix}_Hurt.anim", hurtSprites, 5f, loop: false, holdLast: 0.15f);
+                    controller.AddParameter("Hurt", AnimatorControllerParameterType.Trigger);
+                    AnimatorState hurtState = machine.AddState("Hurt");
+                    hurtState.motion = hurtClip;
+                    AnyState(machine, hurtState, "Hurt", toSelf: true);
+                    ExitWhenDone(hurtState, walkState);
+                }
+            }
+            EditorUtility.SetDirty(controller);
+        }
+
         // ---------- Piezas del nivel 1 ----------
 
         /// <summary>
@@ -646,6 +1387,148 @@ namespace Odisea.EditorTools
             var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             texture.LoadImage(File.ReadAllBytes(path));
             return texture;
+        }
+
+        // ---------- Fondo del Mercado ----------
+
+        private const string MercadoBackgroundSource = "Fondos/mercado/";
+        public const string MercadoBackgroundFolder = Level1Folder + "/Fondo";
+        /// <summary>Pared detrás de las repisas: un tramo que se repite a lo alto (Tiled).</summary>
+        public const string MarketWallPath = MercadoBackgroundFolder + "/Pared.png";
+        /// <summary>El hueco del centro (pisos del mercado a lo lejos): se repite a lo alto.</summary>
+        public const string MarketGapPath = MercadoBackgroundFolder + "/Hueco.png";
+        /// <summary>
+        /// La pared del fondo completa (las dos torres y el hueco en una sola imagen, fondo.png): se repite a lo alto.
+        /// Si existe, reemplaza a la pared y al hueco.
+        /// </summary>
+        public const string MarketBackPath = MercadoBackgroundFolder + "/Fondo.png";
+        /// <summary>
+        /// El mercado entero en una imagen alta con perspectiva (fondo_alto.png: del pasillo al tragaluz). No se repite:
+        /// sube con la cámara (TallBackdrop). Si existe, reemplaza a la pared, al hueco y al techo.
+        /// </summary>
+        public const string MarketTallPath = MercadoBackgroundFolder + "/FondoAlto.png";
+        /// <summary>Ancho de la imagen alta: lo que ve la cámara de lado a lado más lo que se mueve de lado.</summary>
+        public const float MarketTallWidth = 28f;
+        /// <summary>Puestos de la planta baja; pivote abajo, la parte de arriba se desvanece.</summary>
+        public const string MarketFloorPath = MercadoBackgroundFolder + "/Piso.png";
+        /// <summary>Techo con el tragaluz; pivote arriba, la parte de abajo se desvanece.</summary>
+        public const string MarketRoofPath = MercadoBackgroundFolder + "/Techo.png";
+        // Anchos en el juego: la pared, lo que mide cada torre; el hueco, un poco más que el hueco (lo tapan las torres);
+        // el piso y el techo, todo el mercado.
+        public const float MarketWallWidth = 10.5f;
+        public const float MarketGapWidth = 8f;
+        public const float MarketWideWidth = 27.5f;
+        // Los puestos miden lo de la planta baja (de los toldos al piso) y se repiten a lo ancho.
+        private const float MarketStallsHeight = 7.4f;
+
+        /// <summary>
+        /// Fondo del Mercado (Docs/Referencias/Fondos/mercado). La pared (tablas) y el hueco (azulejos) son texturas
+        /// que se repiten a lo alto: cada una mide de ancho lo que ocupa en el nivel, y su orilla de abajo se mezcla
+        /// con la de arriba para que la unión no se note aunque la imagen no empate perfecto.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar fondo del Mercado")]
+        public static void ImportMercadoBackground()
+        {
+            if (ReadSource(MercadoBackgroundSource + "fondo_alto.png") is { } tall)
+            {
+                EnsureFolder(MercadoBackgroundFolder);
+                WriteRegion(tall, new RectInt(0, 0, tall.Width, tall.Height), MarketTallPath, tall.Width / MarketTallWidth,
+                    new Vector2(0.5f, 0.5f), padding: 0);
+            }
+            if (ReadSource(MercadoBackgroundSource + "fondo.png") is { } back)
+            {
+                EnsureFolder(MercadoBackgroundFolder);
+                WriteVerticalTile(back, MarketBackPath, MarketWideWidth);
+            }
+            if (ReadSource(MercadoBackgroundSource + "pared.png") is not { } wall)
+                return;
+            EnsureFolder(MercadoBackgroundFolder);
+            WriteVerticalTile(wall, MarketWallPath, MarketWallWidth);
+            if (ReadSource(MercadoBackgroundSource + "hueco.png") is { } gap)
+                WriteVerticalTile(gap, MarketGapPath, MarketGapWidth);
+            // Los puestos: de arriba hasta los toldos se desvanece (para fundirse con la pared). Se corta en el primer y
+            // el último poste de los puestos, para que al repetirse a lo ancho la unión caiga en un poste.
+            if (ReadSource(MercadoBackgroundSource + "piso.png") is { } floor)
+            {
+                FadeRows(floor, 0.12f, 0.25f);
+                int left = DarkestColumn(floor, 0.03f, 0.08f), right = DarkestColumn(floor, 0.92f, 0.98f);
+                WriteRegion(floor, new RectInt(left, 0, right - left, floor.Height), MarketFloorPath, floor.Height / MarketStallsHeight,
+                    new Vector2(0.5f, 0f), padding: 0);
+            }
+            // El techo: lo de abajo (ya casi liso) se desvanece.
+            if (ReadSource(MercadoBackgroundSource + "techo.png") is { } roof)
+            {
+                FadeRows(roof, 0.95f, 0.8f);
+                WriteRegion(roof, new RectInt(0, 0, roof.Width, roof.Height), MarketRoofPath, roof.Width / MarketWideWidth,
+                    new Vector2(0.5f, 1f), padding: 0);
+            }
+        }
+
+        // Textura que se repite a lo alto: se quita una franja de arriba y con ella se mezclan las últimas filas, así lo
+        // de abajo termina igual que lo que venía antes de la nueva primera fila.
+        private static void WriteVerticalTile(Sheet sheet, string path, float width)
+        {
+            int blend = sheet.Height / 12;
+            BlendSeam(sheet, blend, sheet.Height, blend);
+            WriteRegion(sheet, TopRows(sheet, blend, sheet.Height), path, sheet.Width / width, new Vector2(0.5f, 0.5f), padding: 0);
+        }
+
+        // La columna más oscura (la raya de un poste) entre esas fracciones del ancho, a la altura de los puestos.
+        private static int DarkestColumn(Sheet sheet, float fromFraction, float toFraction)
+        {
+            int best = Mathf.RoundToInt(sheet.Width * fromFraction);
+            long bestSum = long.MaxValue;
+            int yFrom = Mathf.RoundToInt(sheet.Height * 0.2f), yTo = Mathf.RoundToInt(sheet.Height * 0.55f);
+            for (int x = best; x < Mathf.RoundToInt(sheet.Width * toFraction); x++)
+            {
+                long sum = 0;
+                for (int y = yFrom; y < yTo; y++)
+                {
+                    Color32 c = sheet.Pixels[y * sheet.Width + x];
+                    sum += c.r + c.g + c.b;
+                }
+                if (sum < bestSum)
+                {
+                    bestSum = sum;
+                    best = x;
+                }
+            }
+            return best;
+        }
+
+        // Para que el tramo [fromRow, toRow) empalme consigo mismo al repetirse: sus últimas filas se van mezclando con
+        // las que hay justo antes de su primera fila (lo que en la imagen original venía encima de ella).
+        private static void BlendSeam(Sheet sheet, int fromRow, int toRow, int rows)
+        {
+            for (int i = 0; i < rows; i++)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, (i + 1f) / rows);
+                int target = sheet.Height - 1 - (toRow - rows + i);
+                int source = sheet.Height - 1 - (fromRow - rows + i);
+                for (int x = 0; x < sheet.Width; x++)
+                {
+                    int index = target * sheet.Width + x;
+                    sheet.Pixels[index] = Color32.Lerp(sheet.Pixels[index], sheet.Pixels[source * sheet.Width + x], t);
+                }
+            }
+        }
+
+        // Rectángulo de las filas [fromRow, toRow) contadas desde arriba (las texturas cuentan desde abajo).
+        private static RectInt TopRows(Sheet sheet, int fromRow, int toRow) =>
+            new(0, sheet.Height - toRow, sheet.Width, toRow - fromRow);
+
+        // Transparencia por filas (fracciones desde arriba): invisible en "clear", opaca en "solid" (de un lado o del otro).
+        private static void FadeRows(Sheet sheet, float clear, float solid)
+        {
+            for (int y = 0; y < sheet.Height; y++)
+            {
+                float row = (sheet.Height - 1 - y) / (float)sheet.Height;
+                float alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(clear, solid, row));
+                if (alpha >= 1f)
+                    continue;
+                for (int x = 0; x < sheet.Width; x++)
+                    sheet.Pixels[y * sheet.Width + x].a = (byte)Mathf.RoundToInt(sheet.Pixels[y * sheet.Width + x].a * alpha);
+            }
         }
 
         // ---------- Fondo del tutorial ----------
@@ -1077,9 +1960,12 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Imagen ya recortada con transparencia (sin quitar fondo ni buscar manchas). null si no existe.</summary>
-        private static Sheet ReadImage(string fileName)
+        private static Sheet ReadImage(string fileName) => ReadSource(TutorialArtSource + fileName);
+
+        // Una imagen de Docs/Referencias tal cual (sin quitar el fondo ni buscar manchas).
+        private static Sheet ReadSource(string relativePath)
         {
-            string path = Path.Combine(SourceFolder, TutorialArtSource + fileName);
+            string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
             {
                 Debug.LogWarning($"[Odisea] No se encontró {path}.");
@@ -1245,8 +2131,10 @@ namespace Odisea.EditorTools
             }
         }
 
+        // holeMinArea: los huecos blancos encerrados desde ese tamaño (px) también son fondo (entre brazo y cuerpo);
+        // los más chicos se quedan blancos (ojos, dientes).
         private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1, bool warnIfMissing = true,
-            bool removeGroundLine = false)
+            bool removeGroundLine = false, int holeMinArea = EnclosedHoleMinArea)
         {
             string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
@@ -1260,14 +2148,14 @@ namespace Odisea.EditorTools
             var sheet = new Sheet { Width = texture.width, Height = texture.height, Pixels = texture.GetPixels32() };
             UnityEngine.Object.DestroyImmediate(texture);
             if (whiteThreshold > 0)
-                RemoveWhiteBackground(sheet, whiteThreshold);
+                RemoveWhiteBackground(sheet, whiteThreshold, holeMinArea);
             if (removeGroundLine)
                 RemoveGroundLine(sheet);
             LabelBlobs(sheet);
             return sheet;
         }
 
-        private static void RemoveWhiteBackground(Sheet sheet, int threshold)
+        private static void RemoveWhiteBackground(Sheet sheet, int threshold, int holeMinArea)
         {
             int width = sheet.Width, height = sheet.Height, count = width * height;
             Color32[] pixels = sheet.Pixels;
@@ -1297,7 +2185,7 @@ namespace Odisea.EditorTools
                         touchesEdge = true;
                     TryPush(x - 1, y); TryPush(x + 1, y); TryPush(x, y - 1); TryPush(x, y + 1);
                 }
-                if (touchesEdge || region.Count >= EnclosedHoleMinArea)
+                if (touchesEdge || region.Count >= holeMinArea)
                 {
                     foreach (int i in region)
                         background[i] = true;
@@ -1484,10 +2372,11 @@ namespace Odisea.EditorTools
 
         /// <summary>Hoja de una sola fila (convención nueva). false si no existe o tiene menos cuadros de los esperados.</summary>
         private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames,
-            bool removeGroundLine = false, float coreFraction = 0.3f)
+            bool removeGroundLine = false, float coreFraction = 0.3f, int whiteThreshold = -1, int holeMinArea = EnclosedHoleMinArea)
         {
             frames = null;
-            sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false, removeGroundLine: removeGroundLine);
+            sheet = LoadSheet(UlisesFolderSource + fileName, whiteThreshold, warnIfMissing: false, removeGroundLine: removeGroundLine,
+                holeMinArea: holeMinArea);
             if (sheet == null)
                 return false;
             frames = FindFrames(sheet, coreFraction, attachDistance).SelectMany(r => r)

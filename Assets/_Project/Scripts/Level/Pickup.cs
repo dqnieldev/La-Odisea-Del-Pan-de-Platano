@@ -45,6 +45,25 @@ namespace Odisea.Level
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private Color labelColor = new(0.169f, 0.118f, 0.086f);
 
+        [Header("Ingrediente")]
+        [Tooltip("Rayos detrás del dibujo que giran (solo los ingredientes los tienen).")]
+        [SerializeField] private Transform rays;
+        [SerializeField] private float raySpeed = 45f;
+        [Tooltip("Brillo que late (crece y se encoge).")]
+        [SerializeField] private Transform pulse;
+        [Tooltip("Al recogerlo: el dibujo salta y se desvanece y salen destellos (PickupBurst).")]
+        [SerializeField] private SpriteRenderer burstDrawing;
+        [SerializeField] private Sprite sparkle;
+        [SerializeField] private Color sparkleColor = new(1f, 0.82f, 0.25f);
+        [Tooltip("Ingredientes tomados uno tras otro (con menos de estos segundos entre sí) suenan cada vez más agudo.")]
+        [SerializeField, Min(0f)] private float comboWindow = 2.5f;
+        [SerializeField, Min(0f)] private float comboPitchStep = 0.06f;
+        [SerializeField, Min(0)] private int comboMaxSteps = 6;
+
+        // Racha de ingredientes (compartida por todos).
+        private static float lastIngredientTime = -100f;
+        private static int combo;
+
         [Header("Flotar")]
         [SerializeField, Min(0f)] private float bobHeight = 0.12f;
         [SerializeField, Min(0f)] private float bobSpeed = 2.2f;
@@ -68,6 +87,10 @@ namespace Odisea.Level
             // Cada ítem con su propio ritmo (según dónde está), para que no floten todos al mismo tiempo.
             float phase = Time.time * bobSpeed + transform.position.x;
             visual.localPosition = visualRest + Vector3.up * (Mathf.Sin(phase) * bobHeight);
+            if (rays != null)
+                rays.Rotate(0f, 0f, -raySpeed * Time.deltaTime);
+            if (pulse != null)
+                pulse.localScale = Vector3.one * (1.35f + Mathf.Sin(Time.time * 4f + transform.position.x) * 0.12f);
         }
 
         // Stay y no Enter: la curación que no se pudo tomar (ya con todos los corazones) se toma al perder una vida
@@ -81,9 +104,23 @@ namespace Odisea.Level
                 return;
 
             taken = true;
-            sound.Play();
+            PlaySound();
+            if (burstDrawing != null)
+                PickupBurst.Spawn(burstDrawing, sparkle, sparkleColor);
             ShowLabel(shown);
             Destroy(gameObject);
+        }
+
+        private void PlaySound()
+        {
+            if (kind != PickupKind.Ingredient)
+            {
+                sound.Play();
+                return;
+            }
+            combo = Time.time - lastIngredientTime <= comboWindow ? Mathf.Min(combo + 1, comboMaxSteps) : 0;
+            lastIngredientTime = Time.time;
+            GameAudio.Play(sound, 0f, 1f + combo * comboPitchStep);
         }
 
         private bool Apply(Health health, out string shown)

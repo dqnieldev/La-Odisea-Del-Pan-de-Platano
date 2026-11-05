@@ -7,20 +7,19 @@
 Versión {version}
 
 # Desarrollo
-(Tu nombre aquí)
-(Tu nombre aquí)
+Daniel López
+Eduardo Cervantes
 
 # Arte e ilustración
-(Tu nombre aquí)
+Emmanuel Torres
+Jorge Arvizu
 
 # Historia
-(Tu nombre aquí)
+Axel Velazquez
 
 # Música y sonido
-(Tu nombre aquí)
-
-# Programación asistida
-Claude (Anthropic)
+Daniel López
+Emmanuel Torres
 
 # Tipografías
 Outfit · Rubik · Rye · IM Fell English
