@@ -483,6 +483,7 @@ namespace Odisea.EditorTools
             drawing.sprite = sprite;
             drawing.color = color;
             drawing.transform.localScale = isArt ? Vector3.one : new Vector3(0.6f, 0.6f, 1f);
+            DecorateIngredient(item, drawing);
             if (!isArt)
             {
                 var outline = new GameObject("Contorno").AddComponent<SpriteRenderer>();
@@ -493,6 +494,38 @@ namespace Odisea.EditorTools
                 outline.sortingOrder = 4;
             }
             return item;
+        }
+
+        // Lo que distingue a un ingrediente de los ítems de ayuda: brillo dorado que late, rayos de sol que giran
+        // detrás y, al tomarlo, un estallido de destellos.
+        private static readonly Color IngredientGlow = new(1f, 0.78f, 0.2f, 0.6f);
+        private static readonly Color IngredientRays = new(1f, 0.86f, 0.35f, 0.45f);
+
+        private static void DecorateIngredient(GameObject item, SpriteRenderer drawing)
+        {
+            var circle = LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            Transform visual = drawing.transform.parent;
+            var glow = visual.Find("Brillo").GetComponent<SpriteRenderer>();
+            glow.color = IngredientGlow;
+
+            var rays = new GameObject("Rayos").transform;
+            rays.SetParent(visual, false);
+            for (int i = 0; i < 6; i++)
+            {
+                var ray = new GameObject("Rayo").AddComponent<SpriteRenderer>();
+                ray.transform.SetParent(rays, false);
+                ray.transform.localRotation = Quaternion.Euler(0f, 0f, i * 30f);
+                ray.transform.localScale = new Vector3(0.16f, 1.9f, 1f);
+                ray.sprite = circle;
+                ray.color = IngredientRays;
+                ray.sortingOrder = 3;
+            }
+
+            var pickup = item.GetComponent<Pickup>();
+            SetSerialized(pickup, "rays", rays);
+            SetSerialized(pickup, "pulse", glow.transform);
+            SetSerialized(pickup, "burstDrawing", drawing);
+            SetSerialized(pickup, "sparkle", circle);
         }
 
         /// <summary>

@@ -21,14 +21,15 @@ namespace Odisea.Core
         private int next;
         private readonly Dictionary<AudioClip, float> startTimes = new();
 
-        public static void Play(SoundEffect effect, float delay = 0f)
+        /// <param name="pitch">Tono base (1 = normal); se le suma la variación al azar del efecto.</param>
+        public static void Play(SoundEffect effect, float delay = 0f, float pitch = 1f)
         {
             if (effect == null || !effect.HasClips)
                 return;
             AudioClip clip = effect.NextClip(out float clipVolume);
             if (clip == null)
                 return;
-            Instance.PlayClip(clip, effect.volume * clipVolume, 1f + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
+            Instance.PlayClip(clip, effect.volume * clipVolume, pitch + Random.Range(-effect.pitchVariation, effect.pitchVariation), delay);
         }
 
         private static GameAudio Instance
