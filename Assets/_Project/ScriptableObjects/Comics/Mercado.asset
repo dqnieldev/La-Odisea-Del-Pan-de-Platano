@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: Mercado
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: "Acto I \xB7 El Mercado"
+  music: {fileID: 8300000, guid: 37e8cd7a2a3ec24438be247a57425647, type: 3}
+  musicContinues: 1
+  panels:
+  - title: El Mercado de San Blas
+    art: {fileID: 21300000, guid: de1d3d1d74821974c94728cf7f9b402d, type: 3}
+    caption: "Amanece en San Blas. Ulises llega al Mercado Municipal con su morral vac\xEDo y la receta de Don Lupe en la cabeza."
+    placeholderNote: "Entrada del mercado al amanecer: toldos, papel picado y puestos; Ulises con el morral vac\xEDo, mirando hacia arriba."
+  - title: La Receta de Don Lupe
+    art: {fileID: 21300000, guid: fbc5d7ae6d0a0b34e9d122f46a6a33d1, type: 3}
+    caption: "\xABTres pl\xE1tanos bien maduros, con pecas negras, que se machaquen solitos\xBB, le dijo Don Lupe. \xABNada de pl\xE1tanos verdes.\xBB"
+    placeholderNote: "Recuerdo en la panader\xEDa: Don Lupe muestra tres pl\xE1tanos con pecas y rechaza uno verde; Ulises escucha."
+  - title: Lo que Hay en la Alacena
+    art: {fileID: 21300000, guid: a7b3ad53a8c98c94dbcaffb2e6b094ee, type: 3}
+    caption: "En la panader\xEDa ya esperan dos huevos, media taza de mantequilla, una cucharadita de bicarbonato, un chorrito de vainilla y una pizca de sal. Lo dem\xE1s hay que conseguirlo aqu\xED."
+    placeholderNote: "Ulises en la alacena: huevos, mantequilla, bicarbonato, vainilla y sal; al lado, frascos vac\xEDos y una canasta."
+  - title: Los Puestos
+    art: {fileID: 21300000, guid: 171e72032f79a6644994584af7b98c42, type: 3}
+    caption: "Dos tazas de harina, tres cuartos de taza de az\xFAcar de ca\xF1a y una cucharadita de canela\u2026 y los pl\xE1tanos m\xE1s dulces de la costa. Todo est\xE1 en alg\xFAn rinc\xF3n del Mercado."
+    placeholderNote: "Pasillos del mercado: costales de harina, piloncillo y ca\xF1a, canela en rama y racimos maduros; Ulises huele la canela."
+  - title: "Los Pl\xE1tanos de la Cima"
+    art: {fileID: 21300000, guid: 155840fb22c73e94e959a0908381f5c7, type: 3}
+    caption: "Pero los pl\xE1tanos que pide la receta no est\xE1n en un puesto: un racimo dorado cuelga en lo m\xE1s alto, bajo el tragaluz. Para llegar hay que escalar."
+    placeholderNote: 'Desde abajo: las torres de repisas y escaleras suben hasta el tragaluz; arriba brilla el racimo dorado.'
+  - title: Una Risa en las Vigas
+    art: {fileID: 21300000, guid: 17d0d73a99363014f8465879c7a8a37c, type: 3}
+    caption: "Desde las vigas, una risa conocida: Madame Circe se columpia sobre el hueco, rodeada de cajas y c\xE1scaras de pl\xE1tano. Sus ayudantes ya patrullan las repisas."
+    placeholderNote: "Circe en su columpio entre las vigas, ri\xE9ndose, con cajas y c\xE1scaras; abajo sus dos ayudantes; Ulises de espaldas."

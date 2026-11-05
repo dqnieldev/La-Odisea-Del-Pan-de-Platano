@@ -19,7 +19,8 @@ namespace Odisea.EditorTools
     public static class MercadoBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Mercado.unity";
-        private const string MusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
+        /// <summary>Canción del nivel 1 (también la de la historieta de entrada, que sigue sonando al empezar el nivel).</summary>
+        public const string MusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
 
         // Medidas del nivel (unidades). El suelo está en y = 0 y cada piso queda FloorGap más arriba.
         private const float FloorGap = 4f;
@@ -568,6 +569,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Mercado);
+            // Después de la tarjeta: la historieta de salida (el racimo, Circe huye y todo listo en la mesa) y luego el mapa.
+            PlayerSandboxBuilder.SetSerialized(component, "outroStory", SceneFlow.MercadoOutroStory);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Mercado completado!", "Ulises llegó a la cima con el racimo de plátano."));
         }

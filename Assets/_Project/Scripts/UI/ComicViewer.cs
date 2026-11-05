@@ -67,7 +67,7 @@ namespace Odisea.UI
                 return;
             }
             if (music != null)
-                music.Play(story.music);
+                music.Play(story.music, story.musicContinues ? nextScene : null);
             StartCoroutine(ShowNext(startDelay));
         }
 

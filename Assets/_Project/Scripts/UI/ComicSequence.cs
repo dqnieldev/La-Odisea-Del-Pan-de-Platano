@@ -28,6 +28,8 @@ namespace Odisea.UI
         public string title;
         [Tooltip("Canción de fondo mientras se ve; vacío = en silencio.")]
         public AudioClip music;
+        [Tooltip("La canción sigue sonando, sin cortarse, en la escena que viene después (p. ej. la del nivel, que trae la misma).")]
+        public bool musicContinues;
         public Panel[] panels = Array.Empty<Panel>();
     }
 }

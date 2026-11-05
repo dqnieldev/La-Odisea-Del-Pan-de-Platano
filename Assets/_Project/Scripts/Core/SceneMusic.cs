@@ -51,6 +51,7 @@ namespace Odisea.Core
             // Ya suena la misma canción desde la escena anterior: esta no hace nada y se quita.
             if (playing != null && playing != this && playing.source.clip == source.clip && source.clip != null)
             {
+                playing.TakeDeathFade(fadeOnDeath);
                 enabled = false;
                 Destroy(gameObject);
                 return;
@@ -95,10 +96,14 @@ namespace Odisea.Core
         /// Empieza a sonar una canción elegida al momento (la escena de historietas toca la de la historieta que
         /// muestra). Para el objeto de música que se creó sin canción.
         /// </summary>
-        public void Play(AudioClip clip)
+        /// <param name="continueIntoScene">Opcional: escena a la que la canción pasa sin cortarse (la del nivel).</param>
+        public void Play(AudioClip clip, string continueIntoScene = null)
         {
-            if (clip == null || source.isPlaying)
+            // Sin canción el AudioSource puede decir que "suena" (el de la escena se crea sin clip): solo cuenta si trae una.
+            if (clip == null || (source.clip != null && source.isPlaying))
                 return;
+            if (!string.IsNullOrEmpty(continueIntoScene))
+                continueInto = new[] { continueIntoScene };
             source.clip = clip;
             playing = this;
             source.Play();
@@ -151,6 +156,17 @@ namespace Odisea.Core
         }
 
         private void OnPlayerDied() => FadeTo(0f, deathFadeOut);
+
+        // La canción viene de la escena anterior y el nivel traía la misma: se apaga cuando muere Ulises, como la del nivel.
+        private void TakeDeathFade(Health health)
+        {
+            if (health == null || health == fadeOnDeath)
+                return;
+            if (fadeOnDeath != null)
+                fadeOnDeath.Died -= OnPlayerDied;
+            fadeOnDeath = health;
+            fadeOnDeath.Died += OnPlayerDied;
+        }
 
         private void FadeTo(float target, float duration)
         {

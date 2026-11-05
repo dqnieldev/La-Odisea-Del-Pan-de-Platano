@@ -29,6 +29,9 @@ namespace Odisea.Core
         public const string Credits = "Creditos";
         /// <summary>Historieta del principio (antes de la panadería).</summary>
         public const string PrologueStory = "Prologo";
+        /// <summary>Historietas del Acto I: al entrar al Mercado (desde el mapa) y al llegar al racimo.</summary>
+        public const string MercadoStory = "Mercado";
+        public const string MercadoOutroStory = "MercadoSalida";
 
         /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
         public static string PendingStory { get; private set; }
