@@ -2,8 +2,12 @@ using System.Linq;
 using Odisea.Core;
 using Odisea.Enemies;
 using Odisea.Level;
+using Odisea.Player;
+using Odisea.UI;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Odisea.EditorTools
 {
@@ -12,8 +16,9 @@ namespace Odisea.EditorTools
     /// torres de repisas con un hueco al centro; los pisos completos están en el suelo, a la mitad y arriba.
     /// Las repisas son firmes (no se atraviesan desde abajo): se sube por las escaleras (seguro y lento) o por las
     /// orillas del hueco con doble salto (rápido; si falla, cae varios pisos). Los ingredientes salen en lugares al azar
-    /// cada vez que se juega (algunos escondidos o sobre el hueco) y la meta está en la cima (el racimo de plátano). No
-    /// hay puntos de control: al morir se empieza desde abajo.
+    /// cada vez que se juega (algunos escondidos o sobre el hueco) y la meta está en la cima (el racimo de plátano). En la
+    /// cima espera Polifemo: hay que vencerlo para que aparezca el racimo. El único punto de control está al llegar a su
+    /// piso (al morir antes, se empieza desde abajo).
     /// Sin el arte del nivel, tablones, vigas y escaleras quedan de color.
     /// </summary>
     public static class MercadoBuilder
@@ -92,6 +97,10 @@ namespace Odisea.EditorTools
             Transform root = level.Root;
             int ground = level.GroundLayer;
             float top = Surface(TopFloor);
+            // Con el arte de Polifemo, la cima es la arena del jefe: la cámara sube más para que quepa.
+            bool boss = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.PolifemoControllerPath) != null &&
+                        AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.FlourSackPath) != null;
+            float cameraMaxY = boss ? top + ArenaCameraLift : top - 2f;
 
             // ----- Suelo, paredes y el fondo de las torres -----
             var floorBlock = PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1f), new Vector2(HalfWidth * 2f, 2f), Floor, ground);
@@ -99,11 +108,11 @@ namespace Odisea.EditorTools
             bool stalls = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.MarketFloorPath) != null;
             if (stalls)
                 floorBlock.GetComponent<SpriteRenderer>().enabled = false;
-            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, top / 2f + 2f),
-                new Vector2(1f, top + 8f), Wall, ground);
-            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 2f),
-                new Vector2(1f, top + 8f), Wall, ground);
-            CreateBackground(root, square, top, CameraMinY(stalls), top - 2f);
+            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, top / 2f + 4f),
+                new Vector2(1f, top + 12f), Wall, ground);
+            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, top / 2f + 4f),
+                new Vector2(1f, top + 12f), Wall, ground);
+            CreateBackground(root, square, top, CameraMinY(stalls), cameraMaxY);
 
             // ----- Repisas, vigas y escaleras -----
             var art = PlayerSandboxBuilder.LevelArt.Load();
@@ -150,8 +159,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(helperSpawner, "candidates", helpers.ToArray());
             PlayerSandboxBuilder.SetSerialized(helperSpawner, "keep", 1);
 
-            // ----- Meta: el racimo de plátano en la cima -----
-            CreateGoal(root, new Vector2(0f, top), level.PlayerLayer);
+            // ----- Meta: el racimo de plátano en la cima (con Polifemo, aparece al vencerlo) -----
+            GameObject goal = CreateGoal(root, new Vector2(0f, top), level.PlayerLayer, boss);
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
                 showControls: false, background: Backdrop);
@@ -164,12 +173,14 @@ namespace Odisea.EditorTools
                 CreateHenchman(root, square, circle, new Vector2(x, Surface(floor)), i + 1, male: i % 2 == 0, level);
             }
             CreateCirce(root, square, circle, art, player.GetComponent<Health>(), top, level);
+            if (boss)
+                CreatePolifemoArena(root, level, player, goal, top);
             // La cámara sigue hacia arriba sin asomarse fuera de las paredes ni debajo del suelo.
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
             // Con los puestos, la cámara no baja más que el empedrado (tamaño 7: lo de abajo queda en y = -0.85).
             PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, CameraMinY(stalls)));
-            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, top - 2f));
+            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, cameraMaxY));
 
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
@@ -529,7 +540,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Meta en la cima: el racimo de plátano dorado (círculos de color mientras llega su dibujo).</summary>
-        private static void CreateGoal(Transform parent, Vector2 floor, int playerLayer)
+        private static GameObject CreateGoal(Transform parent, Vector2 floor, int playerLayer, bool boss)
         {
             var goal = new GameObject("Meta (racimo de plátano)");
             goal.transform.SetParent(parent, false);
@@ -569,7 +580,232 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Mercado);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
-                "¡Mercado completado!", "Ulises llegó a la cima con el racimo de plátano."));
+                "¡Mercado completado!", boss ? "Ulises venció a Polifemo y se llevó el racimo de plátano."
+                    : "Ulises llegó a la cima con el racimo de plátano."));
+            return goal;
+        }
+
+        // ---------- Polifemo: el jefe de la cima ----------
+
+        // Cuánto más arriba de la cima llega la cámara con la arena (con tamaño 7 se ven ~8.5 unidades sobre el piso).
+        private const float ArenaCameraLift = 1.5f;
+        // Dónde espera Polifemo y dónde quedan los costales (entre él y la pared queda lugar para pararse detrás).
+        private const float PolifemoStartX = 6f;
+        private static readonly float[] SackXs = { -8.5f, 8.5f };
+        // Vida: 3 rondas de 3 golpes.
+        private const int PolifemoRounds = 3, PolifemoHitsPerRound = 3;
+        private static readonly Color BossBar = new(0.82f, 0.24f, 0.16f);
+        private static readonly Color BossTrail = new(0.98f, 0.85f, 0.45f);
+
+        /// <summary>
+        /// La arena de la cima: Polifemo (<see cref="PolifemoBoss"/>), un costal de harina a cada lado, su barra de vida
+        /// y un punto de control al llegar a su piso (Ulises reaparece en la orilla izquierda). El racimo aparece al
+        /// vencerlo.
+        /// </summary>
+        private static void CreatePolifemoArena(Transform parent, PlayerSandboxBuilder.LevelContext level, GameObject player,
+            GameObject goal, float top)
+        {
+            var boss = new GameObject("Polifemo") { layer = level.EnemyLayer };
+            boss.transform.SetParent(parent, false);
+            boss.transform.position = new Vector3(PolifemoStartX, top, 0f);
+            boss.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var box = boss.AddComponent<BoxCollider2D>();
+            box.isTrigger = true;
+            box.size = new Vector2(1.6f, 3f);
+            box.offset = new Vector2(0f, 1.5f);
+
+            var visual = new GameObject("Dibujo") { layer = level.EnemyLayer };
+            visual.transform.SetParent(boss.transform, false);
+            var renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sprite = ArtImportBuilder.LoadStrip(ArtImportBuilder.PolifemoStandingPath)[ArtImportBuilder.PolifemoStandingFrame];
+            renderer.sharedMaterial = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
+            renderer.sortingOrder = 6;
+            var animator = visual.AddComponent<Animator>();
+            animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.PolifemoControllerPath);
+
+            var health = boss.AddComponent<Health>();
+            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", PolifemoRounds * PolifemoHitsPerRound);
+            PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.3f);
+            PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
+            var hazard = boss.AddComponent<Hazard>();
+            PlayerSandboxBuilder.SetSerialized(hazard, "targetLayers", 1 << level.PlayerLayer);
+            var feedback = boss.AddComponent<DamageFeedback>();
+            PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
+            PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", new Object[] { renderer });
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashColor", Color.white);
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashDuration", 0.15f);
+
+            var polifemo = boss.AddComponent<PolifemoBoss>();
+            PlayerSandboxBuilder.SetSerialized(polifemo, "health", health);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "contact", hazard);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "animator", animator);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "player", player.transform);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "playerLayers", 1 << level.PlayerLayer);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "groundLayers", 1 << level.GroundLayer);
+            // El centro de Ulises queda ~0.9 arriba de sus pies: con esto empieza al pisar la cima (o al brincar hacia ella).
+            PlayerSandboxBuilder.SetSerialized(polifemo, "startHeight", top + 0.3f);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "minX", -HalfWidth + 1.5f);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "maxX", HalfWidth - 1.5f);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "reward", goal);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "hitsPerRound", PolifemoHitsPerRound);
+            // Los tiempos salen de las animaciones: en qué cuadro pega o suelta y cuánto dura cada una.
+            float Length(string state) => AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath(state)).length;
+            PlayerSandboxBuilder.SetSerialized(polifemo, "punchHitTime", ArtImportBuilder.PolifemoHitFrame / ArtImportBuilder.PolifemoPunchFps);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "punchDuration", Length("Punch"));
+            PlayerSandboxBuilder.SetSerialized(polifemo, "powerHitTime", ArtImportBuilder.PolifemoHitFrame / ArtImportBuilder.PolifemoPowerFps);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "powerDuration", Length("Power"));
+            PlayerSandboxBuilder.SetSerialized(polifemo, "throwReleaseTime",
+                ArtImportBuilder.PolifemoThrowReleaseFrame / ArtImportBuilder.PolifemoThrowFps);
+            PlayerSandboxBuilder.SetSerialized(polifemo, "throwDuration", Length("Throw"));
+            PlayerSandboxBuilder.SetSerialized(polifemo, "hurtDuration", Length("Hurt"));
+            PlayerSandboxBuilder.SetSerialized(polifemo, "bananaPrefab", EnsureBananaPrefab(level));
+            GameSoundsBuilder.SetSound(polifemo, "punchSound", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.9f);
+            GameSoundsBuilder.SetSound(polifemo, "fallSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.9f);
+
+            Sprite[] sackFrames = ArtImportBuilder.LoadStrip(ArtImportBuilder.FlourSackPath);
+            foreach (float x in SackXs)
+                CreateFlourSack(parent, level, sackFrames, polifemo, new Vector2(x, top));
+
+            // Punto de control: todo el piso de la cima; Ulises reaparece en la orilla izquierda.
+            var checkpoint = new GameObject("Punto de control (Polifemo)");
+            checkpoint.transform.SetParent(parent, false);
+            checkpoint.transform.position = new Vector3(0f, top, 0f);
+            var area = checkpoint.AddComponent<BoxCollider2D>();
+            area.size = new Vector2(HalfWidth * 2f, 2f);
+            area.offset = new Vector2(0f, 1f);
+            var saver = checkpoint.AddComponent<Checkpoint>();
+            PlayerSandboxBuilder.SetSerialized(saver, "playerLayers", 1 << level.PlayerLayer);
+            PlayerSandboxBuilder.SetSerialized(saver, "respawnOffset", new Vector2(-HalfWidth + 2f, 0.5f));
+            player.AddComponent<CheckpointSpawn>();
+
+            CreateBossBar(polifemo, level.Square);
+        }
+
+        // Costal de harina en el piso de la arena: lo revienta Ulises y la nube marea a Polifemo.
+        private static void CreateFlourSack(Transform parent, PlayerSandboxBuilder.LevelContext level, Sprite[] frames,
+            PolifemoBoss boss, Vector2 feet)
+        {
+            var sack = new GameObject($"Costal de harina ({(feet.x < 0f ? "izquierda" : "derecha")})") { layer = level.EnemyLayer };
+            sack.transform.SetParent(parent, false);
+            sack.transform.position = feet;
+            var box = sack.AddComponent<BoxCollider2D>();
+            box.isTrigger = true;
+            box.size = new Vector2(1f, ArtImportBuilder.FlourSackHeight);
+            box.offset = new Vector2(0f, ArtImportBuilder.FlourSackHeight / 2f);
+            var drawing = new GameObject("Dibujo") { layer = level.EnemyLayer }.AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(sack.transform, false);
+            drawing.sprite = frames[0];
+            // Delante de Polifemo (la nube lo tapa) y detrás de Ulises.
+            drawing.sortingOrder = 8;
+            var component = sack.AddComponent<FlourSack>();
+            PlayerSandboxBuilder.SetSerialized(component, "drawing", drawing);
+            PlayerSandboxBuilder.SetSerialized(component, "frames", frames.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(component, "boss", boss);
+            GameSoundsBuilder.SetSound(component, "burstSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.6f);
+        }
+
+        // El plátano que avienta Polifemo: vuela derecho, girando, y quita un corazón.
+        private static Projectile EnsureBananaPrefab(PlayerSandboxBuilder.LevelContext level)
+        {
+            string path = $"{EnemyPrefabFolder}/Platano de Polifemo.prefab";
+            if (!AssetDatabase.IsValidFolder(EnemyPrefabFolder))
+                AssetDatabase.CreateFolder("Assets/_Project/Prefabs", "Enemigos");
+            var root = new GameObject("Platano de Polifemo") { layer = level.EnemyLayer };
+            root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var circle = root.AddComponent<CircleCollider2D>();
+            circle.isTrigger = true;
+            circle.radius = 0.25f;
+            var visual = new GameObject("Dibujo") { layer = level.EnemyLayer }.AddComponent<SpriteRenderer>();
+            visual.transform.SetParent(root.transform, false);
+            visual.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.PolifemoBananaPath);
+            visual.sortingOrder = 11;
+            var projectile = root.AddComponent<Projectile>();
+            PlayerSandboxBuilder.SetSerialized(projectile, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(projectile, "spinSpeed", 720f);
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<Projectile>();
+        }
+
+        // Barra de vida arriba al centro, con el nombre; rayitas entre ronda y ronda. Debajo de las pantallas (pausa,
+        // game over), que también son de la capa de la interfaz.
+        private static void CreateBossBar(PolifemoBoss boss, Sprite square)
+        {
+            var canvasObject = new GameObject("HUD de Polifemo", typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
+            var canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = -1;
+            var scaler = canvasObject.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            var group = canvasObject.GetComponent<CanvasGroup>();
+            group.interactable = group.blocksRaycasts = false;
+
+            RectTransform Box(string name, Transform parent, Vector2 position, Vector2 size)
+            {
+                var rect = (RectTransform)new GameObject(name, typeof(RectTransform)).transform;
+                rect.SetParent(parent, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
+                rect.anchoredPosition = position;
+                rect.sizeDelta = size;
+                return rect;
+            }
+            Image Fill(string name, Transform parent, Color color, float inset)
+            {
+                var rect = (RectTransform)new GameObject(name, typeof(RectTransform), typeof(Image)).transform;
+                rect.SetParent(parent, false);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(inset, inset);
+                rect.offsetMax = new Vector2(-inset, -inset);
+                var image = rect.GetComponent<Image>();
+                image.sprite = square;
+                image.type = Image.Type.Filled;
+                image.fillMethod = Image.FillMethod.Horizontal;
+                image.color = color;
+                image.raycastTarget = false;
+                return image;
+            }
+
+            RectTransform bar = Box("Barra", canvasObject.transform, new Vector2(0f, -40f), new Vector2(640f, 74f));
+            var title = Box("Nombre", bar, Vector2.zero, new Vector2(640f, 40f)).gameObject.AddComponent<TextMeshProUGUI>();
+            title.text = "POLIFEMO";
+            title.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            title.fontSize = 32f;
+            title.characterSpacing = 8f;
+            title.alignment = TextAlignmentOptions.Center;
+            title.color = PlayerSandboxBuilder.Crema;
+            title.outlineWidth = 0.25f;
+            title.outlineColor = PlayerSandboxBuilder.Cafe;
+            title.raycastTarget = false;
+
+            RectTransform frame = Box("Marco", bar, new Vector2(0f, -42f), new Vector2(640f, 30f));
+            var back = frame.gameObject.AddComponent<Image>();
+            back.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+            back.type = Image.Type.Sliced;
+            back.color = PlayerSandboxBuilder.Cafe;
+            back.raycastTarget = false;
+            Image trail = Fill("Lo que perdió", frame, BossTrail, 5f);
+            Image fill = Fill("Vida", frame, BossBar, 5f);
+            for (int i = 1; i < PolifemoRounds; i++)
+            {
+                var mark = (RectTransform)new GameObject($"Ronda {i}", typeof(RectTransform), typeof(Image)).transform;
+                mark.SetParent(frame, false);
+                mark.anchorMin = mark.anchorMax = new Vector2((float)i / PolifemoRounds, 0.5f);
+                mark.sizeDelta = new Vector2(4f, 30f);
+                var image = mark.GetComponent<Image>();
+                image.color = PlayerSandboxBuilder.Cafe;
+                image.raycastTarget = false;
+            }
+
+            var component = canvasObject.AddComponent<BossHealthBar>();
+            PlayerSandboxBuilder.SetSerialized(component, "boss", boss);
+            PlayerSandboxBuilder.SetSerialized(component, "group", group);
+            PlayerSandboxBuilder.SetSerialized(component, "fill", fill);
+            PlayerSandboxBuilder.SetSerialized(component, "trail", trail);
         }
     }
 }

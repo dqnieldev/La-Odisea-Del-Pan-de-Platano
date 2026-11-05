@@ -1,0 +1,379 @@
+fileFormatVersion: 2
+guid: eaf5a5d2998af814483a4f0803382ed8
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8676755818543123669
+    second: Costal_Harina_0
+  - first:
+      213: 634987169347424599
+    second: Costal_Harina_1
+  - first:
+      213: -8745119462487122382
+    second: Costal_Harina_2
+  - first:
+      213: 2519701411125115708
+    second: Costal_Harina_3
+  - first:
+      213: -7048136861682735946
+    second: Costal_Harina_4
+  - first:
+      213: -3676713135826543722
+    second: Costal_Harina_5
+  - first:
+      213: 44920624094080678
+    second: Costal_Harina_6
+  - first:
+      213: -5325471780533141250
+    second: Costal_Harina_7
+  - first:
+      213: -1938516540646141919
+    second: Costal_Harina_8
+  - first:
+      213: 5742506508798722526
+    second: Costal_Harina_9
+  - first:
+      213: 418051808442999447
+    second: Costal_Harina_10
+  - first:
+      213: 361527943273530074
+    second: Costal_Harina_11
+  - first:
+      213: -7521796522137527142
+    second: Costal_Harina_12
+  - first:
+      213: -3367581675078359543
+    second: Costal_Harina_13
+  - first:
+      213: -760626261071942803
+    second: Costal_Harina_14
+  - first:
+      213: -2195077096674743057
+    second: Costal_Harina_15
+  - first:
+      213: 97972497571680662
+    second: Costal_Harina_16
+  - first:
+      213: -1880897933582054784
+    second: Costal_Harina_17
+  - first:
+      213: -2775211620968746501
+    second: Costal_Harina_18
+  - first:
+      213: -3825031039821004847
+    second: Costal_Harina_19
+  - first:
+      213: -6618709509682343430
+    second: Costal_Harina_20
+  - first:
+      213: -5695009308944600663
+    second: Costal_Harina_21
+  - first:
+      213: 1089948956494819714
+    second: Costal_Harina_22
+  - first:
+      213: 375725391524270981
+    second: Costal_Harina_23
+  - first:
+      213: 6528489867223111855
+    second: Costal_Harina_24
+  - first:
+      213: 7891802587727704876
+    second: Costal_Harina_25
+  - first:
+      213: -3782092249155173036
+    second: Costal_Harina_26
+  - first:
+      213: -3536225327271359723
+    second: Costal_Harina_27
+  - first:
+      213: -2339904505476479117
+    second: Costal_Harina_28
+  - first:
+      213: 2834063382258227460
+    second: Costal_Harina_29
+  - first:
+      213: -486677095611414931
+    second: Costal_Harina_30
+  - first:
+      213: 2447928355171208002
+    second: Costal_Harina_31
+  - first:
+      213: 7615482921465174310
+    second: Costal_Harina_32
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.0042328043}
+  spritePixelsToUnits: 501.53848
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Costal_Harina_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0e7493a107ab36f4eb6907961927783f
+      internalID: 8676755818543123669
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_1
+      rect:
+        serializedVersion: 2
+        x: 572
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c63aa548e0c37642ae8e56e218d3fed
+      internalID: 634987169347424599
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_2
+      rect:
+        serializedVersion: 2
+        x: 1144
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77cb6c07c5d5c9a4bb57e48c9a7e4bae
+      internalID: -8745119462487122382
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_3
+      rect:
+        serializedVersion: 2
+        x: 1716
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 31cd6403344dc0a43a9362aee7196afe
+      internalID: 2519701411125115708
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_4
+      rect:
+        serializedVersion: 2
+        x: 2288
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a710cadb1ed4274588161b137174855
+      internalID: -7048136861682735946
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_5
+      rect:
+        serializedVersion: 2
+        x: 2860
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a7ffd1a5395335e43bc82884ea96a781
+      internalID: -3676713135826543722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Costal_Harina_6
+      rect:
+        serializedVersion: 2
+        x: 3432
+        y: 0
+        width: 572
+        height: 945
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0042328043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 59dbb8e51a84e6749953bdadf275bb89
+      internalID: 44920624094080678
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 03787252d6dd40049a8020294996d994
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Costal_Harina_0: 8676755818543123669
+      Costal_Harina_1: 634987169347424599
+      Costal_Harina_2: -8745119462487122382
+      Costal_Harina_3: 2519701411125115708
+      Costal_Harina_4: -7048136861682735946
+      Costal_Harina_5: -3676713135826543722
+      Costal_Harina_6: 44920624094080678
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
