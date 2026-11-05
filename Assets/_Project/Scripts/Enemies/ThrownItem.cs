@@ -156,7 +156,7 @@ namespace Odisea.Enemies
             if (!landed || controller == null || !controller.IsGrounded || !controller.HasControl)
                 return;
             float direction = Mathf.Abs(controller.Velocity.x) > 0.1f ? Mathf.Sign(controller.Velocity.x) : controller.FacingDirection;
-            controller.ApplyKnockback(new Vector2(direction * slipVelocity.x, slipVelocity.y), slipControlLock);
+            controller.Slip(new Vector2(direction * slipVelocity.x, slipVelocity.y), slipControlLock);
             slipSound.Play();
             Destroy(gameObject);
         }

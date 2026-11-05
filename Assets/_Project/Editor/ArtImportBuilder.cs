@@ -636,6 +636,19 @@ namespace Odisea.EditorTools
             else
                 clips["Die"] = clips["Hurt"];
 
+            // Resbalón con la cáscara (6 cuadros): 0 corre hacia la cáscara, 1 la pisa, 2 se le van los pies, 3 en el
+            // aire, 4 cae sentado, 5 mareado en el piso. Los dos primeros traen la cáscara dibujada: se usan 2-5, con
+            // el suelo común (los del aire conservan su altura). Fondo blanco: sin borrar huecos (ojos, camisa). Dura lo que el resbalón le quita el control (0.6 s).
+            if (TryLoadRow("ulises_resbalon.png", attachDistance: 40, minFrames: 6, out Sheet slipSheet, out List<Frame> slip,
+                whiteThreshold: 240, holeMinArea: int.MaxValue))
+            {
+                float slipPpu = slip[0].Body.Height / UlisesRunHeight;
+                List<Frame> fall = PickFrames(slip, 2, 3, 4, 5);
+                int ground = fall.Min(f => f.Body.MinY);
+                clips["Slip"] = StripClip(slipSheet, fall.Select(f => f.WithGroundAnchor(ground)).ToList(), slipPpu, "Slip", 8f,
+                    loop: false, holdLast: 0.1f);
+            }
+
             // Correr: el polvo suelto se descarta (solo se pega lo que toca al cuerpo) para no mezclarlo con el cuadro vecino.
             if (TryLoadRow("ulises_correr.png", attachDistance: 8, minFrames: 4, out Sheet runNewSheet, out List<Frame> run))
             {
@@ -747,7 +760,7 @@ namespace Odisea.EditorTools
             AnyState(machine, states["DoubleJump"], "DoubleJump", toSelf: true);
             foreach (string action in new[] { "Attack", "Throw", "Hurt" })
                 ExitWhenDone(states[action], idle);
-            foreach (string item in new[] { "Drink", "Eat", "Leaf" })
+            foreach (string item in new[] { "Drink", "Eat", "Leaf", "Slip" })
             {
                 if (!states.TryGetValue(item, out AnimatorState itemState))
                     continue;
@@ -2359,10 +2372,11 @@ namespace Odisea.EditorTools
 
         /// <summary>Hoja de una sola fila (convención nueva). false si no existe o tiene menos cuadros de los esperados.</summary>
         private static bool TryLoadRow(string fileName, int attachDistance, int minFrames, out Sheet sheet, out List<Frame> frames,
-            bool removeGroundLine = false, float coreFraction = 0.3f)
+            bool removeGroundLine = false, float coreFraction = 0.3f, int whiteThreshold = -1, int holeMinArea = EnclosedHoleMinArea)
         {
             frames = null;
-            sheet = LoadSheet(UlisesFolderSource + fileName, warnIfMissing: false, removeGroundLine: removeGroundLine);
+            sheet = LoadSheet(UlisesFolderSource + fileName, whiteThreshold, warnIfMissing: false, removeGroundLine: removeGroundLine,
+                holeMinArea: holeMinArea);
             if (sheet == null)
                 return false;
             frames = FindFrames(sheet, coreFraction, attachDistance).SelectMany(r => r)

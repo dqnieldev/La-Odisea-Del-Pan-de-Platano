@@ -54,6 +54,8 @@ namespace Odisea.Player
 
         public event Action Jumped;
         public event Action DoubleJumped;
+        /// <summary>Se resbaló (con una cáscara): lo empujó <see cref="Slip"/>.</summary>
+        public event Action Slipped;
         public event Action Landed;
         public event Action ClimbStarted;
         public event Action ClimbEnded;
@@ -155,6 +157,13 @@ namespace Odisea.Player
                 StopClimbing();
             body.linearVelocity = velocity;
             controlLockTimer = lockTime;
+        }
+
+        /// <summary>Se resbala: lo empuja como un golpe (sin daño) y avisa para la animación del resbalón.</summary>
+        public void Slip(Vector2 velocity, float lockTime)
+        {
+            ApplyKnockback(velocity, lockTime);
+            Slipped?.Invoke();
         }
 
         /// <summary>Se detiene un momento sin poder moverse (tomar café). En el aire o en la escalera no frena.</summary>

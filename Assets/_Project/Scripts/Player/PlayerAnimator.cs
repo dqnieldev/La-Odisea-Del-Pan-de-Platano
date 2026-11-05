@@ -10,7 +10,7 @@ namespace Odisea.Player
     /// Speed (float), VerticalSpeed (float), RunSpeed (float: velocidad de la animación de correr, sube con el café), ClimbSpeed (float: 1 si sube o baja por la escalera, 0 si está quieto),
     /// IsGrounded (bool), IsClimbing (bool),
     /// Attack, Throw, DoubleJump, Hurt, Die, Drink, Eat, Leaf (triggers; Drink al tomar café, Eat al comer el pescado,
-    /// Leaf al ponerse la hoja de escudo).
+    /// Leaf al ponerse la hoja de escudo), Slip (trigger: se resbaló con una cáscara).
     /// </summary>
     public class PlayerAnimator : MonoBehaviour
     {
@@ -28,6 +28,7 @@ namespace Odisea.Player
         private static readonly int DrinkId = Animator.StringToHash("Drink");
         private static readonly int EatId = Animator.StringToHash("Eat");
         private static readonly int LeafId = Animator.StringToHash("Leaf");
+        private static readonly int SlipId = Animator.StringToHash("Slip");
 
         [SerializeField] private PlayerController controller;
         [SerializeField] private PlayerCombat combat;
@@ -51,7 +52,11 @@ namespace Odisea.Player
 
         private void OnEnable()
         {
-            if (controller != null) controller.DoubleJumped += OnDoubleJumped;
+            if (controller != null)
+            {
+                controller.DoubleJumped += OnDoubleJumped;
+                controller.Slipped += OnSlipped;
+            }
             if (buffs != null)
             {
                 buffs.Drank += OnDrank;
@@ -72,7 +77,11 @@ namespace Odisea.Player
 
         private void OnDisable()
         {
-            if (controller != null) controller.DoubleJumped -= OnDoubleJumped;
+            if (controller != null)
+            {
+                controller.DoubleJumped -= OnDoubleJumped;
+                controller.Slipped -= OnSlipped;
+            }
             if (buffs != null)
             {
                 buffs.Drank -= OnDrank;
@@ -111,6 +120,7 @@ namespace Odisea.Player
         }
 
         private void OnDoubleJumped() => SetTrigger(DoubleJumpId);
+        private void OnSlipped() => SetTrigger(SlipId);
         private void OnAttacked() => SetTrigger(AttackId);
         private void OnThrown() => SetTrigger(ThrowId);
         private void OnDrank() => SetTrigger(DrinkId);
