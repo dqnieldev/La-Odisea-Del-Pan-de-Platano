@@ -581,6 +581,8 @@ namespace Odisea.EditorTools
                 clockArt != null ? Color.white : Crema, font, "0:00", 100f);
             if (clockArt == null)
                 clock.rectTransform.localScale = Vector3.one * 0.75f;
+            else
+                CreateClockHands(clock, clockArt, score);
 
             var hud = tray.AddComponent<ScoreHud>();
             SetSerialized(hud, "score", score);
@@ -588,6 +590,40 @@ namespace Odisea.EditorTools
             SetSerialized(hud, "ingredientsIcon", icon.rectTransform);
             SetSerialized(hud, "ingredientsText", count);
             SetSerialized(hud, "timeText", time);
+        }
+
+        // Las manecillas del reloj encima de la carátula, girando sobre su eje (el pivote del dibujo) con el cronómetro.
+        private static void CreateClockHands(Image clock, Sprite face, LevelScore score)
+        {
+            var minute = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockMinutePath);
+            var hour = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockHourPath);
+            var cap = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockCapPath);
+            if (minute == null || hour == null || cap == null)
+                return;
+            // La carátula se ve completa dentro del ícono (preserveAspect): lo que mide en pantalla cada pixel del dibujo.
+            float iconSize = clock.GetComponent<LayoutElement>().preferredWidth;
+            float scale = iconSize / Mathf.Max(face.rect.width, face.rect.height);
+            Vector2 axis = (face.pivot - face.rect.size / 2f) * scale;
+            RectTransform Layer(string name, Sprite sprite)
+            {
+                var layer = new GameObject(name, typeof(RectTransform), typeof(Image));
+                var rect = (RectTransform)layer.transform;
+                rect.SetParent(clock.rectTransform, false);
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = axis;
+                rect.sizeDelta = sprite.rect.size * scale;
+                var image = layer.GetComponent<Image>();
+                image.sprite = sprite;
+                image.raycastTarget = false;
+                return rect;
+            }
+            RectTransform hourHand = Layer("Horario", hour);
+            RectTransform minuteHand = Layer("Minutero", minute);
+            Layer("Centro", cap);
+            var hands = clock.gameObject.AddComponent<ClockHands>();
+            SetSerialized(hands, "score", score);
+            SetSerialized(hands, "minuteHand", minuteHand);
+            SetSerialized(hands, "hourHand", hourHand);
         }
 
         // Ícono y texto de la bandeja del puntaje. El texto tiene ancho fijo para que la bandeja no baile cada segundo.

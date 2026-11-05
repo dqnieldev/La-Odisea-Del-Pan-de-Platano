@@ -184,8 +184,18 @@ namespace Odisea.EditorTools
         /// </summary>
         public const string ScoreBoardPath = "Assets/_Project/Art/UI/Marcador.png";
 
-        /// <summary>Reloj de pared (Menu/hud_reloj.jfif): el ícono del cronómetro del puntaje.</summary>
+        /// <summary>
+        /// Reloj de pared (Menu/hud_reloj.jfif): el ícono del cronómetro del puntaje, sin manecillas (se borran y se
+        /// rellena la carátula). El pivote del sprite es el centro de las manecillas.
+        /// </summary>
         public const string ScoreClockPath = "Assets/_Project/Art/UI/Reloj.png";
+        /// <summary>
+        /// Las manecillas del reloj (la larga, la corta) y el botón del centro, como quedan en el dibujo: cuadros del
+        /// mismo tamaño centrados en el eje, para girarlos sobre la carátula.
+        /// </summary>
+        public const string ScoreClockMinutePath = "Assets/_Project/Art/UI/Reloj_Minutero.png";
+        public const string ScoreClockHourPath = "Assets/_Project/Art/UI/Reloj_Horario.png";
+        public const string ScoreClockCapPath = "Assets/_Project/Art/UI/Reloj_Centro.png";
 
         /// <summary>Canasta con los cuatro ingredientes (Menu/hud_ingredientes.png): el ícono del contador.</summary>
         public const string ScoreIngredientsPath = "Assets/_Project/Art/UI/Canasta.png";
@@ -194,8 +204,240 @@ namespace Odisea.EditorTools
         // claro, la harina casi blanca).
         private static void ImportScoreIcons()
         {
-            ImportHudIcon("Menu/hud_reloj.jfif", 238, ScoreClockPath);
+            ImportClock();
             ImportHudIcon("Menu/hud_ingredientes.png", 245, ScoreIngredientsPath);
+        }
+
+        // Separa las manecillas del reloj: lo oscuro (y su sombra) conectado al botón del centro se borra de la
+        // carátula rellenándolo con lo de alrededor, y cada manecilla se guarda aparte, con su transparencia según
+        // qué tan oscura es contra la carátula.
+        private static void ImportClock()
+        {
+            Sheet sheet = LoadSheet("Menu/hud_reloj.jfif", 238, warnIfMissing: false, holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            int width = sheet.Width;
+            Color32[] pixels = sheet.Pixels;
+            float Lum(Color32 c) => (c.r + c.g + c.b) / 3f;
+
+            // La carátula: lo color crema. Su centro aproximado y su radio.
+            double sumX = 0, sumY = 0;
+            int area = 0;
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                Color32 c = pixels[y * width + x];
+                if (c.a > 200 && c.r > 220 && c.b > 165 && c.r - c.b > 15)
+                {
+                    sumX += x;
+                    sumY += y;
+                    area++;
+                }
+            }
+            if (area == 0)
+            {
+                Debug.LogError("[Odisea] hud_reloj: no se encontró la carátula.");
+                return;
+            }
+            float faceRadius = Mathf.Sqrt(area / Mathf.PI);
+            var guess = new Vector2Int((int)(sumX / area), (int)(sumY / area));
+
+            // El eje: donde cabe el disco oscuro (el botón) más lleno. Si varios empatan, el promedio.
+            bool Dark(int x, int y) => Lum(pixels[y * width + x]) < 110f;
+            int capRadius = Mathf.Max(2, Mathf.RoundToInt(faceRadius * 0.08f));
+            int reach = Mathf.RoundToInt(faceRadius * 0.35f);
+            int best = -1;
+            var ties = new List<Vector2Int>();
+            for (int y = guess.y - reach; y <= guess.y + reach; y += 2)
+            for (int x = guess.x - reach; x <= guess.x + reach; x += 2)
+            {
+                int count = 0;
+                for (int dy = -capRadius; dy <= capRadius; dy += 2)
+                for (int dx = -capRadius; dx <= capRadius; dx += 2)
+                    if (dx * dx + dy * dy <= capRadius * capRadius && Dark(x + dx, y + dy))
+                        count++;
+                if (count > best)
+                {
+                    best = count;
+                    ties.Clear();
+                }
+                if (count == best)
+                    ties.Add(new Vector2Int(x, y));
+            }
+            var center = new Vector2Int((int)ties.Average(p => p.x), (int)ties.Average(p => p.y));
+
+            // Lo que se borra: lo más oscuro que la carátula unido al eje (manecillas y su sombra), un poco más ancho.
+            float maxReach = faceRadius * 0.94f;
+            float Distance(int x, int y) => Mathf.Sqrt((x - center.x) * (x - center.x) + (y - center.y) * (y - center.y));
+            var erase = new bool[pixels.Length];
+            var stack = new Stack<int>();
+            stack.Push(center.y * width + center.x);
+            erase[center.y * width + center.x] = true;
+            while (stack.Count > 0)
+            {
+                int i = stack.Pop();
+                int x = i % width, y = i / width;
+                foreach ((int nx, int ny) in new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) })
+                {
+                    int n = ny * width + nx;
+                    if (!erase[n] && Lum(pixels[n]) < 228f && Distance(nx, ny) < maxReach)
+                    {
+                        erase[n] = true;
+                        stack.Push(n);
+                    }
+                }
+            }
+            int minX = width, minY = sheet.Height, maxX = 0, maxY = 0;
+            for (int i = 0; i < erase.Length; i++)
+            {
+                if (!erase[i])
+                    continue;
+                int x = i % width, y = i / width;
+                minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
+            }
+            const int grow = 4;
+            minX -= grow + 2; minY -= grow + 2; maxX += grow + 2; maxY += grow + 2;
+            for (int step = 0; step < grow; step++)
+            {
+                var grown = (bool[])erase.Clone();
+                for (int y = minY + 1; y < maxY; y++)
+                for (int x = minX + 1; x < maxX; x++)
+                {
+                    int i = y * width + x;
+                    if (erase[i - 1] || erase[i + 1] || erase[i - width] || erase[i + width])
+                        grown[i] = true;
+                }
+                erase = grown;
+            }
+
+            // Rellena lo borrado desde la orilla hacia adentro con el promedio de los vecinos ya conocidos.
+            var face = (Color32[])pixels.Clone();
+            var known = new bool[pixels.Length];
+            for (int i = 0; i < known.Length; i++)
+                known[i] = !erase[i];
+            var offsets = new[] { -1, 1, -width, width, -width - 1, -width + 1, width - 1, width + 1 };
+            while (true)
+            {
+                var filled = new List<(int index, Color32 color)>();
+                for (int y = minY + 1; y < maxY; y++)
+                for (int x = minX + 1; x < maxX; x++)
+                {
+                    int i = y * width + x;
+                    if (known[i])
+                        continue;
+                    int r = 0, g = 0, b = 0, count = 0;
+                    foreach (int o in offsets)
+                    {
+                        if (!known[i + o])
+                            continue;
+                        r += face[i + o].r; g += face[i + o].g; b += face[i + o].b;
+                        count++;
+                    }
+                    if (count >= 3)
+                        filled.Add((i, new Color32((byte)(r / count), (byte)(g / count), (byte)(b / count), 255)));
+                }
+                if (filled.Count == 0)
+                    break;
+                foreach ((int index, Color32 color) in filled)
+                {
+                    face[index] = color;
+                    known[index] = true;
+                }
+            }
+
+            // Las manecillas: qué tan oscuro es cada punto contra la carátula rellenada (la sombra casi no cuenta).
+            double handR = 0, handG = 0, handB = 0;
+            int handCount = 0;
+            var alpha = new float[pixels.Length];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                int i = y * width + x;
+                if (!erase[i])
+                    continue;
+                float lum = Lum(pixels[i]);
+                if (lum < 110f)
+                {
+                    handR += pixels[i].r; handG += pixels[i].g; handB += pixels[i].b;
+                    handCount++;
+                }
+                float a = Mathf.InverseLerp(Lum(face[i]) - 25f, 95f, lum);
+                alpha[i] = a < 0.05f ? 0f : a;
+            }
+            var handColor = new Color32((byte)(handR / handCount), (byte)(handG / handCount), (byte)(handB / handCount), 255);
+
+            // Las dos direcciones con más tinta entre un quinto y la mitad del radio.
+            var bins = new float[72];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                float d = Distance(x, y);
+                if (d < faceRadius * 0.2f || d > faceRadius * 0.5f)
+                    continue;
+                float angle = Mathf.Atan2(y - center.y, x - center.x) * Mathf.Rad2Deg;
+                bins[(int)Mathf.Repeat(angle / 5f, 72f) % 72] += alpha[y * width + x];
+            }
+            int first = Array.IndexOf(bins, bins.Max());
+            int second = -1;
+            for (int k = 0; k < 72; k++)
+            {
+                int gap = Mathf.Abs(k - first);
+                if (Mathf.Min(gap, 72 - gap) >= 8 && (second < 0 || bins[k] > bins[second]))
+                    second = k;
+            }
+            float[] directions = { first * 5f + 2.5f, second * 5f + 2.5f };
+            float capOuter = capRadius * 1.3f;
+            int Owner(int x, int y)
+            {
+                if (Distance(x, y) < capOuter)
+                    return 2;
+                float angle = Mathf.Atan2(y - center.y, x - center.x) * Mathf.Rad2Deg;
+                return Mathf.Abs(Mathf.DeltaAngle(angle, directions[0])) <= Mathf.Abs(Mathf.DeltaAngle(angle, directions[1])) ? 0 : 1;
+            }
+            var lengths = new float[2];
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                int owner = Owner(x, y);
+                if (owner < 2 && alpha[y * width + x] > 0.5f)
+                    lengths[owner] = Mathf.Max(lengths[owner], Distance(x, y));
+            }
+            int minute = lengths[0] >= lengths[1] ? 0 : 1;
+
+            EnsureFolder("Assets/_Project/Art/UI");
+            var faceSheet = new Sheet { Width = width, Height = sheet.Height, Pixels = face };
+            var pivot = new Vector2((center.x + 0.5f - bounds.xMin) / bounds.width, (center.y + 0.5f - bounds.yMin) / bounds.height);
+            WriteRegion(faceSheet, bounds, ScoreClockPath, 100f, pivot);
+            int half = Mathf.CeilToInt(Mathf.Max(lengths[0], lengths[1])) + 6;
+            void WriteLayer(int owner, string path)
+            {
+                int side = half * 2 + 1;
+                var layer = new Color32[side * side];
+                for (int y = 0; y < side; y++)
+                for (int x = 0; x < side; x++)
+                {
+                    int sx = center.x - half + x, sy = center.y - half + y;
+                    if (sx < 0 || sy < 0 || sx >= width || sy >= sheet.Height || Owner(sx, sy) != owner)
+                        continue;
+                    Color32 c = handColor;
+                    c.a = (byte)(alpha[sy * width + sx] * 255f);
+                    layer[y * side + x] = c;
+                }
+                WritePng(path, layer, side, side);
+                ConfigureTexture(path, 100f, new Vector2(0.5f, 0.5f), Vector4.zero, multiple: false);
+            }
+            WriteLayer(minute, ScoreClockMinutePath);
+            WriteLayer(1 - minute, ScoreClockHourPath);
+            WriteLayer(2, ScoreClockCapPath);
+            foreach (string path in new[] { ScoreClockPath, ScoreClockMinutePath, ScoreClockHourPath, ScoreClockCapPath })
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.mipmapEnabled = true;
+                importer.SaveAndReimport();
+            }
+            Debug.Log($"[Odisea] Reloj: eje en {center - bounds.min}, manecillas a {directions[minute]:0}° y {directions[1 - minute]:0}°.");
         }
 
         private static void ImportHudIcon(string source, int whiteThreshold, string path)
