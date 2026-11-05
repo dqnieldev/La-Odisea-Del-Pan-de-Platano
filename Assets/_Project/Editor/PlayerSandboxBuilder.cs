@@ -572,8 +572,12 @@ namespace Odisea.EditorTools
 
             (Sprite sprite, Color color, _) = IngredientSprite(Ingredient.Platano);
             (GameObject ingredients, Image icon, TMP_Text count) = CreateHudEntry(rect, "Ingredientes", sprite, color, font, "0/0", 90f);
-            (_, Image clock, TMP_Text time) = CreateHudEntry(rect, "Tiempo", UiAssetsBuilder.EnsureRingSprite(), Crema, font, "0:00", 100f);
-            clock.rectTransform.localScale = Vector3.one * 0.75f;
+            // El reloj de pared; sin su dibujo, un aro.
+            var clockArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockPath);
+            (_, Image clock, TMP_Text time) = CreateHudEntry(rect, "Tiempo", clockArt != null ? clockArt : UiAssetsBuilder.EnsureRingSprite(),
+                clockArt != null ? Color.white : Crema, font, "0:00", 100f);
+            if (clockArt == null)
+                clock.rectTransform.localScale = Vector3.one * 0.75f;
 
             var hud = tray.AddComponent<ScoreHud>();
             SetSerialized(hud, "score", score);

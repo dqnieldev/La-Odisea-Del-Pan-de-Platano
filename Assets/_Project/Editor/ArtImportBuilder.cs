@@ -184,9 +184,27 @@ namespace Odisea.EditorTools
         /// </summary>
         public const string ScoreBoardPath = "Assets/_Project/Art/UI/Marcador.png";
 
+        /// <summary>Reloj de pared (Menu/hud_reloj.jfif): el ícono del cronómetro del puntaje.</summary>
+        public const string ScoreClockPath = "Assets/_Project/Art/UI/Reloj.png";
+
+        // Es JPG: umbral un poco más bajo por el ruido, y sin borrar huecos encerrados (la carátula es crema claro).
+        private static void ImportScoreClock()
+        {
+            Sheet sheet = LoadSheet("Menu/hud_reloj.jfif", whiteThreshold: 238, warnIfMissing: false, holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            RectInt bounds = OpaqueBounds(sheet);
+            EnsureFolder("Assets/_Project/Art/UI");
+            WriteRegion(sheet, bounds, ScoreClockPath, 100f, new Vector2(0.5f, 0.5f));
+            var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreClockPath);
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+        }
+
         [MenuItem("Odisea/Arte/Importar letrero del puntaje")]
         public static void ImportScoreBoard()
         {
+            ImportScoreClock();
             Sheet sheet = LoadSheet("Menu/hud_marcador.png", whiteThreshold: 240, warnIfMissing: false);
             if (sheet == null)
                 return;
