@@ -674,9 +674,13 @@ namespace Odisea.EditorTools
             AssetDatabase.SaveAssets();
         }
 
+        private const int CirceHoleMinArea = 720;
+
         private static List<Sprite> ImportCirceStrip(string file, int whiteThreshold, string path, string spriteName)
         {
-            Sheet sheet = LoadSheet($"{CirceSource}/{file}", whiteThreshold, warnIfMissing: false);
+            // Las hojas de Circe vienen en alta resolución: lo blanco de los ojos llega a ~660 px y los huecos entre
+            // los brazos y el cuerpo (manos en la cintura) empiezan en ~760.
+            Sheet sheet = LoadSheet($"{CirceSource}/{file}", whiteThreshold, warnIfMissing: false, holeMinArea: CirceHoleMinArea);
             if (sheet == null)
                 return null;
             List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 25).SelectMany(r => r)
@@ -1843,8 +1847,10 @@ namespace Odisea.EditorTools
             }
         }
 
+        // holeMinArea: los huecos blancos encerrados desde ese tamaño (px) también son fondo (entre brazo y cuerpo);
+        // los más chicos se quedan blancos (ojos, dientes).
         private static Sheet LoadSheet(string relativePath, int whiteThreshold = -1, bool warnIfMissing = true,
-            bool removeGroundLine = false)
+            bool removeGroundLine = false, int holeMinArea = EnclosedHoleMinArea)
         {
             string path = Path.Combine(SourceFolder, relativePath);
             if (!File.Exists(path))
@@ -1858,14 +1864,14 @@ namespace Odisea.EditorTools
             var sheet = new Sheet { Width = texture.width, Height = texture.height, Pixels = texture.GetPixels32() };
             UnityEngine.Object.DestroyImmediate(texture);
             if (whiteThreshold > 0)
-                RemoveWhiteBackground(sheet, whiteThreshold);
+                RemoveWhiteBackground(sheet, whiteThreshold, holeMinArea);
             if (removeGroundLine)
                 RemoveGroundLine(sheet);
             LabelBlobs(sheet);
             return sheet;
         }
 
-        private static void RemoveWhiteBackground(Sheet sheet, int threshold)
+        private static void RemoveWhiteBackground(Sheet sheet, int threshold, int holeMinArea)
         {
             int width = sheet.Width, height = sheet.Height, count = width * height;
             Color32[] pixels = sheet.Pixels;
@@ -1895,7 +1901,7 @@ namespace Odisea.EditorTools
                         touchesEdge = true;
                     TryPush(x - 1, y); TryPush(x + 1, y); TryPush(x, y - 1); TryPush(x, y + 1);
                 }
-                if (touchesEdge || region.Count >= EnclosedHoleMinArea)
+                if (touchesEdge || region.Count >= holeMinArea)
                 {
                     foreach (int i in region)
                         background[i] = true;
