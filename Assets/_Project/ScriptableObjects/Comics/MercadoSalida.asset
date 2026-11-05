@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MercadoSalida
   m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
   title: "Acto I \xB7 El racimo dorado"
-  music: {fileID: 8300000, guid: 5ef0d719ee6423f42bae2fdd1fe6bb59, type: 3}
+  music: {fileID: 8300000, guid: 44811eca46e6572498f3b20ace1b0458, type: 3}
   musicContinues: 0
   panels:
   - title: El Racimo Dorado

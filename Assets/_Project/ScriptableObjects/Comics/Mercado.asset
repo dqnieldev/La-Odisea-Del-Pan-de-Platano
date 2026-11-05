@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Mercado
   m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
   title: "Acto I \xB7 El Mercado"
-  music: {fileID: 8300000, guid: 37e8cd7a2a3ec24438be247a57425647, type: 3}
-  musicContinues: 1
+  music: {fileID: 8300000, guid: 44811eca46e6572498f3b20ace1b0458, type: 3}
+  musicContinues: 0
   panels:
   - title: El Mercado de San Blas
     art: {fileID: 21300000, guid: de1d3d1d74821974c94728cf7f9b402d, type: 3}

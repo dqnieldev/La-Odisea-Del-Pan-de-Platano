@@ -27,6 +27,8 @@ namespace Odisea.EditorTools
         private const string BookPath = "Assets/_Project/Art/Comics/Libro.png";
         // Canción de fondo del prólogo (sin extensión).
         private const string PrologueMusicPath = "Assets/_Project/Audio/Music/musica_prologo";
+        // Canción de las historietas del Acto I (entrada y salida del Mercado).
+        private const string ActOneMusicPath = "Assets/_Project/Audio/Music/musica_acto1";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
         private static readonly Vector2 BookPanelCenter = new(125f, 62f);
@@ -120,20 +122,21 @@ namespace Odisea.EditorTools
                 prologue.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
                 EditorUtility.SetDirty(prologue);
             }
-            // La de entrada al Mercado ya trae la canción del nivel 1 y sigue sonando al empezar el nivel; la de salida, la
-            // canción de cuento del prólogo (si diseño no les puso otra).
-            AudioClip prologueMusic = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
-            ComicSequence mercado = EnsureStory(SceneFlow.MercadoStory, "Acto I · El Mercado", MercadoIntro, MercadoTitles);
-            if (mercado.music == null || mercado.music == prologueMusic)
-                mercado.music = GameSoundsBuilder.LoadMusic(MercadoBuilder.MusicPath);
-            mercado.musicContinues = true;
-            EditorUtility.SetDirty(mercado);
-            ComicSequence mercadoOutro = EnsureStory(SceneFlow.MercadoOutroStory, "Acto I · El racimo dorado", MercadoOutro,
-                MercadoOutroTitles);
-            if (mercadoOutro.music == null)
+            // Las dos del Acto I (entrada y salida del Mercado) llevan su propia canción, musica_acto1; el nivel arranca
+            // después con la suya. Se cambia si tenían una de las que les ponía antes este generador (la del prólogo o la
+            // del nivel 1); si diseño les puso otra, se respeta.
+            AudioClip actMusic = GameSoundsBuilder.LoadMusic(ActOneMusicPath);
+            var oldDefaults = new[] { GameSoundsBuilder.LoadMusic(PrologueMusicPath), GameSoundsBuilder.LoadMusic(MercadoBuilder.MusicPath) };
+            foreach (ComicSequence act in new[]
+                     {
+                         EnsureStory(SceneFlow.MercadoStory, "Acto I · El Mercado", MercadoIntro, MercadoTitles),
+                         EnsureStory(SceneFlow.MercadoOutroStory, "Acto I · El racimo dorado", MercadoOutro, MercadoOutroTitles),
+                     })
             {
-                mercadoOutro.music = prologueMusic;
-                EditorUtility.SetDirty(mercadoOutro);
+                if (actMusic != null && (act.music == null || oldDefaults.Contains(act.music)))
+                    act.music = actMusic;
+                act.musicContinues = false;
+                EditorUtility.SetDirty(act);
             }
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
