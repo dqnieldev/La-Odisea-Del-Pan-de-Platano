@@ -327,6 +327,8 @@ namespace Odisea.EditorTools
                 PlayerSandboxBuilder.SetSerialized(patrol, "lungeDistance", 0.3f);
                 PlayerSandboxBuilder.SetSerialized(patrol, "biteCooldown", 1.5f);
                 PlayerSandboxBuilder.SetSerialized(patrol, "counterBiteFromBehind", false);
+                // Si Ulises lo toca y eso le quita vida, se voltea y hace el golpe (que se vea que fue él).
+                PlayerSandboxBuilder.SetSerialized(patrol, "swingOnContact", true);
                 // Si ve a Ulises enfrente en su repisa, se le va encima más rápido.
                 PlayerSandboxBuilder.SetSerialized(patrol, "chaseSpeed", 4.2f);
                 var hurtClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.HenchmanClipPath(male, "Hurt"));

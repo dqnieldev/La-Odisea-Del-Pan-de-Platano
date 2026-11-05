@@ -38,7 +38,7 @@ namespace Odisea.Enemies
                 enemy.BiteHit += OnHitTarget;
             }
             if (contact != null)
-                contact.Hit += OnHitTarget;
+                contact.Hit += OnContactHit;
             if (health != null)
             {
                 health.Damaged += OnDamaged;
@@ -55,13 +55,15 @@ namespace Odisea.Enemies
                 enemy.BiteHit -= OnHitTarget;
             }
             if (contact != null)
-                contact.Hit -= OnHitTarget;
+                contact.Hit -= OnContactHit;
             if (health != null)
             {
                 health.Damaged -= OnDamaged;
                 health.Died -= OnDied;
             }
         }
+
+        private void OnContactHit(Vector2 _) => OnHitTarget();
 
         private void OnHitTarget()
         {

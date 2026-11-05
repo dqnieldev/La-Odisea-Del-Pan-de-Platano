@@ -16,6 +16,8 @@ namespace Odisea.Enemies
     /// se voltea y muerde de inmediato (contraataque).
     /// Si el Animator tiene los triggers "Hurt" y "Die": al recibir un golpe de frente se queja y se detiene un momento
     /// (si estaba mordiendo, el golpe le corta la mordida), y al morir hace su animación de muerte.
+    /// Opcional (swingOnContact): si daña a Ulises solo por tocarlo (su Hazard), se voltea hacia él y hace la
+    /// animación del golpe, para que se vea que le pegó (los secuaces de Circe).
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     public class PatrolEnemy : MonoBehaviour
@@ -62,6 +64,8 @@ namespace Odisea.Enemies
         [SerializeField, Min(1)] private int biteDamage = 1;
         [Tooltip("Si le pegan por la espalda se voltea y muerde al instante, aunque esté esperando entre mordidas.")]
         [SerializeField] private bool counterBiteFromBehind = true;
+        [Tooltip("Si daña a Ulises solo por tocarlo, se voltea hacia él y hace la animación del golpe (sin otro daño).")]
+        [SerializeField] private bool swingOnContact;
 
         /// <summary>Empieza a morder (abre el hocico).</summary>
         public event Action BiteStarted;
@@ -78,9 +82,11 @@ namespace Odisea.Enemies
         private Coroutine biteRoutine;
         private float cooldownTimer;
         private float stunTimer;
+        private Hazard contact;
 
         private void Awake()
         {
+            contact = GetComponent<Hazard>();
             body = GetComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Kinematic;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -95,6 +101,8 @@ namespace Odisea.Enemies
                 health.Damaged += OnDamaged;
                 health.Died += OnDied;
             }
+            if (contact != null)
+                contact.Hit += OnContactHit;
         }
 
         private void OnDisable()
@@ -104,6 +112,36 @@ namespace Odisea.Enemies
                 health.Damaged -= OnDamaged;
                 health.Died -= OnDied;
             }
+            if (contact != null)
+                contact.Hit -= OnContactHit;
+        }
+
+        // Ulises lo tocó (por la espalda o mientras no estaba golpeando) y eso le quitó vida: que se vea como su golpe.
+        private void OnContactHit(Vector2 target)
+        {
+            if (!swingOnContact || biting || animator == null || (health != null && health.IsDead))
+                return;
+            float side = target.x - body.position.x;
+            if (!Mathf.Approximately(side, 0f))
+            {
+                direction = side > 0f ? 1 : -1;
+                ApplyFacing();
+            }
+            biteRoutine = StartCoroutine(Swing());
+        }
+
+        // Solo la animación del golpe (el daño ya lo hizo el contacto): no se lanza ni vuelve a dañar.
+        private IEnumerator Swing()
+        {
+            biting = true;
+            stunTimer = 0f;
+            SetAnimationSpeed(1f);
+            animator.SetTrigger(BiteId);
+            BiteSnapped?.Invoke();
+            yield return new WaitForSeconds(biteDuration);
+            biting = false;
+            biteRoutine = null;
+            cooldownTimer = biteCooldown;
         }
 
         private void OnDamaged(DamageInfo info)
