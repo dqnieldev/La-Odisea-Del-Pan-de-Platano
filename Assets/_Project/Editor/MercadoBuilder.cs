@@ -19,7 +19,8 @@ namespace Odisea.EditorTools
     public static class MercadoBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Mercado.unity";
-        private const string MusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
+        /// <summary>Canción del nivel 1 (también la de la historieta de entrada, que sigue sonando al empezar el nivel).</summary>
+        public const string MusicPath = "Assets/_Project/Audio/Music/musica_nivel1";
 
         // Medidas del nivel (unidades). El suelo está en y = 0 y cada piso queda FloorGap más arriba.
         private const float FloorGap = 4f;

@@ -120,17 +120,20 @@ namespace Odisea.EditorTools
                 prologue.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
                 EditorUtility.SetDirty(prologue);
             }
-            // Las del Mercado van con la misma canción de cuento (si diseño no les puso otra).
-            foreach (ComicSequence act in new[]
-                     {
-                         EnsureStory(SceneFlow.MercadoStory, "Acto I · El Mercado", MercadoIntro, MercadoTitles),
-                         EnsureStory(SceneFlow.MercadoOutroStory, "Acto I · El racimo dorado", MercadoOutro, MercadoOutroTitles),
-                     })
+            // La de entrada al Mercado ya trae la canción del nivel 1 y sigue sonando al empezar el nivel; la de salida, la
+            // canción de cuento del prólogo (si diseño no les puso otra).
+            AudioClip prologueMusic = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
+            ComicSequence mercado = EnsureStory(SceneFlow.MercadoStory, "Acto I · El Mercado", MercadoIntro, MercadoTitles);
+            if (mercado.music == null || mercado.music == prologueMusic)
+                mercado.music = GameSoundsBuilder.LoadMusic(MercadoBuilder.MusicPath);
+            mercado.musicContinues = true;
+            EditorUtility.SetDirty(mercado);
+            ComicSequence mercadoOutro = EnsureStory(SceneFlow.MercadoOutroStory, "Acto I · El racimo dorado", MercadoOutro,
+                MercadoOutroTitles);
+            if (mercadoOutro.music == null)
             {
-                if (act.music != null)
-                    continue;
-                act.music = GameSoundsBuilder.LoadMusic(PrologueMusicPath);
-                EditorUtility.SetDirty(act);
+                mercadoOutro.music = prologueMusic;
+                EditorUtility.SetDirty(mercadoOutro);
             }
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
