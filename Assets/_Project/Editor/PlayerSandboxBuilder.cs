@@ -570,7 +570,10 @@ namespace Odisea.EditorTools
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
             tray.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            // La canasta con los ingredientes; sin su dibujo, el plátano.
             (Sprite sprite, Color color, _) = IngredientSprite(Ingredient.Platano);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreIngredientsPath) is { } basket)
+                (sprite, color) = (basket, Color.white);
             (GameObject ingredients, Image icon, TMP_Text count) = CreateHudEntry(rect, "Ingredientes", sprite, color, font, "0/0", 90f);
             // El reloj de pared; sin su dibujo, un aro.
             var clockArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.ScoreClockPath);

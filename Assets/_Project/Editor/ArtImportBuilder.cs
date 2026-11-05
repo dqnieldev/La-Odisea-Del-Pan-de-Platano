@@ -187,16 +187,27 @@ namespace Odisea.EditorTools
         /// <summary>Reloj de pared (Menu/hud_reloj.jfif): el ícono del cronómetro del puntaje.</summary>
         public const string ScoreClockPath = "Assets/_Project/Art/UI/Reloj.png";
 
-        // Es JPG: umbral un poco más bajo por el ruido, y sin borrar huecos encerrados (la carátula es crema claro).
-        private static void ImportScoreClock()
+        /// <summary>Canasta con los cuatro ingredientes (Menu/hud_ingredientes.png): el ícono del contador.</summary>
+        public const string ScoreIngredientsPath = "Assets/_Project/Art/UI/Canasta.png";
+
+        // El reloj es JPG: umbral un poco más bajo por el ruido. Sin borrar huecos encerrados (la carátula es crema
+        // claro, la harina casi blanca).
+        private static void ImportScoreIcons()
         {
-            Sheet sheet = LoadSheet("Menu/hud_reloj.jfif", whiteThreshold: 238, warnIfMissing: false, holeMinArea: int.MaxValue);
+            ImportHudIcon("Menu/hud_reloj.jfif", 238, ScoreClockPath);
+            ImportHudIcon("Menu/hud_ingredientes.png", 245, ScoreIngredientsPath);
+        }
+
+        private static void ImportHudIcon(string source, int whiteThreshold, string path)
+        {
+            Sheet sheet = LoadSheet(source, whiteThreshold, warnIfMissing: false, holeMinArea: int.MaxValue);
             if (sheet == null)
                 return;
             RectInt bounds = OpaqueBounds(sheet);
             EnsureFolder("Assets/_Project/Art/UI");
-            WriteRegion(sheet, bounds, ScoreClockPath, 100f, new Vector2(0.5f, 0.5f));
-            var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreClockPath);
+            WriteRegion(sheet, bounds, path, 100f, new Vector2(0.5f, 0.5f));
+            // Se ve mucho más chico que la imagen: con mipmaps no se le hacen dientes.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.mipmapEnabled = true;
             importer.SaveAndReimport();
         }
@@ -204,7 +215,7 @@ namespace Odisea.EditorTools
         [MenuItem("Odisea/Arte/Importar letrero del puntaje")]
         public static void ImportScoreBoard()
         {
-            ImportScoreClock();
+            ImportScoreIcons();
             Sheet sheet = LoadSheet("Menu/hud_marcador.png", whiteThreshold: 240, warnIfMissing: false);
             if (sheet == null)
                 return;
