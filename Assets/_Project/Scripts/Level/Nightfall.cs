@@ -22,8 +22,11 @@ namespace Odisea.Level
         [SerializeField, Min(0f)] private float dayIntensity = 1f;
         [SerializeField] private Color nightColor = new(0.62f, 0.68f, 1f);
         [SerializeField, Min(0f)] private float nightIntensity = 0.7f;
-        [SerializeField, Min(0f)] private float ovenLightIntensity = 1f;
+        [SerializeField, Min(0f)] private float ovenLightIntensity = 1.6f;
         [SerializeField, Range(0f, 1f)] private float flicker = 0.18f;
+        [Tooltip("Opcional: resplandor cálido alrededor del horno (un dibujo difuso detrás de él), que aparece al anochecer.")]
+        [SerializeField] private SpriteRenderer ovenHalo;
+        [SerializeField, Range(0f, 1f)] private float haloAlpha = 0.55f;
 
         private void Update()
         {
@@ -41,10 +44,15 @@ namespace Odisea.Level
                 color.a = t;
                 nightBackdrop.color = color;
             }
+            float noise = Mathf.PerlinNoise(Time.time * 6f, 0.3f) - 0.5f;
+            float flame = 1f + noise * flicker * 2f;
             if (ovenLight != null)
+                ovenLight.intensity = ovenLightIntensity * Mathf.Lerp(0.15f, 1f, t) * flame;
+            if (ovenHalo != null)
             {
-                float noise = Mathf.PerlinNoise(Time.time * 6f, 0.3f) - 0.5f;
-                ovenLight.intensity = ovenLightIntensity * Mathf.Lerp(0.15f, 1f, t) * (1f + noise * flicker * 2f);
+                Color color = ovenHalo.color;
+                color.a = haloAlpha * t * flame;
+                ovenHalo.color = color;
             }
         }
     }

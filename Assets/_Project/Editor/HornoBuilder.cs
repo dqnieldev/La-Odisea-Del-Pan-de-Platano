@@ -226,6 +226,15 @@ namespace Odisea.EditorTools
             }
 
             var component = oven.AddComponent<Oven>();
+            // Humo de la chimenea (con el recorte; en el horno de color, sobre su chimenea).
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(TutorialBuilder.CirclePath) is { } smokeDot)
+            {
+                var smoke = new GameObject("Humo de la chimenea").AddComponent<ChimneySmoke>();
+                smoke.transform.SetParent(visual, false);
+                smoke.transform.localPosition = Cutout ? new Vector2(-0.27f, ChimneyTop - 0.1f) : new Vector2(0.9f, 3.35f);
+                PlayerSandboxBuilder.SetSerialized(smoke, "softDot", smokeDot);
+                PlayerSandboxBuilder.SetSerialized(smoke, "oven", component);
+            }
             PlayerSandboxBuilder.SetSerialized(component, "maxHealth", OvenHealth);
             PlayerSandboxBuilder.SetSerialized(component, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(component, "renderers", shapes.Cast<Object>().ToArray());
@@ -236,7 +245,7 @@ namespace Odisea.EditorTools
                 var drawing = new GameObject("Horno (dibujo)").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(visual, false);
                 drawing.sprite = states[0];
-                drawing.sortingOrder = -18;
+                drawing.sortingOrder = -17;
                 PlayerSandboxBuilder.SetSerialized(component, "stateRenderer", drawing);
                 PlayerSandboxBuilder.SetSerialized(component, "states", states.Cast<Object>().ToArray());
             }
@@ -278,10 +287,22 @@ namespace Odisea.EditorTools
             fireLight.transform.localPosition = OvenMouth;
             fireLight.lightType = UnityEngine.Rendering.Universal.Light2D.LightType.Point;
             fireLight.color = new Color(1f, 0.62f, 0.28f);
-            fireLight.pointLightInnerRadius = 1f;
-            fireLight.pointLightOuterRadius = 9f;
+            fireLight.pointLightInnerRadius = 2f;
+            fireLight.pointLightOuterRadius = 12f;
             fireLight.intensity = 0f;
             PlayerSandboxBuilder.SetSerialized(nightfall, "ovenLight", fireLight);
+            // Resplandor cálido alrededor del horno (detrás de su dibujo y sobre el patio), que se ve de noche.
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
+            {
+                var halo = new GameObject("Resplandor del horno").AddComponent<SpriteRenderer>();
+                halo.transform.SetParent(oven.transform, false);
+                halo.transform.localPosition = new Vector3(OvenMouth.x, OvenMouth.y * 0.8f, 0f);
+                halo.transform.localScale = new Vector3(OvenHalfWidth * 4.2f, OvenHalfWidth * 3.2f, 1f);
+                halo.sprite = glowDot;
+                halo.color = new Color(1f, 0.6f, 0.25f, 0f);
+                halo.sortingOrder = -18;
+                PlayerSandboxBuilder.SetSerialized(nightfall, "ovenHalo", halo);
+            }
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
