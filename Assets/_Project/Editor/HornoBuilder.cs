@@ -105,6 +105,7 @@ namespace Odisea.EditorTools
 
             // ----- El horno y el horneado -----
             Oven oven = CreateOven(root, square, circle, playerHealth);
+            CreateOvenAlert(oven, level.EnemyLayer);
             var bake = new GameObject("Horneado").AddComponent<BakeTimer>();
             bake.transform.SetParent(root, false);
             PlayerSandboxBuilder.SetSerialized(bake, "duration", BakeSeconds);
@@ -303,6 +304,37 @@ namespace Odisea.EditorTools
                 halo.sortingOrder = -18;
                 PlayerSandboxBuilder.SetSerialized(nightfall, "ovenHalo", halo);
             }
+        }
+
+        // Signos "!" rojos arriba del horno, uno de cada lado: se prenden cuando un enemigo está muy cerca por ese lado.
+        private static void CreateOvenAlert(Oven oven, int enemyLayer)
+        {
+            var alert = oven.gameObject.AddComponent<OvenAlert>();
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            // Un círculo crema con orilla café y, encima, el "!" rojo grueso.
+            Transform Mark(string name, float side)
+            {
+                var root = new GameObject(name).transform;
+                root.SetParent(oven.transform, false);
+                root.localPosition = new Vector3(side * OvenHalfWidth * 0.75f, OvenMouth.y + 2.4f, 0f);
+                Part("Orilla", root, circle, Vector2.zero, new Vector2(1.45f, 1.45f), PlayerSandboxBuilder.Cafe, 24);
+                Part("Fondo", root, circle, Vector2.zero, new Vector2(1.25f, 1.25f), new Color(1f, 0.96f, 0.86f), 25);
+                var mark = new GameObject("Signo").AddComponent<TextMeshPro>();
+                mark.transform.SetParent(root, false);
+                mark.text = "!";
+                mark.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+                mark.fontSize = 13f;
+                mark.fontStyle = FontStyles.Bold;
+                mark.alignment = TextAlignmentOptions.Center;
+                mark.color = new Color(0.9f, 0.1f, 0.08f);
+                mark.rectTransform.sizeDelta = new Vector2(1.4f, 1.4f);
+                mark.sortingOrder = 26;
+                return root;
+            }
+            PlayerSandboxBuilder.SetSerialized(alert, "oven", oven);
+            PlayerSandboxBuilder.SetSerialized(alert, "leftMark", Mark("Alerta izquierda", -1f));
+            PlayerSandboxBuilder.SetSerialized(alert, "rightMark", Mark("Alerta derecha", 1f));
+            PlayerSandboxBuilder.SetSerialized(alert, "enemyLayers", 1 << enemyLayer);
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
@@ -689,6 +721,11 @@ namespace Odisea.EditorTools
             Transform icon = score != null ? score.transform.Find("Tiempo/Ícono") : null;
             if (icon == null)
                 return null;
+            // El pizarrón un poco más grande en este nivel, para que el cronómetro y el tiempo tengan aire.
+            var tray = (RectTransform)score.transform;
+            tray.sizeDelta = new Vector2(tray.sizeDelta.x, 108f);
+            if (tray.GetComponent<HorizontalLayoutGroup>() is { } layout)
+                layout.padding = new RectOffset(50, 54, 20, 20);
             if (icon.GetComponent<ClockHands>() is { } hands)
                 Object.DestroyImmediate(hands);
             for (int i = icon.childCount - 1; i >= 0; i--)
