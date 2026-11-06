@@ -5,8 +5,8 @@ using UnityEngine.UI;
 namespace Odisea.UI
 {
     /// <summary>
-    /// HUD del nivel 2: la vida del horno (debajo de los corazones, con su ícono, que tiembla al recibir un golpe) y la
-    /// barra del horneado arriba al centro, que se va dorando y se desvanece cuando el pan está listo.
+    /// HUD del nivel 2: la vida del horno (una barra que tiembla al recibir un golpe) y el horneado (un relleno que se va
+    /// dorando; opcionalmente se desvanece cuando el pan está listo).
     /// </summary>
     public class OvenHud : MonoBehaviour
     {
@@ -48,7 +48,8 @@ namespace Odisea.UI
             {
                 bakeFill.fillAmount = bake.Progress;
                 bakeFill.color = Color.Lerp(rawColor, bakedColor, bake.Progress);
-                bakeGroup.alpha = Mathf.MoveTowards(bakeGroup.alpha, bake.Done ? 0f : 1f, Time.deltaTime * 2f);
+                if (bakeGroup != null)
+                    bakeGroup.alpha = Mathf.MoveTowards(bakeGroup.alpha, bake.Done ? 0f : 1f, Time.deltaTime * 2f);
             }
             if (shake <= 0f || ovenIcon == null)
                 return;

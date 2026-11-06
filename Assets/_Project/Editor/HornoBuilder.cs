@@ -34,10 +34,16 @@ namespace Odisea.EditorTools
         // El horno: medio ancho (hasta donde llegan los que caminan) y la boca (a donde vuelan los jejenes).
         // El horno del dibujo es grande (casi tres veces Ulises): medio ancho de su base y centro de la boca.
         // El horno recortado se dibuja un poco más chico que en el patio original (y todo lo suyo con él).
-        private static float OvenScale => OvenStates.Length == ArtImportBuilder.HornoStates ? 0.8f : 1f;
-        private static float OvenHalfWidth => (Patio != null ? 3f : 1.7f) * OvenScale;
+        private static bool Cutout => OvenStates.Length == ArtImportBuilder.HornoStates;
+        private static float OvenScale => Cutout ? 0.8f : 1f;
+        // Medidas del horno en unidades del dibujo (antes de escalar): el recortado es más grande que el del patio.
+        // Medio ancho de la base, la boca, la base del fuego y su tamaño, y la punta de la chimenea.
+        private static float OvenHalfWidth => (Cutout ? 4.4f : Patio != null ? 3f : 1.7f) * OvenScale;
         // La boca en el dibujo (sin escalar) y ya en el juego.
-        private static Vector2 OvenMouthDrawn => Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
+        private static Vector2 OvenMouthDrawn => Cutout ? new Vector2(-0.34f, 3.7f) : Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
+        private static Vector2 FireBase => Cutout ? new Vector2(-0.34f, 2.15f) : OvenMouthDrawn - new Vector2(0f, Patio != null ? 1.05f : 0.35f);
+        private static Vector2 FireSize => Cutout ? new Vector2(2.6f, 1.6f) : Patio != null ? new Vector2(2f, 1.4f) : new Vector2(1f, 0.7f);
+        private static float ChimneyTop => Cutout ? 9.15f : Patio != null ? 7.47f : 3.4f;
         private static Vector2 OvenMouth => OvenMouthDrawn * OvenScale;
         private static Sprite Patio => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBackgroundPath);
         // El horno recortado en sus versiones (de sano a quemado) y su delineado; sin ellos, el horno es parte del patio.
@@ -210,10 +216,10 @@ namespace Odisea.EditorTools
                 var fire = new GameObject("Fuego del horno").AddComponent<OvenFire>();
                 fire.transform.SetParent(visual, false);
                 // La leña va abajo de la boca; en el dibujo la boca es mucho más grande.
-                fire.transform.localPosition = OvenMouthDrawn - new Vector2(0f, drawn ? 1.05f : 0.35f);
+                fire.transform.localPosition = FireBase;
                 MenuScenesBuilder.SetField(fire, "softDot", softDot);
                 var settings = new SerializedObject(fire);
-                settings.FindProperty("mouthSize").vector2Value = drawn ? new Vector2(2f, 1.4f) : new Vector2(1f, 0.7f);
+                settings.FindProperty("mouthSize").vector2Value = FireSize;
                 settings.FindProperty("sortingOrder").intValue = -3;
                 settings.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -236,7 +242,7 @@ namespace Odisea.EditorTools
             if (drawn && AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
             {
                 // El horno es parte del fondo: en vez de ponerse rojo, se prende un resplandor rojo encima.
-                SpriteRenderer glow = Part("Golpe", visual, glowDot, new Vector2(0f, 2.6f), new Vector2(8f, 7f), new Color(1f, 0.2f, 0.1f, 0f), -2);
+                SpriteRenderer glow = Part("Golpe", visual, glowDot, new Vector2(OvenMouthDrawn.x, OvenMouthDrawn.y - 0.6f), new Vector2(10f, 9f), new Color(1f, 0.2f, 0.1f, 0f), -2);
                 PlayerSandboxBuilder.SetSerialized(component, "hitGlow", glow);
             }
             PlayerSandboxBuilder.SetSerialized(component, "mouth", mouth);
@@ -588,41 +594,83 @@ namespace Odisea.EditorTools
             return label;
         }
 
-        // La vida del horno arriba a la derecha (con su ícono) y la barra del horneado arriba al centro.
+        // Altura de la barra de vida del horno (sobre su chimenea) y lo que mide un píxel de su lienzo en el juego.
+        private static float OvenBarHeight => ChimneyTop * OvenScale + 0.5f;
+        private const float WorldCanvasScale = 0.01f;
+
+        // La vida del horno en una barra encima del mismo horno; el horneado, en el pizarrón del puntaje: el reloj se
+        // vuelve un cronómetro que se va llenando y su texto cuenta lo que falta.
         private static void CreateOvenHud(Oven oven, BakeTimer bake, Sprite square, Sprite circle)
         {
-            Canvas canvas = OverlayCanvas("HUD del horno", -1);
-            // Arriba a la derecha, debajo del letrero del puntaje (a la izquierda, debajo de los corazones, van los ítems activos).
-            var corner = new Vector2(1f, 1f);
-            RectTransform icon = Box("Ícono del horno", canvas.transform, corner, new Vector2(-320f, -138f), new Vector2(64f, 64f));
-            var iconImage = icon.gameObject.AddComponent<Image>();
-            var iconArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoIconPath);
-            iconImage.sprite = iconArt != null ? iconArt : circle;
-            iconImage.color = iconArt != null ? Color.white : Clay;
-            iconImage.preserveAspect = true;
-            iconImage.raycastTarget = false;
-            Image ovenFill = Bar("Vida del horno", canvas.transform, corner, new Vector2(-48f, -155f), new Vector2(260f, 30f), square,
-                OvenBar, out _);
+            var canvasObject = new GameObject("Vida del horno", typeof(Canvas));
+            canvasObject.transform.SetParent(oven.transform, false);
+            var canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.sortingOrder = 20;
+            var canvasRect = (RectTransform)canvasObject.transform;
+            canvasRect.sizeDelta = new Vector2(300f, 40f);
+            canvasRect.localScale = Vector3.one * WorldCanvasScale;
+            canvasRect.localPosition = new Vector3(0f, OvenBarHeight, 0f);
+            var center = new Vector2(0.5f, 0.5f);
+            Image ovenFill = Bar("Barra", canvasObject.transform, center, Vector2.zero, new Vector2(280f, 34f), square, OvenBar, out _);
             ovenFill.fillAmount = 1f;
 
-            var top = new Vector2(0.5f, 1f);
-            RectTransform bakeRoot = Box("Horneado", canvas.transform, top, new Vector2(0f, -40f), new Vector2(560f, 74f));
-            var group = bakeRoot.gameObject.AddComponent<CanvasGroup>();
-            group.interactable = group.blocksRaycasts = false;
-            Label("Nombre", bakeRoot, top, Vector2.zero, new Vector2(560f, 40f), "HORNEANDO", 30f);
-            Image bakeFill = Bar("Barra", bakeRoot, top, new Vector2(0f, -42f), new Vector2(560f, 30f), square, Bread, out _);
-            bakeFill.fillAmount = 0f;
-
-            var hud = canvas.gameObject.AddComponent<OvenHud>();
+            Image bakeFill = CreateStopwatch(circle, square, out ScoreHud score);
+            var hud = canvasObject.AddComponent<OvenHud>();
             PlayerSandboxBuilder.SetSerialized(hud, "oven", oven);
             PlayerSandboxBuilder.SetSerialized(hud, "bake", bake);
             PlayerSandboxBuilder.SetSerialized(hud, "ovenFill", ovenFill);
-            PlayerSandboxBuilder.SetSerialized(hud, "ovenIcon", icon);
-            PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", bakeFill);
-            PlayerSandboxBuilder.SetSerialized(hud, "bakeGroup", group);
+            // La barra tiembla al recibir el horno un golpe.
+            PlayerSandboxBuilder.SetSerialized(hud, "ovenIcon", ovenFill.transform.parent);
+            if (bakeFill != null)
+                PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", bakeFill);
+            if (score != null)
+                PlayerSandboxBuilder.SetSerialized(score, "bake", bake);
         }
 
-        // Barra de vida de Polifemo arriba al centro (donde estaba la del horneado, que ya se fue).
+        // En el pizarrón del puntaje, el reloj de pared se vuelve un cronómetro: un aro con su botón arriba y un relleno
+        // que se va llenando como rebanadas, de arriba en el sentido del reloj.
+        private static Image CreateStopwatch(Sprite circle, Sprite square, out ScoreHud score)
+        {
+            score = Object.FindAnyObjectByType<ScoreHud>();
+            Transform icon = score != null ? score.transform.Find("Tiempo/Ícono") : null;
+            if (icon == null)
+                return null;
+            if (icon.GetComponent<ClockHands>() is { } hands)
+                Object.DestroyImmediate(hands);
+            for (int i = icon.childCount - 1; i >= 0; i--)
+                Object.DestroyImmediate(icon.GetChild(i).gameObject);
+            var ring = icon.GetComponent<Image>();
+            ring.sprite = UiAssetsBuilder.EnsureRingSprite();
+            ring.color = PlayerSandboxBuilder.Crema;
+            ring.preserveAspect = true;
+            icon.localScale = Vector3.one * 1.1f;
+            Image Child(string name, Sprite sprite, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+            {
+                var rect = (RectTransform)new GameObject(name, typeof(RectTransform), typeof(Image)).transform;
+                rect.SetParent(icon, false);
+                rect.anchorMin = anchorMin;
+                rect.anchorMax = anchorMax;
+                rect.offsetMin = offsetMin;
+                rect.offsetMax = offsetMax;
+                var image = rect.GetComponent<Image>();
+                image.sprite = sprite;
+                image.color = color;
+                image.raycastTarget = false;
+                return image;
+            }
+            // El botón de arriba y el relleno (un poco adentro del aro).
+            Child("Botón", square, PlayerSandboxBuilder.Crema, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-6f, 0f), new Vector2(6f, 9f));
+            Image fill = Child("Horneado", circle, Bread, Vector2.zero, Vector2.one, new Vector2(5f, 5f), new Vector2(-5f, -5f));
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Radial360;
+            fill.fillOrigin = (int)Image.Origin360.Top;
+            fill.fillClockwise = true;
+            fill.fillAmount = 0f;
+            return fill;
+        }
+
+        // Barra de vida de Polifemo arriba al centro (sale cuando el pan ya está horneado).
         private static void CreateBossBar(Health boss, Sprite square)
         {
             Canvas canvas = OverlayCanvas("HUD de Polifemo", -1);
