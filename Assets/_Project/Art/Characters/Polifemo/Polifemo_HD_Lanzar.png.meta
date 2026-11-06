@@ -1,0 +1,301 @@
+fileFormatVersion: 2
+guid: 1a0f56cbe9a7e6d438d66c59d6234941
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2224197693609176366
+    second: Polifemo_HD_Lanzar_0
+  - first:
+      213: -3980751572481328587
+    second: Polifemo_HD_Lanzar_1
+  - first:
+      213: -3842240320313134717
+    second: Polifemo_HD_Lanzar_2
+  - first:
+      213: -8321405392594234
+    second: Polifemo_HD_Lanzar_3
+  - first:
+      213: 3966038925806382838
+    second: Polifemo_HD_Lanzar_4
+  - first:
+      213: 3017541997152555066
+    second: Polifemo_HD_Lanzar_5
+  - first:
+      213: -3012409825785194822
+    second: Polifemo_HD_Lanzar_6
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.003439381}
+  spritePixelsToUnits: 143.65079
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a2957bc033695a542900f0d161d302a0
+      internalID: 2224197693609176366
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_1
+      rect:
+        serializedVersion: 2
+        x: 876
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9009d1bd100748144b72d3a6ac14f733
+      internalID: -3980751572481328587
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_2
+      rect:
+        serializedVersion: 2
+        x: 1752
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04e7d0fbae1689748901a4471c69bb7b
+      internalID: -3842240320313134717
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_3
+      rect:
+        serializedVersion: 2
+        x: 2628
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ea4102154bbef2b4898a14700d936947
+      internalID: -8321405392594234
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_4
+      rect:
+        serializedVersion: 2
+        x: 3504
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 93f3a407b53f0aa45a1736a98b765d1f
+      internalID: 3966038925806382838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_5
+      rect:
+        serializedVersion: 2
+        x: 4380
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 14d2b39fb7b93af4ba152350cda5555d
+      internalID: 3017541997152555066
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Lanzar_6
+      rect:
+        serializedVersion: 2
+        x: 5256
+        y: 0
+        width: 876
+        height: 1163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.003439381}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4415855ce7446c848b5a4bfbce703571
+      internalID: -3012409825785194822
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b4544491684fd0345a6351670094f1a2
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Polifemo_HD_Lanzar_0: 2224197693609176366
+      Polifemo_HD_Lanzar_1: -3980751572481328587
+      Polifemo_HD_Lanzar_2: -3842240320313134717
+      Polifemo_HD_Lanzar_3: -8321405392594234
+      Polifemo_HD_Lanzar_4: 3966038925806382838
+      Polifemo_HD_Lanzar_5: 3017541997152555066
+      Polifemo_HD_Lanzar_6: -3012409825785194822
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

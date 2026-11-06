@@ -1,0 +1,327 @@
+fileFormatVersion: 2
+guid: 7f43919ec762cfc4a9d1161e9d3f93d6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 499830864391735442
+    second: Polifemo_HD_Caminar_0
+  - first:
+      213: 627760928388268218
+    second: Polifemo_HD_Caminar_1
+  - first:
+      213: -8693569027441480162
+    second: Polifemo_HD_Caminar_2
+  - first:
+      213: 7219932857583026591
+    second: Polifemo_HD_Caminar_3
+  - first:
+      213: -8790621264407437149
+    second: Polifemo_HD_Caminar_4
+  - first:
+      213: -3223010259708174794
+    second: Polifemo_HD_Caminar_5
+  - first:
+      213: -6512850119171218503
+    second: Polifemo_HD_Caminar_6
+  - first:
+      213: 4683767350017664735
+    second: Polifemo_HD_Caminar_7
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.0038498556}
+  spritePixelsToUnits: 150.15872
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d0195158a1117364b95d081f320d67dd
+      internalID: 499830864391735442
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_1
+      rect:
+        serializedVersion: 2
+        x: 654
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dce4f92768b224b48a91fd0b4e8c7d08
+      internalID: 627760928388268218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_2
+      rect:
+        serializedVersion: 2
+        x: 1308
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6202c95c26da4534e9a490870eb3aa10
+      internalID: -8693569027441480162
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_3
+      rect:
+        serializedVersion: 2
+        x: 1962
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6ac00bb0d71ec384a90d2af900c3394e
+      internalID: 7219932857583026591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_4
+      rect:
+        serializedVersion: 2
+        x: 2616
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9b00ea744fec89a40b651943c388bdd2
+      internalID: -8790621264407437149
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_5
+      rect:
+        serializedVersion: 2
+        x: 3270
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04ea4b24d507044468e752f6bba3bb6a
+      internalID: -3223010259708174794
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_6
+      rect:
+        serializedVersion: 2
+        x: 3924
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 40ed28e114fa4fe47bcc7c5732656d9f
+      internalID: -6512850119171218503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Caminar_7
+      rect:
+        serializedVersion: 2
+        x: 4578
+        y: 0
+        width: 654
+        height: 1039
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0038498556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5a58d92a40d0000418af40159dfcc308
+      internalID: 4683767350017664735
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 0ad7cecb2c8da034593042809caf3db5
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Polifemo_HD_Caminar_0: 499830864391735442
+      Polifemo_HD_Caminar_1: 627760928388268218
+      Polifemo_HD_Caminar_2: -8693569027441480162
+      Polifemo_HD_Caminar_3: 7219932857583026591
+      Polifemo_HD_Caminar_4: -8790621264407437149
+      Polifemo_HD_Caminar_5: -3223010259708174794
+      Polifemo_HD_Caminar_6: -6512850119171218503
+      Polifemo_HD_Caminar_7: 4683767350017664735
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

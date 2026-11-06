@@ -671,6 +671,20 @@ namespace Odisea.EditorTools
         /// <summary>Estatura de Polifemo parado: casi el doble que Ulises.</summary>
         public const float PolifemoHeight = 3.4f;
         /// <summary>
+        /// Con las hojas grandes (nivel 2) Polifemo es casi del tamaño del horno. Caminata de 8 cuadros: pisa fuerte en el
+        /// 1 y el 5 (cada <see cref="PolifemoStepTime"/> s); lanzar la olla (7): la suelta en el 5.
+        /// </summary>
+        public const float PolifemoHDHeight = 6.3f;
+        public const float PolifemoWalkFps = 8f, PolifemoStepTime = 4f / PolifemoWalkFps;
+        public const float PolifemoHDThrowFps = 9f;
+        public const int PolifemoHDReleaseFrame = 4;
+        /// <summary>Si están las hojas grandes, el controlador trae solo Idle, Walk, Throw, Hurt y Fall.</summary>
+        public static bool PolifemoHD => File.Exists(Path.Combine(SourceFolder, PolifemoSource, "polifemo_caminar_hd.png"));
+        /// <summary>La olla de barro que avienta: volando (2 cuadros) y rota.</summary>
+        public static string PolifemoPotPath(int frame) => $"{PolifemoFolder}/Olla_{frame}.png";
+        public const string PolifemoPotBrokenPath = PolifemoFolder + "/Olla_Rota.png";
+        private const float PolifemoPotSize = 1.1f;
+        /// <summary>
         /// Cuadros por segundo del golpe, del golpe potente y de aventar; en qué cuadro pega o suelta. Los dos golpes usan
         /// la hoja del golpe potente (en la del golpe normal dos cuadros se tocan y no se pueden separar): el normal, más rápido.
         /// </summary>
@@ -688,6 +702,8 @@ namespace Odisea.EditorTools
         public static void ImportPolifemo()
         {
             EnsureFolder(PolifemoFolder);
+            if (PolifemoHD && ImportPolifemoHD())
+                return;
             List<Sprite> walk = ImportPolifemoStrip("caminata_polifemo.png", standing: 0, "Caminar", feetAnchor: true);
             List<Sprite> power = ImportPolifemoStrip("golpepotente_polifemo.png", standing: 4, "GolpePotente", feetAnchor: true);
             List<Sprite> toss = ImportPolifemoStrip("polifemo_proyectil.png", standing: 0, "Aventar", feetAnchor: true);
@@ -721,18 +737,70 @@ namespace Odisea.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        // Una hoja de Polifemo (fondo transparente) como tira, escalada con el cuadro "standing".
-        private static List<Sprite> ImportPolifemoStrip(string file, int standing, string name, bool feetAnchor)
+        // Hojas grandes (fondo blanco): caminar pesado, lanzar la olla, recibir el golpe y la derrota. Cada una se escala con
+        // un cuadro de él parado; los pies en el suelo común y, en las de pie, el cuerpo no se mueve al estirar los brazos.
+        private static bool ImportPolifemoHD()
         {
-            Sheet sheet = LoadSheet($"{PolifemoSource}/{file}", warnIfMissing: false);
+            List<Sprite> walk = ImportPolifemoStrip("polifemo_caminar_hd.png", standing: 1, "HD_Caminar", feetAnchor: true, hd: true);
+            List<Sprite> toss = ImportPolifemoStrip("polifemo_lanzar.png", standing: 6, "HD_Lanzar", feetAnchor: true, hd: true);
+            List<Sprite> hurt = ImportPolifemoStrip("polifemo_golpe_recibido.png", standing: 2, "HD_Golpe", feetAnchor: true, hd: true);
+            List<Sprite> fall = ImportPolifemoStrip("polifemo_derrota.png", standing: 0, "HD_Derrota", feetAnchor: false, hd: true);
+            if (walk == null || toss == null || hurt == null || fall == null || walk.Count < 8 || toss.Count < 7)
+            {
+                Debug.LogWarning("[Odisea] Faltan cuadros en las hojas grandes de Polifemo; se usan las chicas.");
+                return false;
+            }
+            ImportPolifemoPot();
+            AnimatorController controller = ResetController(PolifemoControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            void State(string name, IList<Sprite> sprites, float fps, bool loop, float holdLast = 0f)
+            {
+                AnimatorState state = machine.AddState(name);
+                state.motion = CreateClip(PolifemoClipPath(name), sprites, fps, loop, holdLast);
+            }
+            State("Idle", new List<Sprite> { toss[6] }, 1f, loop: true);
+            machine.defaultState = machine.states[0].state;
+            State("Walk", walk, PolifemoWalkFps, loop: true);
+            State("Throw", toss, PolifemoHDThrowFps, loop: false);
+            State("Hurt", hurt, 9f, loop: false);
+            State("Fall", fall, 6f, loop: false, holdLast: 0.3f);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        // La olla (Items/olla_barro.png, fondo blanco): los dos primeros cuadros volando y el tercero rota. La franja gris
+        // de abajo de la imagen no cuenta.
+        private static void ImportPolifemoPot()
+        {
+            Sheet sheet = LoadSheet("Items/olla_barro.png", 240, warnIfMissing: false, holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 30).SelectMany(r => r)
+                .Where(f => f.Body.Width < sheet.Width / 2).OrderBy(f => f.Core.MinX).ToList();
+            if (frames.Count < 3)
+                return;
+            float ppu = frames[0].Body.Width / PolifemoPotSize;
+            for (int i = 0; i < 2; i++)
+                WriteStrip(sheet, new List<Frame> { frames[i].WithCenterAnchor(0) }, PolifemoPotPath(i), ppu, $"Olla_{i}");
+            WriteStrip(sheet, new List<Frame> { frames[2].WithCenterAnchor(0) }, PolifemoPotBrokenPath, ppu, "Olla_Rota");
+        }
+
+        // Una hoja de Polifemo como tira, escalada con el cuadro "standing". Las grandes traen fondo blanco (sin borrar los
+        // huecos encerrados: los guantes son blancos).
+        private static List<Sprite> ImportPolifemoStrip(string file, int standing, string name, bool feetAnchor, bool hd = false)
+        {
+            Sheet sheet = hd
+                ? LoadSheet($"{PolifemoSource}/{file}", 238, warnIfMissing: false, holeMinArea: int.MaxValue)
+                : LoadSheet($"{PolifemoSource}/{file}", warnIfMissing: false);
             if (sheet == null)
                 return null;
-            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: feetAnchor ? 4 : 40).SelectMany(r => r)
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: hd ? 12 : feetAnchor ? 4 : 40).SelectMany(r => r)
                 .OrderBy(f => f.Core.MinX).ToList();
             Debug.Log($"[Odisea] {file}: {frames.Count} cuadros.");
             if (frames.Count <= standing)
                 return null;
-            float ppu = frames[standing].Body.Height / PolifemoHeight;
+            float ppu = frames[standing].Body.Height / (hd ? PolifemoHDHeight : PolifemoHeight);
             int ground = frames.Min(f => f.Body.MinY);
             frames = frames.Select(f => f.WithGroundAnchor(ground)).ToList();
             if (feetAnchor)

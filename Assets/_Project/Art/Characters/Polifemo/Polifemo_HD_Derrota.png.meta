@@ -1,0 +1,299 @@
+fileFormatVersion: 2
+guid: b7ae6baec4787fc49bc8ca18e986405d
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5622858266044503200
+    second: Polifemo_HD_Derrota_0
+  - first:
+      213: -1241070852985730677
+    second: Polifemo_HD_Derrota_1
+  - first:
+      213: -7288909298862586848
+    second: Polifemo_HD_Derrota_2
+  - first:
+      213: -2810785724273572481
+    second: Polifemo_HD_Derrota_3
+  - first:
+      213: -5857876195727860035
+    second: Polifemo_HD_Derrota_4
+  - first:
+      213: -3444930760804075785
+    second: Polifemo_HD_Derrota_5
+  - first:
+      213: -3253731628333900717
+    second: Polifemo_HD_Derrota_6
+  - first:
+      213: -1624171548221104468
+    second: Polifemo_HD_Derrota_7
+  - first:
+      213: -2739865124414329940
+    second: Polifemo_HD_Derrota_8
+  - first:
+      213: -7907268937825766340
+    second: Polifemo_HD_Derrota_9
+  - first:
+      213: -2548965960186432899
+    second: Polifemo_HD_Derrota_10
+  - first:
+      213: -949667651093921652
+    second: Polifemo_HD_Derrota_11
+  - first:
+      213: 4013982855993490899
+    second: Polifemo_HD_Derrota_12
+  - first:
+      213: 8507468996690308299
+    second: Polifemo_HD_Derrota_13
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.013114754}
+  spritePixelsToUnits: 41.26984
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 82ee98bb884e8aa4a8b5807bbea274a7
+      internalID: 5622858266044503200
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_1
+      rect:
+        serializedVersion: 2
+        x: 236
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fa7c70cbd0ce11a4cb96af6bc16f5548
+      internalID: -1241070852985730677
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_2
+      rect:
+        serializedVersion: 2
+        x: 472
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c97f1e4ff2894d4aa0167ce3398895e
+      internalID: -7288909298862586848
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_3
+      rect:
+        serializedVersion: 2
+        x: 708
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 609308466c631ed438618906e7d70501
+      internalID: -2810785724273572481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_4
+      rect:
+        serializedVersion: 2
+        x: 944
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9428c43b17ac4a742984764512cc4f36
+      internalID: -5857876195727860035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_HD_Derrota_5
+      rect:
+        serializedVersion: 2
+        x: 1180
+        y: 0
+        width: 236
+        height: 305
+      alignment: 9
+      pivot: {x: 0.5, y: 0.013114754}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f26cb59b7f196c41bfe04ca18506025
+      internalID: -3444930760804075785
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5851934aec91661428d456ef0eca7a4b
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Polifemo_HD_Derrota_0: 5622858266044503200
+      Polifemo_HD_Derrota_1: -1241070852985730677
+      Polifemo_HD_Derrota_2: -7288909298862586848
+      Polifemo_HD_Derrota_3: -2810785724273572481
+      Polifemo_HD_Derrota_4: -5857876195727860035
+      Polifemo_HD_Derrota_5: -3444930760804075785
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

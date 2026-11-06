@@ -16,6 +16,18 @@ namespace Odisea.Core
         [SerializeField] private Vector2 maxPosition = new(100f, 100f);
 
         private Vector3 velocity;
+        // Sacudida (pisadas de Polifemo): se suma a la posición y se apaga sola.
+        private static float shakeAmount, shakeTimer, shakeDuration;
+        private Vector3 shakeOffset;
+
+        /// <summary>Sacude la cámara un momento (amount en unidades, se apaga en duration segundos).</summary>
+        public static void Shake(float amount, float duration)
+        {
+            if (amount < shakeAmount * (shakeTimer / Mathf.Max(0.01f, shakeDuration)))
+                return;
+            shakeAmount = amount;
+            shakeDuration = shakeTimer = Mathf.Max(0.01f, duration);
+        }
 
         public Transform Target
         {
@@ -34,7 +46,16 @@ namespace Odisea.Core
         {
             if (target == null)
                 return;
-            transform.position = Vector3.SmoothDamp(transform.position, Desired(), ref velocity, smoothTime);
+            Vector3 position = transform.position - shakeOffset;
+            position = Vector3.SmoothDamp(position, Desired(), ref velocity, smoothTime);
+            shakeOffset = Vector3.zero;
+            if (shakeTimer > 0f)
+            {
+                shakeTimer -= Time.deltaTime;
+                float strength = shakeAmount * Mathf.Clamp01(shakeTimer / shakeDuration);
+                shakeOffset = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f) * strength;
+            }
+            transform.position = position + shakeOffset;
         }
 
         private Vector3 Desired()

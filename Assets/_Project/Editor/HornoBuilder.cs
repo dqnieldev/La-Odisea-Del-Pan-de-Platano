@@ -123,7 +123,7 @@ namespace Odisea.EditorTools
             GameObject rat = EnsureRat(level, square, circle);
             GameObject crocodile = EnsureCrocodile(level, square);
             GameObject gnats = EnsureGnats(level, circle);
-            PolifemoWalker boss = CreatePolifemo(root, level, oven, goal);
+            PolifemoWalker boss = CreatePolifemo(root, level, oven, goal, playerHealth);
             var spawner = new GameObject("Oleadas").AddComponent<WaveSpawner>();
             spawner.transform.SetParent(root, false);
             PlayerSandboxBuilder.SetSerialized(spawner, "oven", oven);
@@ -572,16 +572,23 @@ namespace Odisea.EditorTools
         }
 
         // Polifemo: aparece al terminar el horneado (lo activan las oleadas) y camina hacia el horno.
-        private static PolifemoWalker CreatePolifemo(Transform root, PlayerSandboxBuilder.LevelContext level, Oven oven, GameObject goal)
+        private const string PolifemoSoundFolder = "Assets/_Project/Audio/SFX/Polifemo";
+
+        private static PolifemoWalker CreatePolifemo(Transform root, PlayerSandboxBuilder.LevelContext level, Oven oven, GameObject goal,
+            Health player)
         {
+            bool hd = ArtImportBuilder.PolifemoHD &&
+                      AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath("Throw")) != null;
+            // Con las hojas grandes es casi del tamaño del horno.
+            float height = hd ? ArtImportBuilder.PolifemoHDHeight : 3f;
             var boss = new GameObject("Polifemo") { layer = level.EnemyLayer };
             boss.transform.SetParent(root, false);
             boss.transform.position = new Vector3(HalfWidth - 0.3f, 0f, 0f);
             boss.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var box = boss.AddComponent<BoxCollider2D>();
             box.isTrigger = true;
-            box.size = new Vector2(1.6f, 3f);
-            box.offset = new Vector2(0f, 1.5f);
+            box.size = new Vector2(height * 0.4f, height * 0.95f);
+            box.offset = new Vector2(0f, height * 0.475f);
 
             var visual = new GameObject("Dibujo") { layer = level.EnemyLayer };
             visual.transform.SetParent(boss.transform, false);
@@ -592,7 +599,9 @@ namespace Odisea.EditorTools
             Animator animator = null;
             if (controller != null)
             {
-                renderer.sprite = ArtImportBuilder.LoadStrip(ArtImportBuilder.PolifemoStandingPath)[ArtImportBuilder.PolifemoStandingFrame];
+                renderer.sprite = hd
+                    ? ArtImportBuilder.LoadStrip($"{ArtImportBuilder.PolifemoFolder}/Polifemo_HD_Lanzar.png")[6]
+                    : ArtImportBuilder.LoadStrip(ArtImportBuilder.PolifemoStandingPath)[ArtImportBuilder.PolifemoStandingFrame];
                 animator = visual.AddComponent<Animator>();
                 animator.runtimeAnimatorController = controller;
             }
@@ -624,8 +633,57 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(walker, "visual", visual.transform);
             PlayerSandboxBuilder.SetSerialized(walker, "oven", oven);
             PlayerSandboxBuilder.SetSerialized(walker, "reward", goal);
+            PlayerSandboxBuilder.SetSerialized(walker, "player", player);
             GameSoundsBuilder.SetSound(walker, "fallSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.9f);
+            GameSoundsBuilder.SetSound(walker, "hurtSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_dano_recibido"), 0.9f);
+            GameSoundsBuilder.SetSound(walker, "laughSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_risa"), 1f);
+            // Los pasos suenan en bucle mientras camina.
+            AddLoop(boss, GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_pasos"), health, 0.9f);
+            if (hd)
+            {
+                // Más grande: llega antes a la orilla del horno y la olla sale de arriba de su cabeza.
+                PlayerSandboxBuilder.SetSerialized(walker, "reach", 1.4f);
+                PlayerSandboxBuilder.SetSerialized(walker, "pushBack", 0.8f);
+                PlayerSandboxBuilder.SetSerialized(walker, "stepTime", ArtImportBuilder.PolifemoStepTime);
+                if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } dust)
+                    PlayerSandboxBuilder.SetSerialized(walker, "dust", dust);
+                PlayerSandboxBuilder.SetSerialized(walker, "throwRelease",
+                    ArtImportBuilder.PolifemoHDReleaseFrame / ArtImportBuilder.PolifemoHDThrowFps);
+                PlayerSandboxBuilder.SetSerialized(walker, "throwDuration",
+                    AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath("Throw")).length);
+                PlayerSandboxBuilder.SetSerialized(walker, "throwHand", new Vector2(0.7f, height * 0.95f));
+                PlayerSandboxBuilder.SetSerialized(walker, "hurtPause",
+                    AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath("Hurt")).length);
+                PlayerSandboxBuilder.SetSerialized(walker, "potPrefab", EnsurePotPrefab(level));
+                GameSoundsBuilder.SetSound(walker, "throwSound", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.6f);
+            }
             return walker;
+        }
+
+        // La olla de barro que avienta Polifemo: vuela en arco girando, quita un corazón y se rompe al chocar.
+        private static ThrownItem EnsurePotPrefab(PlayerSandboxBuilder.LevelContext level)
+        {
+            var root = new GameObject("Olla de Polifemo") { layer = level.EnemyLayer };
+            root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var circle = root.AddComponent<CircleCollider2D>();
+            circle.isTrigger = true;
+            circle.radius = 0.45f;
+            var visual = new GameObject("Dibujo") { layer = level.EnemyLayer }.AddComponent<SpriteRenderer>();
+            visual.transform.SetParent(root.transform, false);
+            visual.sprite = AssetDatabase.LoadAllAssetsAtPath(ArtImportBuilder.PolifemoPotPath(0)).OfType<Sprite>().FirstOrDefault();
+            visual.sortingOrder = 11;
+            var item = root.AddComponent<ThrownItem>();
+            PlayerSandboxBuilder.SetSerialized(item, "kind", (int)ThrownKind.Crate);
+            PlayerSandboxBuilder.SetSerialized(item, "visual", visual.transform);
+            PlayerSandboxBuilder.SetSerialized(item, "playerLayers", 1 << level.PlayerLayer);
+            PlayerSandboxBuilder.SetSerialized(item, "groundLayers", 1 << level.GroundLayer);
+            PlayerSandboxBuilder.SetSerialized(item, "spinSpeed", 300f);
+            if (AssetDatabase.LoadAllAssetsAtPath(ArtImportBuilder.PolifemoPotBrokenPath).OfType<Sprite>().FirstOrDefault() is { } broken)
+                PlayerSandboxBuilder.SetSerialized(item, "brokenSprite", broken);
+            AudioClip[] potBreak = GameSoundsBuilder.Load(PolifemoSoundFolder, "olla_golpe");
+            GameSoundsBuilder.SetSound(item, "breakSound",
+                potBreak.Length > 0 ? potBreak : GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.9f);
+            return SavePrefab(root).GetComponent<ThrownItem>();
         }
 
         // ---------- Interfaz ----------
