@@ -98,6 +98,8 @@ namespace Odisea.EditorTools
             ImportItems();
             ImportIngredients();
             ImportGoldenBunch();
+            ImportPolifemo();
+            ImportGnats();
             ImportScoreBoard();
             ImportCirceThrowables();
             ImportDonLupe();
@@ -483,6 +485,153 @@ namespace Odisea.EditorTools
             var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreBoardPath);
             importer.mipmapEnabled = true;
             importer.SaveAndReimport();
+        }
+
+        // ---------- Jejenes (nivel 2) ----------
+
+        /// <summary>Los 4 cuadros del enjambre de jejenes (jejenes.png), cada uno en su archivo: Jejenes_0..3.png.</summary>
+        public const string GnatsFolder = HenchmenFolder + "/Jejenes";
+        public static string GnatFramePath(int frame) => $"{GnatsFolder}/Jejenes_{frame}.png";
+        public const int GnatFrames = 4;
+        /// <summary>Lo ancho del enjambre en el juego.</summary>
+        private const float GnatSwarmWidth = 1.6f;
+
+        /// <summary>
+        /// La hoja trae 4 enjambres en fila, cada uno hecho de muchos bichitos sueltos: se parte en 4 columnas iguales
+        /// y cada una se recorta a lo que tiene (el centro del enjambre es el pivote).
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar jejenes")]
+        public static void ImportGnats()
+        {
+            Sheet sheet = LoadSheet("Personajes/sprite en png/enemigos/jejenes/jejenes.png", warnIfMissing: false);
+            if (sheet == null)
+                return;
+            EnsureFolder(GnatsFolder);
+            int column = sheet.Width / GnatFrames;
+            float widest = 0f;
+            var regions = new RectInt[GnatFrames];
+            for (int i = 0; i < GnatFrames; i++)
+            {
+                regions[i] = OpaqueBounds(sheet, new RectInt(i * column, 0, column, sheet.Height));
+                widest = Mathf.Max(widest, regions[i].width);
+            }
+            float ppu = widest / GnatSwarmWidth;
+            for (int i = 0; i < GnatFrames; i++)
+                WriteRegion(sheet, regions[i], GnatFramePath(i), ppu, new Vector2(0.5f, 0.5f));
+        }
+
+        // ---------- Polifemo (jefe del Mercado) ----------
+
+        public const string PolifemoFolder = "Assets/_Project/Art/Characters/Polifemo";
+        public const string PolifemoControllerPath = PolifemoFolder + "/Polifemo.controller";
+        /// <summary>Polifemo parado de frente (el último cuadro del golpe): se ve en la escena antes de darle Play.</summary>
+        public const string PolifemoStandingPath = PolifemoFolder + "/Polifemo_GolpePotente.png";
+        public const int PolifemoStandingFrame = 4;
+        /// <summary>El plátano que avienta (recortado de polifemo_proyectil.png, el que va volando).</summary>
+        public const string PolifemoBananaPath = PolifemoFolder + "/Polifemo_Platano.png";
+        public static string PolifemoClipPath(string state) => $"{PolifemoFolder}/Polifemo_{state}.anim";
+        private const string PolifemoSource = "Personajes/sprite en png/polifemo";
+        /// <summary>Estatura de Polifemo parado: casi el doble que Ulises.</summary>
+        public const float PolifemoHeight = 3.4f;
+        /// <summary>
+        /// Cuadros por segundo del golpe, del golpe potente y de aventar; en qué cuadro pega o suelta. Los dos golpes usan
+        /// la hoja del golpe potente (en la del golpe normal dos cuadros se tocan y no se pueden separar): el normal, más rápido.
+        /// </summary>
+        public const float PolifemoPunchFps = 12f, PolifemoPowerFps = 7f, PolifemoThrowFps = 8f;
+        public const int PolifemoHitFrame = 2, PolifemoThrowReleaseFrame = 2;
+
+        /// <summary>
+        /// Polifemo (Odisea > Arte > Importar a Polifemo): caminar (6), golpe potente (5) y aventar (4) de
+        /// sus hojas chicas, y de polifemo_mareadi.png (6, grande): tose con la harina, mareado (2, en bucle), recibe el
+        /// golpe, cae y queda tirado. Cada hoja se escala con un cuadro de él parado; los pies quedan en el suelo común
+        /// y, en las de pie, el cuerpo no se mueve al estirar el brazo (el ancla va entre los pies). El controlador solo
+        /// trae los estados: <c>PolifemoBoss</c> los pone con Animator.Play.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar a Polifemo")]
+        public static void ImportPolifemo()
+        {
+            EnsureFolder(PolifemoFolder);
+            List<Sprite> walk = ImportPolifemoStrip("caminata_polifemo.png", standing: 0, "Caminar", feetAnchor: true);
+            List<Sprite> power = ImportPolifemoStrip("golpepotente_polifemo.png", standing: 4, "GolpePotente", feetAnchor: true);
+            List<Sprite> toss = ImportPolifemoStrip("polifemo_proyectil.png", standing: 0, "Aventar", feetAnchor: true);
+            List<Sprite> dizzy = ImportPolifemoStrip("polifemo_mareadi.png", standing: 1, "Mareado", feetAnchor: false);
+            if (walk == null || power == null || toss == null || dizzy == null)
+            {
+                Debug.LogWarning("[Odisea] Faltan hojas de Polifemo; no se creó su animación.");
+                return;
+            }
+            ImportPolifemoBanana();
+
+            AnimatorController controller = ResetController(PolifemoControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            void State(string name, IList<Sprite> sprites, float fps, bool loop, float holdLast = 0f)
+            {
+                AnimatorState state = machine.AddState(name);
+                state.motion = CreateClip(PolifemoClipPath(name), sprites, fps, loop, holdLast);
+            }
+            // Reposo: parado de frente (el último cuadro del golpe y del golpe potente), respirando despacio.
+            State("Idle", new List<Sprite> { power[PolifemoStandingFrame] }, 1f, loop: true);
+            machine.defaultState = machine.states[0].state;
+            State("Walk", walk, 9f, loop: true);
+            State("Punch", power.Take(4).ToList(), PolifemoPunchFps, loop: false, holdLast: 0.1f);
+            State("Power", power.Take(4).ToList(), PolifemoPowerFps, loop: false, holdLast: 0.15f);
+            State("Throw", toss, PolifemoThrowFps, loop: false);
+            State("Cough", new List<Sprite> { dizzy[0] }, 1f, loop: false);
+            State("Dizzy", new List<Sprite> { dizzy[1], dizzy[2] }, 3f, loop: true);
+            State("Hurt", new List<Sprite> { dizzy[3] }, 4f, loop: false);
+            State("Fall", new List<Sprite> { dizzy[4], dizzy[5] }, 5f, loop: false, holdLast: 0.2f);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+        }
+
+        // Una hoja de Polifemo (fondo transparente) como tira, escalada con el cuadro "standing".
+        private static List<Sprite> ImportPolifemoStrip(string file, int standing, string name, bool feetAnchor)
+        {
+            Sheet sheet = LoadSheet($"{PolifemoSource}/{file}", warnIfMissing: false);
+            if (sheet == null)
+                return null;
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: feetAnchor ? 4 : 40).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            Debug.Log($"[Odisea] {file}: {frames.Count} cuadros.");
+            if (frames.Count <= standing)
+                return null;
+            float ppu = frames[standing].Body.Height / PolifemoHeight;
+            int ground = frames.Min(f => f.Body.MinY);
+            frames = frames.Select(f => f.WithGroundAnchor(ground)).ToList();
+            if (feetAnchor)
+                frames = frames.Select(f => f.WithAnchorX(FeetCenter(sheet, f))).ToList();
+            return WriteStrip(sheet, frames, $"{PolifemoFolder}/Polifemo_{name}.png", ppu, $"Polifemo_{name}");
+        }
+
+        // El centro de lo que hay en la franja de abajo del cuerpo (los pies).
+        private static int FeetCenter(Sheet sheet, Frame frame)
+        {
+            int band = Mathf.Max(2, frame.Body.Height / 8);
+            long sum = 0;
+            int count = 0;
+            for (int y = frame.Body.MinY; y < frame.Body.MinY + band; y++)
+            for (int x = frame.MinX; x <= frame.MaxX; x++)
+            {
+                int i = y * sheet.Width + x;
+                if (sheet.Pixels[i].a > 24 && frame.BlobIds.Contains(sheet.Labels[i]))
+                {
+                    sum += x;
+                    count++;
+                }
+            }
+            return count > 0 ? (int)(sum / count) : frame.AnchorX;
+        }
+
+        // El plátano que va volando (a la derecha del último cuadro), del tamaño que se ve en la hoja.
+        private static void ImportPolifemoBanana()
+        {
+            Sheet sheet = LoadSheet($"{PolifemoSource}/polifemo_proyectil.png", warnIfMissing: false);
+            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 4).SelectMany(r => r)
+                .OrderBy(f => f.Core.MinX).ToList();
+            float ppu = frames[0].Body.Height / PolifemoHeight;
+            int from = frames[^1].MaxX + 6;
+            RectInt banana = OpaqueBounds(sheet, new RectInt(from, 0, sheet.Width - from, sheet.Height));
+            WriteRegion(sheet, banana, PolifemoBananaPath, ppu, new Vector2(0.5f, 0.5f));
         }
 
         /// <summary>El racimo de plátano dorado (Items/racimo.png): la meta del Mercado y el premio de Polifemo.</summary>
@@ -2088,10 +2237,11 @@ namespace Odisea.EditorTools
             public int MinX, MinY, MaxX, MaxY;
             private int? centerAbovePx;
             private int? groundY;
+            private int? anchorX;
 
             // Ancla = pies: centro horizontal y parte de abajo del cuerpo. Centrado: centro del cuerpo menos
             // la distancia a la que deben quedar los pies (así el pivote sigue estando "en los pies").
-            public int AnchorX => (Body.MinX + Body.MaxX) / 2;
+            public int AnchorX => anchorX ?? (Body.MinX + Body.MaxX) / 2;
             public int AnchorY => groundY ?? (centerAbovePx.HasValue ? (Body.MinY + Body.MaxY) / 2 - centerAbovePx.Value : Body.MinY);
 
             public Frame(Blob core)
@@ -2107,6 +2257,14 @@ namespace Odisea.EditorTools
             {
                 var copy = (Frame)MemberwiseClone();
                 copy.centerAbovePx = abovePx;
+                return copy;
+            }
+
+            /// <summary>Ancla horizontal fija (p. ej. entre los pies, para que el brazo estirado no mueva el cuerpo).</summary>
+            public Frame WithAnchorX(int x)
+            {
+                var copy = (Frame)MemberwiseClone();
+                copy.anchorX = x;
                 return copy;
             }
 

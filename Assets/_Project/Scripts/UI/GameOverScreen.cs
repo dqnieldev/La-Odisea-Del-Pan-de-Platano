@@ -21,6 +21,8 @@ namespace Odisea.UI
         [SerializeField] private Vector2 levelStart;
         [Tooltip("La meta (el 100 %). Vacío = busca la LevelGoal de la escena.")]
         [SerializeField] private Transform goal;
+        [Tooltip("Opcional (nivel del horno): la barra mide el horneado en vez del camino.")]
+        [SerializeField] private BakeTimer bake;
         [SerializeField, Min(0f)] private float showDelay = 1.5f;
 
         [Header("Tarjeta")]
@@ -120,6 +122,8 @@ namespace Odisea.UI
         // verticales).
         private float Progress()
         {
+            if (bake != null)
+                return bake.Progress;
             if (goal == null || player == null)
                 return 0f;
             Vector2 path = (Vector2)goal.position - levelStart;
@@ -145,9 +149,11 @@ namespace Odisea.UI
             Time.timeScale = 0f;
             panel.alpha = 0f;
             panel.gameObject.SetActive(true);
-            progressGroup.SetActive(goal != null);
+            progressGroup.SetActive(goal != null || bake != null);
             progressFill.fillAmount = 0f;
-            progressLabel.text = $"Llegaste al {Mathf.RoundToInt(best * 100f)} % del camino";
+            progressLabel.text = bake != null
+                ? $"El pan llevaba el {Mathf.RoundToInt(best * 100f)} % de horneado"
+                : $"Llegaste al {Mathf.RoundToInt(best * 100f)} % del camino";
             // Sin punto de control, Reintentar ya empieza desde el principio: Reiniciar sobra y la salida sube a su lugar.
             bool hasCheckpoint = Checkpoints.TryGet(out _);
             restartButton.gameObject.SetActive(hasCheckpoint);

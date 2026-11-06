@@ -1,0 +1,314 @@
+fileFormatVersion: 2
+guid: 6acc11d1c82fe3f4a80bde795d2be73c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8232337177091369306
+    second: Polifemo_Mareado_0
+  - first:
+      213: -6257128759486062020
+    second: Polifemo_Mareado_1
+  - first:
+      213: 1607568432758933831
+    second: Polifemo_Mareado_2
+  - first:
+      213: 8070056386673309648
+    second: Polifemo_Mareado_3
+  - first:
+      213: 3619769769168948223
+    second: Polifemo_Mareado_4
+  - first:
+      213: -1429514285294573521
+    second: Polifemo_Mareado_5
+  - first:
+      213: -6160121317448904278
+    second: Polifemo_Mareado_6
+  - first:
+      213: -6226995127484569888
+    second: Polifemo_Mareado_7
+  - first:
+      213: 6988931735427961628
+    second: Polifemo_Mareado_8
+  - first:
+      213: -740406761404346153
+    second: Polifemo_Mareado_9
+  - first:
+      213: 5347971536751693400
+    second: Polifemo_Mareado_10
+  - first:
+      213: 2094202287069652214
+    second: Polifemo_Mareado_11
+  - first:
+      213: 863213543946366852
+    second: Polifemo_Mareado_12
+  - first:
+      213: -3510273078819503412
+    second: Polifemo_Mareado_13
+  - first:
+      213: 2100159686870479569
+    second: Polifemo_Mareado_14
+  - first:
+      213: -1345093434289621174
+    second: Polifemo_Mareado_15
+  - first:
+      213: 8423239426405739902
+    second: Polifemo_Mareado_16
+  - first:
+      213: 5022305757467451913
+    second: Polifemo_Mareado_17
+  - first:
+      213: 6771890925455677146
+    second: Polifemo_Mareado_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.0036563072}
+  spritePixelsToUnits: 299.70587
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Polifemo_Mareado_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df9c5403014251a4d9037bded47e481a
+      internalID: 8232337177091369306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_Mareado_1
+      rect:
+        serializedVersion: 2
+        x: 888
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9048525882c1e1349bb8774a77a10bbe
+      internalID: -6257128759486062020
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_Mareado_2
+      rect:
+        serializedVersion: 2
+        x: 1776
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 03739378181591743b4f3c4ed4cfca71
+      internalID: 1607568432758933831
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_Mareado_3
+      rect:
+        serializedVersion: 2
+        x: 2664
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 839a1c7d182309a41b88bd9f07d80ed1
+      internalID: 8070056386673309648
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_Mareado_4
+      rect:
+        serializedVersion: 2
+        x: 3552
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c9c9b2d5cf0b244db1d54bc87fe3bb3
+      internalID: 3619769769168948223
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Polifemo_Mareado_5
+      rect:
+        serializedVersion: 2
+        x: 4440
+        y: 0
+        width: 888
+        height: 1094
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0036563072}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a27e3edfb63820b4ba2a7877bc79636d
+      internalID: -1429514285294573521
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 79c1b1bc1eccd254297e50ebe248b24b
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Polifemo_Mareado_0: 8232337177091369306
+      Polifemo_Mareado_1: -6257128759486062020
+      Polifemo_Mareado_2: 1607568432758933831
+      Polifemo_Mareado_3: 8070056386673309648
+      Polifemo_Mareado_4: 3619769769168948223
+      Polifemo_Mareado_5: -1429514285294573521
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
