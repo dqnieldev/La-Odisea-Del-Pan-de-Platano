@@ -828,21 +828,53 @@ namespace Odisea.EditorTools
             return true;
         }
 
-        // La olla (Items/olla_barro.png, fondo blanco): los dos primeros cuadros volando y el tercero rota. La franja gris
-        // de abajo de la imagen no cuenta.
+        // La olla (Items/olla_barro.png, fondo transparente): de izquierda a derecha, dos volando, la que se rompe (con sus
+        // esquirlas) y los pedazos en el suelo. Se usan las dos que vuelan y la que se rompe. Cada una se guarda sola, sin
+        // lo de las otras que caiga en su rectángulo.
         private static void ImportPolifemoPot()
         {
-            Sheet sheet = LoadSheet("Items/olla_barro.png", 240, warnIfMissing: false, holeMinArea: int.MaxValue);
+            Sheet sheet = LoadSheet("Items/olla_barro.png", warnIfMissing: false, holeMinArea: int.MaxValue);
             if (sheet == null)
                 return;
-            List<Frame> frames = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 30).SelectMany(r => r)
-                .Where(f => f.Body.Width < sheet.Width / 2).OrderBy(f => f.Core.MinX).ToList();
-            if (frames.Count < 3)
+            List<Blob> pots = sheet.Blobs.OrderByDescending(b => b.Area).Take(3).OrderBy(b => b.MinX).ToList();
+            if (pots.Count < 3)
+            {
+                Debug.LogWarning("[Odisea] olla_barro.png: se esperaban las ollas volando y la rota.");
                 return;
-            float ppu = frames[0].Body.Width / PolifemoPotSize;
-            for (int i = 0; i < 2; i++)
-                WriteStrip(sheet, new List<Frame> { frames[i].WithCenterAnchor(0) }, PolifemoPotPath(i), ppu, $"Olla_{i}");
-            WriteStrip(sheet, new List<Frame> { frames[2].WithCenterAnchor(0) }, PolifemoPotBrokenPath, ppu, "Olla_Rota");
+            }
+            float ppu = pots[0].Width / PolifemoPotSize;
+            WritePotPiece(sheet, new List<Blob> { pots[0] }, PolifemoPotPath(0), ppu);
+            WritePotPiece(sheet, new List<Blob> { pots[1] }, PolifemoPotPath(1), ppu);
+            // La rota con las esquirlas que saltan a su alrededor (hasta un cuarto de su ancho a los lados).
+            Blob broken = pots[2];
+            float margin = broken.Width * 0.25f;
+            List<Blob> burst = sheet.Blobs.Where(b =>
+            {
+                float center = (b.MinX + b.MaxX) * 0.5f;
+                return center >= broken.MinX - margin && center <= broken.MaxX + margin && b.MinX > pots[1].MaxX;
+            }).ToList();
+            WritePotPiece(sheet, burst, PolifemoPotBrokenPath, ppu);
+        }
+
+        private static void WritePotPiece(Sheet sheet, List<Blob> blobs, string path, float ppu)
+        {
+            var ids = new HashSet<int>(blobs.Select(b => b.Id));
+            int minX = blobs.Min(b => b.MinX), minY = blobs.Min(b => b.MinY);
+            int maxX = blobs.Max(b => b.MaxX), maxY = blobs.Max(b => b.MaxY);
+            var only = new Sheet { Width = sheet.Width, Height = sheet.Height, Pixels = new Color32[sheet.Pixels.Length] };
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                int index = y * sheet.Width + x;
+                if (ids.Contains(sheet.Labels[index]))
+                    only.Pixels[index] = sheet.Pixels[index];
+            }
+            WriteRegion(only, new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1), path, ppu, new Vector2(0.5f, 0.5f));
+            // Se ve chica: con mipmaps no se le hacen dientes.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.mipmapEnabled = true;
+            importer.maxTextureSize = 1024;
+            importer.SaveAndReimport();
         }
 
         // Una hoja de Polifemo como tira (fondo transparente), escalada con el cuadro "standing".
