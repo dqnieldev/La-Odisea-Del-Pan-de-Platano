@@ -274,7 +274,7 @@ MonoBehaviour:
   contact: {fileID: 4775619300021776726}
   animator: {fileID: 3629776578106030087}
   speed: 1.4
-  ovenDamage: 2
+  ovenDamage: 1
   attackInterval: 2.6
   attackHitDelay: 0.3
   reach: 0.9
