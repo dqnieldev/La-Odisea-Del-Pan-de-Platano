@@ -672,12 +672,12 @@ namespace Odisea.EditorTools
         public const float PolifemoHeight = 3.4f;
         /// <summary>
         /// Con las hojas grandes (nivel 2) Polifemo es casi del tamaño del horno. Caminata de 8 cuadros: pisa fuerte en el
-        /// 1 y el 5 (cada <see cref="PolifemoStepTime"/> s); lanzar la olla (7): la suelta en el 5.
+        /// 1 y el 5 (cada <see cref="PolifemoStepTime"/> s); lanzar la olla (7): la suelta en el 6.
         /// </summary>
         public const float PolifemoHDHeight = 6.3f;
         public const float PolifemoWalkFps = 8f, PolifemoStepTime = 4f / PolifemoWalkFps;
         public const float PolifemoHDThrowFps = 9f;
-        public const int PolifemoHDReleaseFrame = 4;
+        public const int PolifemoHDReleaseFrame = 5;
         /// <summary>Si están las hojas grandes, el controlador trae solo Idle, Walk, Throw, Hurt y Fall.</summary>
         public static bool PolifemoHD => File.Exists(Path.Combine(SourceFolder, PolifemoSource, "polifemo_caminar_hd.png"));
         /// <summary>La olla de barro que avienta: volando (2 cuadros) y rota.</summary>
@@ -786,12 +786,11 @@ namespace Odisea.EditorTools
             WriteStrip(sheet, new List<Frame> { frames[2].WithCenterAnchor(0) }, PolifemoPotBrokenPath, ppu, "Olla_Rota");
         }
 
-        // Una hoja de Polifemo como tira, escalada con el cuadro "standing". Las grandes traen fondo blanco (sin borrar los
-        // huecos encerrados: los guantes son blancos).
+        // Una hoja de Polifemo como tira (fondo transparente), escalada con el cuadro "standing".
         private static List<Sprite> ImportPolifemoStrip(string file, int standing, string name, bool feetAnchor, bool hd = false)
         {
             Sheet sheet = hd
-                ? LoadSheet($"{PolifemoSource}/{file}", 238, warnIfMissing: false, holeMinArea: int.MaxValue)
+                ? LoadSheet($"{PolifemoSource}/{file}", warnIfMissing: false, holeMinArea: int.MaxValue)
                 : LoadSheet($"{PolifemoSource}/{file}", warnIfMissing: false);
             if (sheet == null)
                 return null;

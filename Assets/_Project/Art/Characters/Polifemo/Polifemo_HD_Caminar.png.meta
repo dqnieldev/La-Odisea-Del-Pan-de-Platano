@@ -128,7 +128,7 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -148,9 +148,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_1
       rect:
         serializedVersion: 2
-        x: 654
+        x: 652
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -170,9 +170,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_2
       rect:
         serializedVersion: 2
-        x: 1308
+        x: 1304
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -192,9 +192,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_3
       rect:
         serializedVersion: 2
-        x: 1962
+        x: 1956
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -214,9 +214,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_4
       rect:
         serializedVersion: 2
-        x: 2616
+        x: 2608
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -236,9 +236,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_5
       rect:
         serializedVersion: 2
-        x: 3270
+        x: 3260
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -258,9 +258,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_6
       rect:
         serializedVersion: 2
-        x: 3924
+        x: 3912
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}
@@ -280,9 +280,9 @@ TextureImporter:
       name: Polifemo_HD_Caminar_7
       rect:
         serializedVersion: 2
-        x: 4578
+        x: 4564
         y: 0
-        width: 654
+        width: 652
         height: 1039
       alignment: 9
       pivot: {x: 0.5, y: 0.0038498556}

@@ -62,8 +62,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.0029069767}
-  spritePixelsToUnits: 202.53967
+  spritePivot: {x: 0.5, y: 0.0037664783}
+  spritePixelsToUnits: 156.03174
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -119,10 +119,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1426
-        height: 1376
+        width: 1102
+        height: 1062
       alignment: 9
-      pivot: {x: 0.5, y: 0.0029069767}
+      pivot: {x: 0.5, y: 0.0037664783}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -139,12 +139,12 @@ TextureImporter:
       name: Polifemo_HD_Golpe_1
       rect:
         serializedVersion: 2
-        x: 1426
+        x: 1102
         y: 0
-        width: 1426
-        height: 1376
+        width: 1102
+        height: 1062
       alignment: 9
-      pivot: {x: 0.5, y: 0.0029069767}
+      pivot: {x: 0.5, y: 0.0037664783}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -161,12 +161,12 @@ TextureImporter:
       name: Polifemo_HD_Golpe_2
       rect:
         serializedVersion: 2
-        x: 2852
+        x: 2204
         y: 0
-        width: 1426
-        height: 1376
+        width: 1102
+        height: 1062
       alignment: 9
-      pivot: {x: 0.5, y: 0.0029069767}
+      pivot: {x: 0.5, y: 0.0037664783}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []

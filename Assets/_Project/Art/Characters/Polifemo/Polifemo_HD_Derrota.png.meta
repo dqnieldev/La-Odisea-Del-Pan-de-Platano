@@ -89,8 +89,8 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.013114754}
-  spritePixelsToUnits: 41.26984
+  spritePivot: {x: 0.5, y: 0.0037842952}
+  spritePixelsToUnits: 151.26984
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -146,10 +146,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 236
-        height: 305
+        width: 856
+        height: 1057
       alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
+      pivot: {x: 0.5, y: 0.0037842952}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -166,12 +166,12 @@ TextureImporter:
       name: Polifemo_HD_Derrota_1
       rect:
         serializedVersion: 2
-        x: 236
+        x: 856
         y: 0
-        width: 236
-        height: 305
+        width: 856
+        height: 1057
       alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
+      pivot: {x: 0.5, y: 0.0037842952}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -188,12 +188,12 @@ TextureImporter:
       name: Polifemo_HD_Derrota_2
       rect:
         serializedVersion: 2
-        x: 472
+        x: 1712
         y: 0
-        width: 236
-        height: 305
+        width: 856
+        height: 1057
       alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
+      pivot: {x: 0.5, y: 0.0037842952}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -210,12 +210,12 @@ TextureImporter:
       name: Polifemo_HD_Derrota_3
       rect:
         serializedVersion: 2
-        x: 708
+        x: 2568
         y: 0
-        width: 236
-        height: 305
+        width: 856
+        height: 1057
       alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
+      pivot: {x: 0.5, y: 0.0037842952}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -232,12 +232,12 @@ TextureImporter:
       name: Polifemo_HD_Derrota_4
       rect:
         serializedVersion: 2
-        x: 944
+        x: 3424
         y: 0
-        width: 236
-        height: 305
+        width: 856
+        height: 1057
       alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
+      pivot: {x: 0.5, y: 0.0037842952}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -246,28 +246,6 @@ TextureImporter:
       bones: []
       spriteID: 9428c43b17ac4a742984764512cc4f36
       internalID: -5857876195727860035
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Polifemo_HD_Derrota_5
-      rect:
-        serializedVersion: 2
-        x: 1180
-        y: 0
-        width: 236
-        height: 305
-      alignment: 9
-      pivot: {x: 0.5, y: 0.013114754}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 5f26cb59b7f196c41bfe04ca18506025
-      internalID: -3444930760804075785
       vertices: []
       indices: 
       edges: []
@@ -291,7 +269,6 @@ TextureImporter:
       Polifemo_HD_Derrota_2: -7288909298862586848
       Polifemo_HD_Derrota_3: -2810785724273572481
       Polifemo_HD_Derrota_4: -5857876195727860035
-      Polifemo_HD_Derrota_5: -3444930760804075785
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
