@@ -165,13 +165,15 @@ namespace Odisea.EditorTools
             Debug.Log($"[Odisea] Horno creado en {ScenePath}");
         }
 
-        // Ratas desde el principio; cocodrilos desde el segundo tramo; jejenes en el tercero (el horneado dura 100 s).
+        // Los primeros 60 s, ratas seguido y un cocodrilo cada tanto desde los 10 s; luego entran los jejenes (el horneado
+        // dura 100 s).
         private static void SetWaves(WaveSpawner spawner, GameObject rat, GameObject crocodile, GameObject gnats)
         {
             var waves = new (float time, GameObject prefab, int side, int count, float interval)[]
             {
-                (2f, rat, 0, 4, 3.5f), (17f, rat, 0, 4, 3f),
-                (30f, crocodile, 1, 1, 0f), (34f, rat, -1, 3, 2.5f), (41f, crocodile, -1, 1, 0f), (46f, rat, 0, 4, 2.5f),
+                (2f, rat, 0, 5, 2.5f), (10f, crocodile, 1, 1, 0f), (15f, rat, 0, 5, 2.2f), (22f, crocodile, -1, 1, 0f),
+                (28f, rat, 0, 4, 2f), (32f, crocodile, 0, 2, 6f), (40f, rat, 0, 5, 2f), (46f, crocodile, -1, 1, 0f),
+                (50f, rat, 0, 4, 1.8f), (54f, crocodile, 1, 1, 0f),
                 (60f, gnats, 0, 4, 3f), (64f, crocodile, 0, 2, 7f), (70f, rat, 0, 6, 2f), (82f, gnats, 0, 4, 2.5f),
                 (86f, crocodile, 0, 2, 5f),
             };
@@ -765,7 +767,7 @@ namespace Odisea.EditorTools
             hudObject.transform.SetParent(oven.transform, false);
             var hud = hudObject.AddComponent<OvenHud>();
             PlayerSandboxBuilder.SetSerialized(hud, "bake", bake);
-            if (!CreateKitchenClock(hud, circle, out ScoreHud score))
+            if (!CreateKitchenClock(hud, out ScoreHud score))
             {
                 Image bakeFill = CreateStopwatch(circle, square, out score);
                 if (bakeFill != null)
@@ -791,17 +793,15 @@ namespace Odisea.EditorTools
         // Ancho de la carátula del reloj de cocina en el pizarrón.
         private const float ClockSize = 104f;
 
-        // En el pizarrón del puntaje, el reloj de pared se vuelve el reloj de cocina: un anillo dorado que se va llenando
-        // de arriba en el sentido del reloj, el pan en medio (crudo, con el dorado encima apareciendo) y la aguja.
-        private static bool CreateKitchenClock(OvenHud hud, Sprite circle, out ScoreHud score)
+        // En el pizarrón del puntaje, el reloj de pared se vuelve el reloj de cocina: solo su aguja, que da la vuelta en
+        // lo que dura el horneado.
+        private static bool CreateKitchenClock(OvenHud hud, out ScoreHud score)
         {
             score = Object.FindAnyObjectByType<ScoreHud>();
             var face = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoClockPath);
             var needleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoNeedlePath);
-            var raw = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBreadRawPath);
-            var baked = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBreadBakedPath);
             Transform icon = score != null ? score.transform.Find("Tiempo/Ícono") : null;
-            if (icon == null || face == null || needleSprite == null || raw == null || baked == null)
+            if (icon == null || face == null || needleSprite == null)
                 return false;
             // El pizarrón un poco más grande en este nivel, para que quepa el reloj.
             var tray = (RectTransform)score.transform;
@@ -823,29 +823,15 @@ namespace Odisea.EditorTools
                 element.preferredWidth = ClockSize;
                 element.preferredHeight = height;
             }
-            // Todo se centra en el centro de la carátula: a medio ancho desde abajo.
+            // La aguja gira sobre el centro de la carátula: a medio ancho desde abajo.
             var dial = new Vector2(0.5f, 0f);
             var middle = new Vector2(0f, ClockSize / 2f);
-            Image fill = UiImage("Horneado", icon, circle, dial, middle, Vector2.one * ClockSize * 0.78f);
-            fill.color = new Color(0.96f, 0.6f, 0.18f, 0.6f);
-            fill.type = Image.Type.Filled;
-            fill.fillMethod = Image.FillMethod.Radial360;
-            fill.fillOrigin = (int)Image.Origin360.Top;
-            fill.fillClockwise = true;
-            fill.fillAmount = 0f;
-            Vector2 breadSize = Vector2.one * ClockSize * 0.52f;
-            UiImage("Pan crudo", icon, raw, dial, middle, breadSize).preserveAspect = true;
-            Image bakedImage = UiImage("Pan dorado", icon, baked, dial, middle, breadSize);
-            bakedImage.preserveAspect = true;
-            bakedImage.color = new Color(1f, 1f, 1f, 0f);
             float needleHeight = ClockSize * 0.42f;
             Image needle = UiImage("Aguja", icon, needleSprite, dial, middle,
                 new Vector2(needleHeight * needleSprite.rect.width / needleSprite.rect.height, needleHeight));
             needle.rectTransform.pivot = needleSprite.pivot / needleSprite.rect.size;
             needle.rectTransform.anchoredPosition = middle;
-            PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", fill);
             PlayerSandboxBuilder.SetSerialized(hud, "needle", needle.rectTransform);
-            PlayerSandboxBuilder.SetSerialized(hud, "bakedBread", bakedImage);
             // Al sonar tiembla toda la carátula.
             PlayerSandboxBuilder.SetSerialized(hud, "clock", (RectTransform)icon);
             GameSoundsBuilder.SetSound(hud, "ringSound", GameSoundsBuilder.Load(OvenSoundFolder, "horno_listo"), 0.8f);

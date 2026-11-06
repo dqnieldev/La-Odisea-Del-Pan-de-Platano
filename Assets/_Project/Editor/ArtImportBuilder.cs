@@ -598,12 +598,10 @@ namespace Odisea.EditorTools
 
         /// <summary>
         /// El reloj de cocina del horneado: la carátula (con su campanita arriba; el pivote es el centro de la carátula, que
-        /// está a medio ancho desde abajo), la aguja (pivote en el círculo de su base) y el pan crudo y dorado.
+        /// está a medio ancho desde abajo) y la aguja (pivote en el círculo de su base).
         /// </summary>
         public const string HornoClockPath = "Assets/_Project/Art/UI/Horno_Reloj.png";
         public const string HornoNeedlePath = "Assets/_Project/Art/UI/Horno_Reloj_Aguja.png";
-        public const string HornoBreadRawPath = "Assets/_Project/Art/UI/Horno_Pan_Crudo.png";
-        public const string HornoBreadBakedPath = "Assets/_Project/Art/UI/Horno_Pan_Dorado.png";
 
         [MenuItem("Odisea/Arte/Importar HUD del horno")]
         public static void ImportHornoHud()
@@ -620,26 +618,7 @@ namespace Odisea.EditorTools
                 RectInt bounds = OpaqueBounds(needle);
                 WriteHudPiece(needle, bounds, HornoNeedlePath, new Vector2(0.5f, bounds.width * 0.5f / bounds.height));
             }
-            if (LoadSheet("Menu/Horno/pan_crudo_y_dorado.png", warnIfMissing: false) is { } breads)
-            {
-                List<RectInt> parts = SplitByGaps(breads, OpaqueBounds(breads), minGap: 20);
-                if (parts.Count >= 2)
-                {
-                    // Los dos panes en cuadros del mismo tamaño (el mayor), centrados: se cambian uno por otro sin brincar.
-                    int size = Mathf.Max(parts[0].width, parts[0].height, parts[1].width, parts[1].height);
-                    RectInt Square(RectInt r) =>
-                        new(Mathf.RoundToInt(r.center.x - size / 2f), Mathf.RoundToInt(r.center.y - size / 2f), size, size);
-                    WriteHudPiece(breads, ClampTo(breads, Square(parts[0])), HornoBreadRawPath, new Vector2(0.5f, 0.5f));
-                    WriteHudPiece(breads, ClampTo(breads, Square(parts[1])), HornoBreadBakedPath, new Vector2(0.5f, 0.5f));
-                }
-            }
             AssetDatabase.SaveAssets();
-        }
-
-        private static RectInt ClampTo(Sheet sheet, RectInt r)
-        {
-            int xMin = Mathf.Max(0, r.xMin), yMin = Mathf.Max(0, r.yMin);
-            return new RectInt(xMin, yMin, Mathf.Min(sheet.Width, r.xMax) - xMin, Mathf.Min(sheet.Height, r.yMax) - yMin);
         }
 
         // Una pieza del HUD: se ve mucho más chica que la imagen, así que va reducida y con mipmaps (sin dientes).
