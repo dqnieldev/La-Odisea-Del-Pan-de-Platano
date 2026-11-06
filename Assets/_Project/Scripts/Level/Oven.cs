@@ -25,19 +25,10 @@ namespace Odisea.Level
         [Tooltip("Opcional: resplandor rojo que se prende al recibir un golpe (cuando el horno es parte del fondo).")]
         [SerializeField] private SpriteRenderer hitGlow;
         [SerializeField, Range(0f, 1f)] private float hitGlowAlpha = 0.55f;
-        [Header("Delineado")]
-        [Tooltip("Opcional: la línea clara alrededor del horno, para que se vea dónde está. Va de dorado (sano) a rojo " +
-                 "(casi quemado), respira despacio y destella al recibir un golpe.")]
-        [SerializeField] private LineRenderer outline;
-        [Tooltip("Opcional: el delineado como dibujo (sacado del contorno del horno); se tiñe igual que la línea.")]
-        [SerializeField] private SpriteRenderer outlineSprite;
         [Header("Estados")]
         [Tooltip("Opcional: el dibujo del horno y sus versiones de sano a quemado; cambia al bajar la vida (el último, al quemarse).")]
         [SerializeField] private SpriteRenderer stateRenderer;
         [SerializeField] private Sprite[] states = Array.Empty<Sprite>();
-        [SerializeField] private Color outlineHealthy = new(1f, 0.86f, 0.35f);
-        [SerializeField] private Color outlineHurt = new(1f, 0.25f, 0.15f);
-        [SerializeField] private Color outlineHit = Color.white;
         [SerializeField, Min(0.01f)] private float hitDuration = 0.25f;
         [SerializeField] private SoundEffect hitSound = new();
 
@@ -110,25 +101,8 @@ namespace Odisea.Level
             hitTimer = hitDuration * 2f;
         }
 
-        private void UpdateOutline()
-        {
-            if (outline == null && outlineSprite == null)
-                return;
-            float health = maxHealth > 0 ? (float)Current / maxHealth : 0f;
-            Color color = Color.Lerp(outlineHurt, outlineHealthy, health);
-            // Respira; con poca vida, más rápido.
-            color.a = Mathf.Lerp(0.6f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.time * Mathf.Lerp(7f, 2.5f, health)));
-            if (hitTimer > 0f)
-                color = Color.Lerp(color, outlineHit, Mathf.Clamp01(hitTimer / hitDuration));
-            if (outline != null)
-                outline.startColor = outline.endColor = color;
-            if (outlineSprite != null)
-                outlineSprite.color = color;
-        }
-
         private void Update()
         {
-            UpdateOutline();
             if (hitTimer <= 0f)
             {
                 if (hitGlow != null && hitGlow.color.a > 0f)

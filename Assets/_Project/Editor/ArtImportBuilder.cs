@@ -570,10 +570,6 @@ namespace Odisea.EditorTools
         /// </summary>
         public const int HornoStates = 5;
         public static string HornoStatePath(int state) => $"Assets/_Project/Art/Environment/Horno/Horno_{state}.png";
-        /// <summary>Contorno del horno sano (blanco por dentro y café por fuera), para teñirlo con la vida del horno.</summary>
-        public const string HornoOutlinePath = "Assets/_Project/Art/Environment/Horno/Horno_Delineado.png";
-        // Grosor del delineado en píxeles del dibujo: la parte clara y la sombra café de afuera.
-        private const int OutlineLight = 9, OutlineDark = 6;
 
         [MenuItem("Odisea/Arte/Importar patio del horno")]
         public static void ImportHornoArt()
@@ -601,8 +597,8 @@ namespace Odisea.EditorTools
                 if (sheets[i] == null)
                     return false;
             }
-            // El mismo cuadro para todos (lo que ocupa cualquiera, con lugar para el delineado).
-            int margin = OutlineLight + OutlineDark + 2;
+            // El mismo cuadro para todos (lo que ocupa cualquiera).
+            const int margin = 2;
             int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
             foreach (Sheet sheet in sheets)
             {
@@ -620,46 +616,6 @@ namespace Odisea.EditorTools
             for (int i = 0; i < HornoStates; i++)
                 WriteRegion(sheets[i], crop, HornoStatePath(i), HornoBackgroundPpu, pivot, padding: 0);
 
-            // Delineado: lo que queda a menos de OutlineLight px del horno sano es claro; un poco más afuera, café.
-            Color32[] pixels = sheets[0].Pixels;
-            var distance = new int[pixels.Length];
-            var frontier = new Queue<int>();
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                distance[i] = pixels[i].a > 128 ? 0 : int.MaxValue;
-                if (distance[i] == 0)
-                    frontier.Enqueue(i);
-            }
-            int limit = OutlineLight + OutlineDark;
-            while (frontier.Count > 0)
-            {
-                int i = frontier.Dequeue();
-                if (distance[i] >= limit)
-                    continue;
-                int x = i % width, y = i / width;
-                foreach ((int dx, int dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1) })
-                {
-                    int nx = x + dx, ny = y + dy;
-                    if (nx < 0 || ny < 0 || nx >= width || ny >= height)
-                        continue;
-                    int n = ny * width + nx;
-                    if (distance[n] > distance[i] + 1)
-                    {
-                        distance[n] = distance[i] + 1;
-                        frontier.Enqueue(n);
-                    }
-                }
-            }
-            var outline = new Color32[pixels.Length];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                int d = distance[i];
-                if (d == 0 || d > limit)
-                    continue;
-                outline[i] = d <= OutlineLight ? new Color32(255, 255, 255, 255) : new Color32(60, 30, 14, 210);
-            }
-            WriteRegion(new Sheet { Width = width, Height = height, Pixels = outline }, crop, HornoOutlinePath, HornoBackgroundPpu,
-                pivot, padding: 0);
             return true;
         }
 

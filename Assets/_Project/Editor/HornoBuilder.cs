@@ -31,12 +31,14 @@ namespace Odisea.EditorTools
         private const float HalfWidth = 12.5f;
         // Con el dibujo del patio la cámara baja un poco para que la imagen llene la pantalla (ver HornoBackgroundPpu).
         private static Vector2 CameraPosition => Patio != null ? new Vector2(0f, 4.5f) : new Vector2(0f, 5f);
-        // Repisas a los lados del horno, para alcanzar a los jejenes.
-        private const float ShelfX = 7f, ShelfY = 3.2f, ShelfWidth = 3.2f;
         // El horno: medio ancho (hasta donde llegan los que caminan) y la boca (a donde vuelan los jejenes).
         // El horno del dibujo es grande (casi tres veces Ulises): medio ancho de su base y centro de la boca.
-        private static float OvenHalfWidth => Patio != null ? 3f : 1.7f;
-        private static Vector2 OvenMouth => Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
+        // El horno recortado se dibuja un poco más chico que en el patio original (y todo lo suyo con él).
+        private static float OvenScale => OvenStates.Length == ArtImportBuilder.HornoStates ? 0.8f : 1f;
+        private static float OvenHalfWidth => (Patio != null ? 3f : 1.7f) * OvenScale;
+        // La boca en el dibujo (sin escalar) y ya en el juego.
+        private static Vector2 OvenMouthDrawn => Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
+        private static Vector2 OvenMouth => OvenMouthDrawn * OvenScale;
         private static Sprite Patio => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBackgroundPath);
         // El horno recortado en sus versiones (de sano a quemado) y su delineado; sin ellos, el horno es parte del patio.
         private static Sprite[] OvenStates => Enumerable.Range(0, ArtImportBuilder.HornoStates)
@@ -90,10 +92,6 @@ namespace Odisea.EditorTools
                 Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
                 back.GetComponent<SpriteRenderer>().sortingOrder = -10;
             }
-            var art = PlayerSandboxBuilder.LevelArt.Load();
-            foreach (float side in new[] { -1f, 1f })
-                PlayerSandboxBuilder.CreatePlatform(side < 0f ? "Repisa izquierda" : "Repisa derecha", root, square, art,
-                    new Vector2(side * ShelfX, ShelfY), ShelfWidth, ground);
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(-3f, 1f), "El Horno",
                 GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
@@ -119,7 +117,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(spawner, "oven", oven);
             PlayerSandboxBuilder.SetSerialized(spawner, "bake", bake);
             PlayerSandboxBuilder.SetSerialized(spawner, "groundX", HalfWidth - 0.3f);
-            PlayerSandboxBuilder.SetSerialized(spawner, "airHeights", new Vector2(2.6f, 5f));
+            PlayerSandboxBuilder.SetSerialized(spawner, "airHeights", new Vector2(2.2f, 4f));
             PlayerSandboxBuilder.SetSerialized(spawner, "boss", boss);
             PlayerSandboxBuilder.SetSerialized(spawner, "bossHelpers", new Object[] { rat, gnats });
             SetWaves(spawner, rat, crocodile, gnats);
@@ -190,6 +188,7 @@ namespace Odisea.EditorTools
             oven.transform.SetParent(root, false);
             var visual = new GameObject("Dibujo").transform;
             visual.SetParent(oven.transform, false);
+            visual.localScale = Vector3.one * OvenScale;
             bool drawn = Patio != null;
             var shapes = new SpriteRenderer[0];
             if (!drawn)
@@ -200,7 +199,7 @@ namespace Odisea.EditorTools
                     Part("Base", visual, square, new Vector2(0f, 0.3f), new Vector2(3.8f, 0.6f), ClayDark, -5),
                 };
                 Part("Chimenea", visual, square, new Vector2(0.9f, 3f), new Vector2(0.35f, 0.7f), ClayDark, -7);
-                Part("Boca", visual, circle, OvenMouth, new Vector2(1.3f, 1f), Soot, -4);
+                Part("Boca", visual, circle, OvenMouthDrawn, new Vector2(1.3f, 1f), Soot, -4);
             }
             var mouth = new GameObject("Boca (a donde vuelan los jejenes)").transform;
             mouth.SetParent(oven.transform, false);
@@ -211,7 +210,7 @@ namespace Odisea.EditorTools
                 var fire = new GameObject("Fuego del horno").AddComponent<OvenFire>();
                 fire.transform.SetParent(visual, false);
                 // La leña va abajo de la boca; en el dibujo la boca es mucho más grande.
-                fire.transform.localPosition = OvenMouth - new Vector2(0f, drawn ? 1.05f : 0.35f);
+                fire.transform.localPosition = OvenMouthDrawn - new Vector2(0f, drawn ? 1.05f : 0.35f);
                 MenuScenesBuilder.SetField(fire, "softDot", softDot);
                 var settings = new SerializedObject(fire);
                 settings.FindProperty("mouthSize").vector2Value = drawn ? new Vector2(2f, 1.4f) : new Vector2(1f, 0.7f);
@@ -233,14 +232,7 @@ namespace Odisea.EditorTools
                 drawing.sortingOrder = -18;
                 PlayerSandboxBuilder.SetSerialized(component, "stateRenderer", drawing);
                 PlayerSandboxBuilder.SetSerialized(component, "states", states.Cast<Object>().ToArray());
-                var outline = new GameObject("Delineado").AddComponent<SpriteRenderer>();
-                outline.transform.SetParent(visual, false);
-                outline.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoOutlinePath);
-                outline.sortingOrder = -19;
-                PlayerSandboxBuilder.SetSerialized(component, "outlineSprite", outline);
             }
-            else if (drawn)
-                PlayerSandboxBuilder.SetSerialized(component, "outline", CreateOvenOutline(visual));
             if (drawn && AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
             {
                 // El horno es parte del fondo: en vez de ponerse rojo, se prende un resplandor rojo encima.
@@ -252,72 +244,6 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "player", player);
             GameSoundsBuilder.SetSound(component, "hitSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.5f);
             return component;
-        }
-
-        // Silueta del horno del dibujo del patio (unidades del juego; el pivote del fondo es el centro del horno en el piso):
-        // la base, la cúpula (media elipse) y la chimenea con su remate.
-        private const float DomeCenterX = -0.08f, DomeBase = 2.75f, DomeRadiusX = 2.92f, DomeRadiusY = 3.25f;
-
-        private static Vector3[] OvenSilhouette()
-        {
-            float DomeY(float x) => DomeBase + DomeRadiusY * Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow((x - DomeCenterX) / DomeRadiusX, 2f)));
-            System.Collections.Generic.IEnumerable<Vector3> Dome(float from, float to)
-            {
-                float a0 = Mathf.Acos(Mathf.Clamp((from - DomeCenterX) / DomeRadiusX, -1f, 1f));
-                float a1 = Mathf.Acos(Mathf.Clamp((to - DomeCenterX) / DomeRadiusX, -1f, 1f));
-                const int steps = 24;
-                for (int i = 1; i <= steps; i++)
-                {
-                    float a = Mathf.Lerp(a0, a1, (float)i / steps);
-                    yield return new Vector3(DomeCenterX + DomeRadiusX * Mathf.Cos(a), DomeBase + DomeRadiusY * Mathf.Sin(a));
-                }
-            }
-            var points = new System.Collections.Generic.List<Vector3>
-            {
-                new(-3.35f, 0.6f), new(-3.48f, 0.95f), new(-3.48f, 2.6f), new(-3.3f, DomeBase), new(DomeCenterX - DomeRadiusX, DomeBase),
-            };
-            points.AddRange(Dome(DomeCenterX - DomeRadiusX, -0.72f));
-            points.AddRange(new Vector3[]
-            {
-                new(-0.72f, 6.85f), new(-0.84f, 6.85f), new(-0.84f, 7.47f), new(0.52f, 7.47f), new(0.52f, 6.85f),
-                new(0.38f, 6.85f), new(0.38f, DomeY(0.38f)),
-            });
-            points.AddRange(Dome(0.38f, DomeCenterX + DomeRadiusX));
-            points.AddRange(new Vector3[] { new(3.05f, DomeBase), new(3.21f, 2.6f), new(3.21f, 0.95f), new(3.08f, 0.6f) });
-            return points.ToArray();
-        }
-
-        private const string LineMaterialPath = "Assets/_Project/Art/Shaders/Linea.mat";
-
-        // Delineado del horno: una línea café gruesa y encima una clara (la que cambia de color con la vida del horno).
-        private static LineRenderer CreateOvenOutline(Transform parent)
-        {
-            var material = AssetDatabase.LoadAssetAtPath<Material>(LineMaterialPath);
-            if (material == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default") ?? Shader.Find("Sprites/Default");
-                material = new Material(shader);
-                AssetDatabase.CreateAsset(material, LineMaterialPath);
-            }
-            Vector3[] silhouette = OvenSilhouette();
-            LineRenderer Line(string name, float width, Color color, int order)
-            {
-                var line = new GameObject(name).AddComponent<LineRenderer>();
-                line.transform.SetParent(parent, false);
-                line.useWorldSpace = false;
-                line.loop = true;
-                line.positionCount = silhouette.Length;
-                line.SetPositions(silhouette);
-                line.widthMultiplier = width;
-                line.numCornerVertices = 4;
-                line.numCapVertices = 4;
-                line.sharedMaterial = material;
-                line.startColor = line.endColor = color;
-                line.sortingOrder = order;
-                return line;
-            }
-            Line("Delineado (sombra)", 0.26f, new Color(0.25f, 0.12f, 0.05f, 0.85f), -19);
-            return Line("Delineado", 0.12f, new Color(1f, 0.86f, 0.35f), -18);
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
