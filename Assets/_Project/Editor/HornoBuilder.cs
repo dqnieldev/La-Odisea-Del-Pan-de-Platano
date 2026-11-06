@@ -121,6 +121,17 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(spawner, "bossHelpers", new Object[] { rat, gnats });
             SetWaves(spawner, rat, crocodile, gnats);
 
+            // ----- Ítems de ayuda que caen del cielo cada tanto (pescado, hoja o café) -----
+            var dropper = new GameObject("Ítems del cielo").AddComponent<ItemDropper>();
+            dropper.transform.SetParent(root, false);
+            PlayerSandboxBuilder.SetSerialized(dropper, "items", EnsureHelperItems(level));
+            PlayerSandboxBuilder.SetSerialized(dropper, "minX", -HalfWidth + 1.5f);
+            PlayerSandboxBuilder.SetSerialized(dropper, "maxX", HalfWidth - 1.5f);
+            PlayerSandboxBuilder.SetSerialized(dropper, "spawnY", CameraPosition.y + 8f);
+            PlayerSandboxBuilder.SetSerialized(dropper, "groundLayers", 1 << ground);
+            PlayerSandboxBuilder.SetSerialized(dropper, "player", playerHealth);
+            PlayerSandboxBuilder.SetSerialized(dropper, "oven", oven);
+
             // ----- Cámara fija, Game Over por el horneado, puntaje e interfaz -----
             var follow = Camera.main.GetComponent<CameraFollow2D>();
             Camera.main.transform.position = new Vector3(CameraPosition.x, CameraPosition.y, -10f);
@@ -209,6 +220,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "maxHealth", OvenHealth);
             PlayerSandboxBuilder.SetSerialized(component, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(component, "renderers", shapes.Cast<Object>().ToArray());
+            if (drawn)
+                PlayerSandboxBuilder.SetSerialized(component, "outline", CreateOvenOutline(visual));
             if (drawn && AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
             {
                 // El horno es parte del fondo: en vez de ponerse rojo, se prende un resplandor rojo encima.
@@ -220,6 +233,72 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "player", player);
             GameSoundsBuilder.SetSound(component, "hitSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.5f);
             return component;
+        }
+
+        // Silueta del horno del dibujo del patio (unidades del juego; el pivote del fondo es el centro del horno en el piso):
+        // la base, la cúpula (media elipse) y la chimenea con su remate.
+        private const float DomeCenterX = -0.08f, DomeBase = 2.75f, DomeRadiusX = 2.92f, DomeRadiusY = 3.25f;
+
+        private static Vector3[] OvenSilhouette()
+        {
+            float DomeY(float x) => DomeBase + DomeRadiusY * Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow((x - DomeCenterX) / DomeRadiusX, 2f)));
+            System.Collections.Generic.IEnumerable<Vector3> Dome(float from, float to)
+            {
+                float a0 = Mathf.Acos(Mathf.Clamp((from - DomeCenterX) / DomeRadiusX, -1f, 1f));
+                float a1 = Mathf.Acos(Mathf.Clamp((to - DomeCenterX) / DomeRadiusX, -1f, 1f));
+                const int steps = 24;
+                for (int i = 1; i <= steps; i++)
+                {
+                    float a = Mathf.Lerp(a0, a1, (float)i / steps);
+                    yield return new Vector3(DomeCenterX + DomeRadiusX * Mathf.Cos(a), DomeBase + DomeRadiusY * Mathf.Sin(a));
+                }
+            }
+            var points = new System.Collections.Generic.List<Vector3>
+            {
+                new(-3.35f, 0.6f), new(-3.48f, 0.95f), new(-3.48f, 2.6f), new(-3.3f, DomeBase), new(DomeCenterX - DomeRadiusX, DomeBase),
+            };
+            points.AddRange(Dome(DomeCenterX - DomeRadiusX, -0.72f));
+            points.AddRange(new Vector3[]
+            {
+                new(-0.72f, 6.85f), new(-0.84f, 6.85f), new(-0.84f, 7.47f), new(0.52f, 7.47f), new(0.52f, 6.85f),
+                new(0.38f, 6.85f), new(0.38f, DomeY(0.38f)),
+            });
+            points.AddRange(Dome(0.38f, DomeCenterX + DomeRadiusX));
+            points.AddRange(new Vector3[] { new(3.05f, DomeBase), new(3.21f, 2.6f), new(3.21f, 0.95f), new(3.08f, 0.6f) });
+            return points.ToArray();
+        }
+
+        private const string LineMaterialPath = "Assets/_Project/Art/Shaders/Linea.mat";
+
+        // Delineado del horno: una línea café gruesa y encima una clara (la que cambia de color con la vida del horno).
+        private static LineRenderer CreateOvenOutline(Transform parent)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(LineMaterialPath);
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default") ?? Shader.Find("Sprites/Default");
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, LineMaterialPath);
+            }
+            Vector3[] silhouette = OvenSilhouette();
+            LineRenderer Line(string name, float width, Color color, int order)
+            {
+                var line = new GameObject(name).AddComponent<LineRenderer>();
+                line.transform.SetParent(parent, false);
+                line.useWorldSpace = false;
+                line.loop = true;
+                line.positionCount = silhouette.Length;
+                line.SetPositions(silhouette);
+                line.widthMultiplier = width;
+                line.numCornerVertices = 4;
+                line.numCapVertices = 4;
+                line.sharedMaterial = material;
+                line.startColor = line.endColor = color;
+                line.sortingOrder = order;
+                return line;
+            }
+            Line("Delineado (sombra)", 0.26f, new Color(0.25f, 0.12f, 0.05f, 0.85f), -19);
+            return Line("Delineado", 0.12f, new Color(1f, 0.86f, 0.35f), -18);
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
@@ -242,6 +321,21 @@ namespace Odisea.EditorTools
                 "¡Pan horneado!", "Ulises defendió el horno y Polifemo se fue con las manos vacías."));
             goal.SetActive(false);
             return goal;
+        }
+
+        // Los tres ítems de ayuda como prefabs (los mismos que se ponen en los niveles), para hacerlos caer.
+        private static Object[] EnsureHelperItems(PlayerSandboxBuilder.LevelContext level)
+        {
+            EnsurePrefabFolder();
+            return new[] { PickupKind.Heal, PickupKind.Shield, PickupKind.Speed }.Select(kind =>
+            {
+                GameObject item = PlayerSandboxBuilder.CreatePickup(level, kind, Vector2.zero);
+                item.transform.SetParent(null);
+                string path = $"{PrefabFolder}/Item {kind}.prefab";
+                PrefabUtility.SaveAsPrefabAsset(item, path);
+                Object.DestroyImmediate(item);
+                return (Object)AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }).ToArray();
         }
 
         // ---------- Enemigos ----------
