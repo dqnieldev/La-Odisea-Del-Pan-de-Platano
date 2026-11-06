@@ -157,7 +157,7 @@ namespace Odisea.EditorTools
             if (score != null)
                 // El horneado dura BakeSeconds: el tiempo cuenta lo que tarda en vencer a Polifemo después.
                 PlayerSandboxBuilder.SetSerialized(score, "parTime", BakeSeconds + 40f);
-            CreateOvenHud(level, oven, bake, square, circle);
+            CreateOvenHud(oven, bake, square, circle);
             CreateBossBar(boss.Health, square);
 
             PlayerSandboxBuilder.EndLevel(level);
@@ -755,15 +755,12 @@ namespace Odisea.EditorTools
             return label;
         }
 
-        // Lo que mide un píxel del lienzo de la vida del horno en el juego.
-        private const float WorldCanvasScale = 0.01f;
 
-        // La vida del horno encima del mismo horno: su ícono y un corazón por vida (como los de Ulises). El horneado, en el
+        // La vida del horno no lleva indicador: se ve en el mismo dibujo, que se va deteriorando. El horneado, en el
         // pizarrón del puntaje: un reloj de cocina con el pan en medio (sin su dibujo, un cronómetro que se va llenando).
         // El texto del pizarrón cuenta lo que falta.
-        private static void CreateOvenHud(PlayerSandboxBuilder.LevelContext level, Oven oven, BakeTimer bake, Sprite square, Sprite circle)
+        private static void CreateOvenHud(Oven oven, BakeTimer bake, Sprite square, Sprite circle)
         {
-            CreateOvenHearts(level, oven, circle);
             var hudObject = new GameObject("Horneado");
             hudObject.transform.SetParent(oven.transform, false);
             var hud = hudObject.AddComponent<OvenHud>();
@@ -789,54 +786,6 @@ namespace Odisea.EditorTools
             image.sprite = sprite;
             image.raycastTarget = false;
             return image;
-        }
-
-        // Corazones del horno (en píxeles de su lienzo): tamaño, espacio entre ellos, el ícono y la orilla de la bandeja.
-        private static readonly Vector2 OvenHeartSize = new(60f, 55f);
-        private const float OvenHeartGap = 8f, OvenIconSize = 72f, OvenHudPadding = 14f;
-        private const string HeartRingPath = "Assets/_Project/Art/Placeholders/Anillo.png";
-
-        // En una bandeja café encima de la chimenea: el ícono del horno a la izquierda y sus corazones a la derecha.
-        private static void CreateOvenHearts(PlayerSandboxBuilder.LevelContext level, Oven oven, Sprite circle)
-        {
-            var canvasObject = new GameObject("Vida del horno", typeof(Canvas));
-            canvasObject.transform.SetParent(oven.transform, false);
-            var canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.sortingOrder = 20;
-            int count = OvenHealth;
-            float heartsWidth = count * OvenHeartSize.x + (count - 1) * OvenHeartGap;
-            var size = new Vector2(OvenHudPadding * 2f + OvenIconSize + OvenHudPadding + heartsWidth, OvenIconSize + OvenHudPadding);
-            var canvasRect = (RectTransform)canvasObject.transform;
-            canvasRect.sizeDelta = size;
-            canvasRect.localScale = Vector3.one * WorldCanvasScale;
-            // Encima de la chimenea, sin taparla.
-            canvasRect.localPosition = new Vector3(0f, ChimneyTop * OvenScale + 0.35f + size.y * WorldCanvasScale / 2f, 0f);
-            var center = new Vector2(0.5f, 0.5f);
-            Image tray = UiImage("Bandeja", canvasRect, UiAssetsBuilder.EnsureRoundedSprite(), center, Vector2.zero, size);
-            tray.type = Image.Type.Sliced;
-            tray.color = new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.85f);
-            var left = new Vector2(0f, 0.5f);
-            Sprite icon = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoIconPath);
-            if (icon != null)
-                UiImage("Ícono", tray.transform, icon, left, new Vector2(OvenHudPadding + OvenIconSize / 2f, 0f),
-                    Vector2.one * OvenIconSize).preserveAspect = true;
-            var hearts = (RectTransform)new GameObject("Corazones", typeof(RectTransform)).transform;
-            hearts.SetParent(tray.transform, false);
-            hearts.anchorMin = hearts.anchorMax = left;
-            hearts.pivot = left;
-            hearts.anchoredPosition = new Vector2(OvenHudPadding * 2f + OvenIconSize, 0f);
-            hearts.sizeDelta = new Vector2(heartsWidth, OvenHeartSize.y);
-            var display = hearts.gameObject.AddComponent<HeartsDisplay>();
-            PlayerSandboxBuilder.SetSerialized(display, "oven", oven);
-            PlayerSandboxBuilder.SetSerialized(display, "fullHeart", level.FullHeart);
-            PlayerSandboxBuilder.SetSerialized(display, "shardSprite", circle);
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(HeartRingPath) is { } ring)
-                PlayerSandboxBuilder.SetSerialized(display, "ringSprite", ring);
-            PlayerSandboxBuilder.SetSerialized(display, "heartSize", OvenHeartSize);
-            PlayerSandboxBuilder.SetSerialized(display, "spacing", OvenHeartGap);
-            // Los perdidos dejan su hueco: así siempre se ve que son 5.
-            PlayerSandboxBuilder.SetSerialized(display, "hollowColor", new Color(0f, 0f, 0f, 0.35f));
         }
 
         // Ancho de la carátula del reloj de cocina en el pizarrón.

@@ -30,6 +30,8 @@ namespace Odisea.Level
         [SerializeField] private SpriteRenderer stateRenderer;
         [SerializeField] private Sprite[] states = Array.Empty<Sprite>();
         [SerializeField, Min(0.01f)] private float hitDuration = 0.25f;
+        [Tooltip("Con una sola vida, el horno late de este color (a punto de quemarse).")]
+        [SerializeField] private Color lastLifeColor = new(1f, 0.4f, 0.3f);
         [SerializeField] private SoundEffect hitSound = new();
 
         private float hitTimer;
@@ -86,14 +88,16 @@ namespace Odisea.Level
                 player.Kill();
         }
 
-        // Sano mientras tenga más de 3/4 de la vida; luego una versión más dañada por cada cuarto; quemado al llegar a 0.
+        // No hay barra de vida: el dibujo la muestra. Cada vida perdida pasa a una versión más dañada (las que sobran
+        // repiten la más dañada, que entonces late en rojo con la última vida); quemado al llegar a 0.
         private void ShowState()
         {
             if (stateRenderer == null || states.Length == 0)
                 return;
             int last = states.Length - 1;
+            int lost = maxHealth - Current;
             int state = Current <= 0 ? last
-                : Mathf.Clamp(Mathf.FloorToInt((1f - (float)Current / maxHealth) * last), 0, last - 1);
+                : Mathf.Clamp(Mathf.CeilToInt((float)lost / Mathf.Max(1, maxHealth - 1) * (last - 1)), 0, last - 1);
             if (stateRenderer.sprite == states[state])
                 return;
             stateRenderer.sprite = states[state];
@@ -105,8 +109,15 @@ namespace Odisea.Level
         {
             if (hitTimer <= 0f)
             {
-                if (hitGlow != null && hitGlow.color.a > 0f)
-                    hitGlow.color = new Color(hitGlow.color.r, hitGlow.color.g, hitGlow.color.b, 0f);
+                // Última vida: late en rojo, con su resplandor.
+                float pulse = Current == 1 && !Burned ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) : 0f;
+                if (hitGlow != null)
+                    hitGlow.color = new Color(hitGlow.color.r, hitGlow.color.g, hitGlow.color.b, hitGlowAlpha * 0.7f * pulse);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (renderers[i] != null)
+                        renderers[i].color = Color.Lerp(baseColors[i], lastLifeColor * baseColors[i], pulse);
+                }
                 return;
             }
             hitTimer -= Time.deltaTime;
