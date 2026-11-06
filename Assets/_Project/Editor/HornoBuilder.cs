@@ -53,7 +53,7 @@ namespace Odisea.EditorTools
         // El horno recortado en sus versiones (de sano a quemado) y su delineado; sin ellos, el horno es parte del patio.
         private static Sprite[] OvenStates => Enumerable.Range(0, ArtImportBuilder.HornoStates)
             .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoStatePath(i))).Where(s => s != null).ToArray();
-        private const int OvenHealth = 10;
+        private const int OvenHealth = 5;
         private const float BakeSeconds = 100f;
         private const int PolifemoHealth = 10;
 
@@ -65,7 +65,6 @@ namespace Odisea.EditorTools
         private static readonly Color Soot = new(0.17f, 0.09f, 0.06f);
         private static readonly Color RatBrown = new(0.45f, 0.33f, 0.25f);
         private static readonly Color Bread = new(0.82f, 0.55f, 0.24f);
-        private static readonly Color OvenBar = new(0.93f, 0.45f, 0.16f);
         private static readonly Color BossBar = new(0.82f, 0.24f, 0.16f);
         private static readonly Color BossTrail = new(0.98f, 0.85f, 0.45f);
 
@@ -158,7 +157,7 @@ namespace Odisea.EditorTools
             if (score != null)
                 // El horneado dura BakeSeconds: el tiempo cuenta lo que tarda en vencer a Polifemo después.
                 PlayerSandboxBuilder.SetSerialized(score, "parTime", BakeSeconds + 40f);
-            CreateOvenHud(oven, bake, square, circle);
+            CreateOvenHud(level, oven, bake, square, circle);
             CreateBossBar(boss.Health, square);
 
             PlayerSandboxBuilder.EndLevel(level);
@@ -519,7 +518,7 @@ namespace Odisea.EditorTools
                 renderer.color = new Color(0.3f, 0.45f, 0.25f);
             }
             PlayerSandboxBuilder.SetSerialized(raider, "speed", 1.4f);
-            PlayerSandboxBuilder.SetSerialized(raider, "ovenDamage", 2);
+            PlayerSandboxBuilder.SetSerialized(raider, "ovenDamage", 1);
             PlayerSandboxBuilder.SetSerialized(raider, "attackInterval", 2.6f);
             PlayerSandboxBuilder.SetSerialized(raider, "attackHitDelay", 0.3f);
             PlayerSandboxBuilder.SetSerialized(raider, "reach", 0.9f);
@@ -756,37 +755,19 @@ namespace Odisea.EditorTools
             return label;
         }
 
-        // Altura de la barra de vida del horno (sobre su chimenea) y lo que mide un píxel de su lienzo en el juego.
-        private static float OvenBarHeight => ChimneyTop * OvenScale + 0.5f;
+        // Lo que mide un píxel del lienzo de la vida del horno en el juego.
         private const float WorldCanvasScale = 0.01f;
 
-        // La vida del horno encima del mismo horno: una tablita con un ladrillo por punto (sin su dibujo, una barra). El
-        // horneado, en el pizarrón del puntaje: un reloj de cocina con el pan en medio (sin su dibujo, un cronómetro que
-        // se va llenando). El texto del pizarrón cuenta lo que falta.
-        private static void CreateOvenHud(Oven oven, BakeTimer bake, Sprite square, Sprite circle)
+        // La vida del horno encima del mismo horno: su ícono y un corazón por vida (como los de Ulises). El horneado, en el
+        // pizarrón del puntaje: un reloj de cocina con el pan en medio (sin su dibujo, un cronómetro que se va llenando).
+        // El texto del pizarrón cuenta lo que falta.
+        private static void CreateOvenHud(PlayerSandboxBuilder.LevelContext level, Oven oven, BakeTimer bake, Sprite square, Sprite circle)
         {
-            var canvasObject = new GameObject("Vida del horno", typeof(Canvas));
-            canvasObject.transform.SetParent(oven.transform, false);
-            var canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.sortingOrder = 20;
-            var canvasRect = (RectTransform)canvasObject.transform;
-            canvasRect.localScale = Vector3.one * WorldCanvasScale;
-            canvasRect.localPosition = new Vector3(0f, OvenBarHeight, 0f);
-            var hud = canvasObject.AddComponent<OvenHud>();
-            PlayerSandboxBuilder.SetSerialized(hud, "oven", oven);
+            CreateOvenHearts(level, oven, circle);
+            var hudObject = new GameObject("Horneado");
+            hudObject.transform.SetParent(oven.transform, false);
+            var hud = hudObject.AddComponent<OvenHud>();
             PlayerSandboxBuilder.SetSerialized(hud, "bake", bake);
-            if (!CreateBrickBoard(canvasRect, hud, oven))
-            {
-                canvasRect.sizeDelta = new Vector2(300f, 40f);
-                var center = new Vector2(0.5f, 0.5f);
-                Image ovenFill = Bar("Barra", canvasObject.transform, center, Vector2.zero, new Vector2(280f, 34f), square, OvenBar, out _);
-                ovenFill.fillAmount = 1f;
-                PlayerSandboxBuilder.SetSerialized(hud, "ovenFill", ovenFill);
-                // La barra tiembla al recibir el horno un golpe.
-                PlayerSandboxBuilder.SetSerialized(hud, "ovenIcon", ovenFill.transform.parent);
-            }
-
             if (!CreateKitchenClock(hud, circle, out ScoreHud score))
             {
                 Image bakeFill = CreateStopwatch(circle, square, out score);
@@ -810,51 +791,52 @@ namespace Odisea.EditorTools
             return image;
         }
 
-        // Alto de cada ladrillo de la tablita (en píxeles del lienzo del horno), el espacio entre ellos y la orilla. Van
-        // en dos filas, como una pared (la de arriba recorrida medio ladrillo).
-        private const float BrickHeight = 38f, BrickGap = 4f;
-        private static readonly Vector2 BoardPadding = new(26f, 18f);
+        // Corazones del horno (en píxeles de su lienzo): tamaño, espacio entre ellos, el ícono y la orilla de la bandeja.
+        private static readonly Vector2 OvenHeartSize = new(60f, 55f);
+        private const float OvenHeartGap = 8f, OvenIconSize = 72f, OvenHudPadding = 14f;
+        private const string HeartRingPath = "Assets/_Project/Art/Placeholders/Anillo.png";
 
-        private static bool CreateBrickBoard(RectTransform canvas, OvenHud hud, Oven oven)
+        // En una bandeja café encima de la chimenea: el ícono del horno a la izquierda y sus corazones a la derecha.
+        private static void CreateOvenHearts(PlayerSandboxBuilder.LevelContext level, Oven oven, Sprite circle)
         {
-            var boardSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBoardPath);
-            var brick = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickPath);
-            if (boardSprite == null || brick == null)
-                return false;
-            int count = new SerializedObject(oven).FindProperty("maxHealth").intValue;
-            float brickWidth = BrickHeight * brick.rect.width / brick.rect.height;
-            int perRow = Mathf.CeilToInt(count / 2f);
-            float step = brickWidth + BrickGap;
-            float rowWidth = perRow * brickWidth + (perRow - 1) * BrickGap + step / 2f;
-            var size = new Vector2(rowWidth + BoardPadding.x * 2f, BrickHeight * 2f + BrickGap + BoardPadding.y * 2f);
-            canvas.sizeDelta = size;
+            var canvasObject = new GameObject("Vida del horno", typeof(Canvas));
+            canvasObject.transform.SetParent(oven.transform, false);
+            var canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.sortingOrder = 20;
+            int count = OvenHealth;
+            float heartsWidth = count * OvenHeartSize.x + (count - 1) * OvenHeartGap;
+            var size = new Vector2(OvenHudPadding * 2f + OvenIconSize + OvenHudPadding + heartsWidth, OvenIconSize + OvenHudPadding);
+            var canvasRect = (RectTransform)canvasObject.transform;
+            canvasRect.sizeDelta = size;
+            canvasRect.localScale = Vector3.one * WorldCanvasScale;
             // Encima de la chimenea, sin taparla.
-            canvas.localPosition = new Vector3(0f, ChimneyTop * OvenScale + 0.35f + size.y * WorldCanvasScale / 2f, 0f);
+            canvasRect.localPosition = new Vector3(0f, ChimneyTop * OvenScale + 0.35f + size.y * WorldCanvasScale / 2f, 0f);
             var center = new Vector2(0.5f, 0.5f);
-            Image board = UiImage("Tablita", canvas, boardSprite, center, Vector2.zero, size);
-            // Las orillas con sus clavos no se estiran: que ocupen como un tercio del alto.
-            board.type = Image.Type.Sliced;
-            board.pixelsPerUnitMultiplier = boardSprite.border.w / boardSprite.pixelsPerUnit * 100f / (size.y * 0.3f);
-            var bricks = new Image[count];
-            // Primero la fila de abajo y luego la de arriba, de izquierda a derecha: se caen desde arriba a la derecha.
-            for (int i = 0; i < count; i++)
-            {
-                int row = i / perRow, column = i % perRow;
-                float x = -rowWidth / 2f + brickWidth / 2f + column * step + row * step / 2f;
-                float y = (row == 0 ? -1f : 1f) * (BrickHeight + BrickGap) / 2f;
-                bricks[i] = UiImage($"Ladrillo {i + 1}", board.transform, brick, center, new Vector2(x, y), new Vector2(brickWidth, BrickHeight));
-                bricks[i].preserveAspect = true;
-            }
-            PlayerSandboxBuilder.SetSerialized(hud, "board", board.rectTransform);
-            PlayerSandboxBuilder.SetSerialized(hud, "bricks", bricks);
-            PlayerSandboxBuilder.SetSerialized(hud, "brickSprite", brick);
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickCrackedPath) is { } cracked)
-                PlayerSandboxBuilder.SetSerialized(hud, "crackedSprite", cracked);
-            Sprite[] halves = Enumerable.Range(0, 2)
-                .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickHalfPath(i)))
-                .Where(sprite => sprite != null).ToArray();
-            PlayerSandboxBuilder.SetSerialized(hud, "halfSprites", halves);
-            return true;
+            Image tray = UiImage("Bandeja", canvasRect, UiAssetsBuilder.EnsureRoundedSprite(), center, Vector2.zero, size);
+            tray.type = Image.Type.Sliced;
+            tray.color = new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.85f);
+            var left = new Vector2(0f, 0.5f);
+            Sprite icon = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoIconPath);
+            if (icon != null)
+                UiImage("Ícono", tray.transform, icon, left, new Vector2(OvenHudPadding + OvenIconSize / 2f, 0f),
+                    Vector2.one * OvenIconSize).preserveAspect = true;
+            var hearts = (RectTransform)new GameObject("Corazones", typeof(RectTransform)).transform;
+            hearts.SetParent(tray.transform, false);
+            hearts.anchorMin = hearts.anchorMax = left;
+            hearts.pivot = left;
+            hearts.anchoredPosition = new Vector2(OvenHudPadding * 2f + OvenIconSize, 0f);
+            hearts.sizeDelta = new Vector2(heartsWidth, OvenHeartSize.y);
+            var display = hearts.gameObject.AddComponent<HeartsDisplay>();
+            PlayerSandboxBuilder.SetSerialized(display, "oven", oven);
+            PlayerSandboxBuilder.SetSerialized(display, "fullHeart", level.FullHeart);
+            PlayerSandboxBuilder.SetSerialized(display, "shardSprite", circle);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(HeartRingPath) is { } ring)
+                PlayerSandboxBuilder.SetSerialized(display, "ringSprite", ring);
+            PlayerSandboxBuilder.SetSerialized(display, "heartSize", OvenHeartSize);
+            PlayerSandboxBuilder.SetSerialized(display, "spacing", OvenHeartGap);
+            // Los perdidos dejan su hueco: así siempre se ve que son 5.
+            PlayerSandboxBuilder.SetSerialized(display, "hollowColor", new Color(0f, 0f, 0f, 0.35f));
         }
 
         // Ancho de la carátula del reloj de cocina en el pizarrón.
@@ -975,7 +957,8 @@ namespace Odisea.EditorTools
             var group = canvas.gameObject.AddComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = false;
             var top = new Vector2(0.5f, 1f);
-            RectTransform bar = Box("Barra", canvas.transform, top, new Vector2(0f, -40f), new Vector2(640f, 74f));
+            // Abajo al centro (arriba van el puntaje y la vida de Ulises).
+            RectTransform bar = Box("Barra", canvas.transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(640f, 74f));
             Label("Nombre", bar, top, Vector2.zero, new Vector2(640f, 40f), "POLIFEMO", 32f);
             Image fill = Bar("Vida", bar, top, new Vector2(0f, -42f), new Vector2(640f, 30f), square, BossBar, out Image trail, BossTrail);
             var component = canvas.gameObject.AddComponent<BossHealthBar>();

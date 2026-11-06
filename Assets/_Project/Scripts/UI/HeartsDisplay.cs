@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Odisea.Core;
+using Odisea.Level;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,13 +12,18 @@ namespace Odisea.UI
     /// Al empezar entran uno por uno. El que se pierde destella, se rompe en trocitos, sacude la fila y desaparece; el
     /// que se recupera vuelve a aparecer con un brinco y un anillo dorado. Con una sola vida el último late y las orillas de la pantalla se
     /// ponen rojas. Todo en tiempo sin escala (sigue con la pausa o el tiempo lento).
+    /// En el nivel 2 también muestra la vida del horno (con <see cref="oven"/> en lugar de <see cref="health"/>).
     /// </summary>
     public class HeartsDisplay : MonoBehaviour
     {
         [SerializeField] private Health health;
+        [Tooltip("En lugar de una vida (Health): la del horno.")]
+        [SerializeField] private Oven oven;
         [SerializeField] private Sprite fullHeart;
         [SerializeField] private Vector2 heartSize = new(72f, 66f);
         [SerializeField, Min(0f)] private float spacing = 12f;
+        [Tooltip("Opcional: el hueco que deja cada corazón perdido (transparente = no se ve).")]
+        [SerializeField] private Color hollowColor = Color.clear;
 
         [Header("Efectos")]
         [SerializeField, Min(0.01f)] private float popDuration = 0.25f;
@@ -41,6 +47,7 @@ namespace Odisea.UI
         [SerializeField, Min(0.1f)] private float heartbeatRate = 1.1f;
 
         private readonly List<Image> hearts = new();
+        private readonly List<Image> hollows = new();
         private readonly List<float> punch = new();
         // Escala de entrada de cada corazón (0 a 1, con rebote).
         private readonly List<float> appear = new();
@@ -52,7 +59,7 @@ namespace Odisea.UI
 
         private void Start()
         {
-            if (health == null)
+            if (health == null && oven == null)
             {
                 Debug.LogError($"{name}: HeartsDisplay necesita una referencia a Health.", this);
                 enabled = false;
@@ -61,10 +68,15 @@ namespace Odisea.UI
 
             rect = (RectTransform)transform;
             home = rect.anchoredPosition;
-            BuildHearts(health.Max);
-            shownHealth = health.Current;
-            Refresh(health.Current, animate: false);
-            health.HealthChanged += OnHealthChanged;
+            int max = health != null ? health.Max : oven.Max;
+            int current = health != null ? health.Current : oven.Current;
+            BuildHearts(max);
+            shownHealth = current;
+            Refresh(current, animate: false);
+            if (health != null)
+                health.HealthChanged += OnHealthChanged;
+            else
+                oven.Changed += OnHealthChanged;
             for (int i = 0; i < shownHealth; i++)
                 StartCoroutine(Entrance(i, i * entranceStagger));
             if (lowHealthVignette != null)
@@ -75,6 +87,8 @@ namespace Odisea.UI
         {
             if (health != null)
                 health.HealthChanged -= OnHealthChanged;
+            if (oven != null)
+                oven.Changed -= OnHealthChanged;
         }
 
         private void OnHealthChanged(int current, int max)
@@ -88,7 +102,10 @@ namespace Odisea.UI
         {
             foreach (Image heart in hearts)
                 Destroy(heart.gameObject);
+            foreach (Image hollow in hollows)
+                Destroy(hollow.gameObject);
             hearts.Clear();
+            hollows.Clear();
             punch.Clear();
             appear.Clear();
 
@@ -102,6 +119,14 @@ namespace Odisea.UI
                 heartRect.pivot = new Vector2(0.5f, 0.5f);
                 heartRect.sizeDelta = heartSize;
                 heartRect.anchoredPosition = new Vector2(i * (heartSize.x + spacing) + heartSize.x / 2f, -heartSize.y / 2f);
+                if (hollowColor.a > 0f)
+                {
+                    // Detrás del corazón: se ve cuando este se pierde.
+                    Image hollow = Effect($"Hueco {i + 1}", fullHeart, hollowColor, heartRect.anchoredPosition, heartSize);
+                    hollow.preserveAspect = true;
+                    hollow.transform.SetSiblingIndex(heartRect.GetSiblingIndex());
+                    hollows.Add(hollow);
+                }
 
                 var image = go.GetComponent<Image>();
                 image.preserveAspect = true;

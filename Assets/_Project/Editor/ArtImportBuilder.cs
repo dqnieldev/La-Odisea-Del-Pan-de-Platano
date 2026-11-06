@@ -596,12 +596,6 @@ namespace Odisea.EditorTools
 
         // ---------- HUD del horno (Menu/Horno) ----------
 
-        /// <summary>La tablita de la vida del horno: se estira a lo ancho (sus orillas no).</summary>
-        public const string HornoBoardPath = "Assets/_Project/Art/UI/Horno_Tabla.png";
-        /// <summary>Un ladrillo de adobe por punto de vida: entero, agrietado y sus dos mitades al romperse.</summary>
-        public const string HornoBrickPath = "Assets/_Project/Art/UI/Horno_Ladrillo.png";
-        public const string HornoBrickCrackedPath = "Assets/_Project/Art/UI/Horno_Ladrillo_Agrietado.png";
-        public static string HornoBrickHalfPath(int half) => $"Assets/_Project/Art/UI/Horno_Ladrillo_Mitad_{half}.png";
         /// <summary>
         /// El reloj de cocina del horneado: la carátula (con su campanita arriba; el pivote es el centro de la carátula, que
         /// está a medio ancho desde abajo), la aguja (pivote en el círculo de su base) y el pan crudo y dorado.
@@ -615,44 +609,6 @@ namespace Odisea.EditorTools
         public static void ImportHornoHud()
         {
             EnsureFolder("Assets/_Project/Art/UI");
-            if (LoadSheet("Menu/Horno/vida_horno_tabla.png", warnIfMissing: false) is { } board)
-            {
-                RectInt bounds = OpaqueBounds(board);
-                // Las orillas (con sus clavos) no se estiran: un 14 % a cada lado y un 22 % arriba y abajo.
-                int side = Mathf.RoundToInt(bounds.width * 0.14f), cap = Mathf.RoundToInt(bounds.height * 0.22f);
-                WriteHudPiece(board, bounds, HornoBoardPath, new Vector2(0.5f, 0.5f),
-                    new RectInt(bounds.xMin + side, bounds.yMin + cap, bounds.width - side * 2, bounds.height - cap * 2));
-            }
-            if (LoadSheet("Menu/Horno/vida_horno_ladrillos.png", warnIfMissing: false) is { } bricks)
-            {
-                // Entero, agrietado y roto (el roto son dos pedazos casi juntos).
-                List<RectInt> groups = SplitByGaps(bricks, OpaqueBounds(bricks), minGap: 40);
-                if (groups.Count >= 3)
-                {
-                    WriteHudPiece(bricks, groups[0], HornoBrickPath, new Vector2(0.5f, 0.5f));
-                    WriteHudPiece(bricks, groups[1], HornoBrickCrackedPath, new Vector2(0.5f, 0.5f));
-                    // Cada pedazo es su propia mancha: se guarda solo, sin la orilla del otro que cae en su rectángulo.
-                    RectInt broken = groups[2];
-                    List<Blob> halves = bricks.Blobs
-                        .Where(blob => blob.MinX >= broken.xMin && blob.MaxX < broken.xMax && blob.MinY >= broken.yMin && blob.MaxY < broken.yMax)
-                        .OrderByDescending(blob => blob.Area).Take(2).OrderBy(blob => blob.MinX).ToList();
-                    for (int i = 0; i < halves.Count; i++)
-                    {
-                        Blob half = halves[i];
-                        var only = new Sheet { Width = bricks.Width, Height = bricks.Height, Pixels = new Color32[bricks.Pixels.Length] };
-                        for (int y = half.MinY; y <= half.MaxY; y++)
-                        for (int x = half.MinX; x <= half.MaxX; x++)
-                        {
-                            int index = y * bricks.Width + x;
-                            if (bricks.Labels[index] == half.Id)
-                                only.Pixels[index] = bricks.Pixels[index];
-                        }
-                        WriteHudPiece(only, new RectInt(half.MinX, half.MinY, half.Width, half.Height), HornoBrickHalfPath(i), new Vector2(0.5f, 0.5f));
-                    }
-                }
-                else
-                    Debug.LogWarning("[Odisea] vida_horno_ladrillos.png: se esperaban 3 ladrillos.");
-            }
             if (LoadSheet("Menu/Horno/reloj_cara.png", warnIfMissing: false) is { } face)
             {
                 RectInt bounds = OpaqueBounds(face);
