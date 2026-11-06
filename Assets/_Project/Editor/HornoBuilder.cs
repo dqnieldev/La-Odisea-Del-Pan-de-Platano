@@ -26,6 +26,10 @@ namespace Odisea.EditorTools
         private const string PrefabFolder = "Assets/_Project/Prefabs/Enemigos/Horno";
         private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
         private const string CrocodileArtFolder = "Assets/_Project/Art/Characters/Enemigos/Cocodrilo";
+        // Sonidos del nivel (Audio/SFX/...): el horno al recibir un golpe, la rata (pasitos y mordida) y los jejenes.
+        private const string OvenSoundFolder = "Assets/_Project/Audio/SFX/Horno";
+        private const string RatSoundFolder = "Assets/_Project/Audio/SFX/Raton";
+        private const string GnatSoundFolder = "Assets/_Project/Audio/SFX/Jejenes";
 
         // Medidas: el piso en y = 0, la pantalla de -HalfWidth a HalfWidth y la cámara fija.
         private const float HalfWidth = 12.5f;
@@ -259,7 +263,9 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "mouth", mouth);
             PlayerSandboxBuilder.SetSerialized(component, "halfWidth", OvenHalfWidth);
             PlayerSandboxBuilder.SetSerialized(component, "player", player);
-            GameSoundsBuilder.SetSound(component, "hitSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.5f);
+            AudioClip[] ovenHit = GameSoundsBuilder.Load(OvenSoundFolder, "horno_golpe");
+            GameSoundsBuilder.SetSound(component, "hitSound",
+                ovenHit.Length > 0 ? ovenHit : GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.7f);
             return component;
         }
 
@@ -417,6 +423,17 @@ namespace Odisea.EditorTools
             return (root, visual, health, hazard, raider);
         }
 
+        // Sonido en bucle mientras el enemigo se mueve (se apaga al morir).
+        private static void AddLoop(GameObject root, AudioClip[] clips, Health health, float volume)
+        {
+            if (clips.Length == 0)
+                return;
+            var loop = root.AddComponent<LoopingSound>();
+            PlayerSandboxBuilder.SetSerialized(loop, "clip", clips[0]);
+            PlayerSandboxBuilder.SetSerialized(loop, "volume", volume);
+            PlayerSandboxBuilder.SetSerialized(loop, "health", health);
+        }
+
         private static void Feedback(GameObject root, Health health, Transform visual, SpriteRenderer[] renderers, float deathTime)
         {
             var feedback = root.AddComponent<DamageFeedback>();
@@ -453,6 +470,8 @@ namespace Odisea.EditorTools
                 if (AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.RatClipPath("Hurt")) is { } hurt)
                     PlayerSandboxBuilder.SetSerialized(raider, "hurtStun", hurt.length);
                 float death = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.RatClipPath("Die")) is { } die ? die.length : 0f;
+                GameSoundsBuilder.SetSound(raider, "attackSound", GameSoundsBuilder.Load(RatSoundFolder, "raton_golpe"), 0.8f);
+                AddLoop(root, GameSoundsBuilder.Load(RatSoundFolder, "raton"), health, 0.35f);
                 Feedback(root, health, visual, new[] { renderer }, death);
                 return SavePrefab(root);
             }
@@ -547,6 +566,7 @@ namespace Odisea.EditorTools
             var swarm = root.AddComponent<GnatSwarm>();
             PlayerSandboxBuilder.SetSerialized(swarm, "health", health);
             PlayerSandboxBuilder.SetSerialized(swarm, "speed", 2.2f);
+            AddLoop(root, GameSoundsBuilder.Load(GnatSoundFolder, "jejenes"), health, 0.45f);
             Feedback(root, health, visual, new[] { renderer }, 0f);
             return SavePrefab(root);
         }
