@@ -306,17 +306,17 @@ namespace Odisea.EditorTools
             }
         }
 
-        // Signos "!" rojos arriba del horno, uno de cada lado: se prenden cuando un enemigo está muy cerca por ese lado.
+        // Signo "!" rojo de muestra: el aviso pone una copia encima de cada enemigo que esté muy cerca del horno.
         private static void CreateOvenAlert(Oven oven, int enemyLayer)
         {
             var alert = oven.gameObject.AddComponent<OvenAlert>();
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
             // Un círculo crema con orilla café y, encima, el "!" rojo grueso.
-            Transform Mark(string name, float side)
+            Transform Mark(string name)
             {
                 var root = new GameObject(name).transform;
                 root.SetParent(oven.transform, false);
-                root.localPosition = new Vector3(side * OvenHalfWidth * 0.75f, OvenMouth.y + 2.4f, 0f);
+                root.localScale = Vector3.one * 0.75f;
                 Part("Orilla", root, circle, Vector2.zero, new Vector2(1.45f, 1.45f), PlayerSandboxBuilder.Cafe, 24);
                 Part("Fondo", root, circle, Vector2.zero, new Vector2(1.25f, 1.25f), new Color(1f, 0.96f, 0.86f), 25);
                 var mark = new GameObject("Signo").AddComponent<TextMeshPro>();
@@ -332,8 +332,7 @@ namespace Odisea.EditorTools
                 return root;
             }
             PlayerSandboxBuilder.SetSerialized(alert, "oven", oven);
-            PlayerSandboxBuilder.SetSerialized(alert, "leftMark", Mark("Alerta izquierda", -1f));
-            PlayerSandboxBuilder.SetSerialized(alert, "rightMark", Mark("Alerta derecha", 1f));
+            PlayerSandboxBuilder.SetSerialized(alert, "markTemplate", Mark("Alerta (muestra)"));
             PlayerSandboxBuilder.SetSerialized(alert, "enemyLayers", 1 << enemyLayer);
         }
 
