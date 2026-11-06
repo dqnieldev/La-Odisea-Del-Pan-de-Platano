@@ -563,10 +563,24 @@ namespace Odisea.EditorTools
         /// <summary>Píxeles por unidad del fondo: llena la pantalla de la cámara fija (tamaño 7, 16:9).</summary>
         public const float HornoBackgroundPpu = 107f;
 
+        /// <summary>
+        /// El horno recortado en sus 5 estados (Fondos/horno/horno_0..4.png: sano, rayado, dañado, muy dañado y
+        /// quemado), en el mismo lienzo que el patio: se recortan todos al mismo cuadro y con el mismo pivote que el
+        /// fondo, así que se cambian uno por otro sin moverse. Con ellos el fondo es el patio sin horno.
+        /// </summary>
+        public const int HornoStates = 5;
+        public static string HornoStatePath(int state) => $"Assets/_Project/Art/Environment/Horno/Horno_{state}.png";
+        /// <summary>Contorno del horno sano (blanco por dentro y café por fuera), para teñirlo con la vida del horno.</summary>
+        public const string HornoOutlinePath = "Assets/_Project/Art/Environment/Horno/Horno_Delineado.png";
+        // Grosor del delineado en píxeles del dibujo: la parte clara y la sombra café de afuera.
+        private const int OutlineLight = 9, OutlineDark = 6;
+
         [MenuItem("Odisea/Arte/Importar patio del horno")]
         public static void ImportHornoArt()
         {
-            Sheet sheet = LoadSheet("Fondos/horno/patio.png", warnIfMissing: false);
+            bool states = ImportHornoStates();
+            Sheet sheet = LoadSheet(states && File.Exists(Path.Combine(SourceFolder, "Fondos/horno/patio_sin_horno.png"))
+                ? "Fondos/horno/patio_sin_horno.png" : "Fondos/horno/patio.png", warnIfMissing: false);
             if (sheet != null)
             {
                 EnsureFolder("Assets/_Project/Art/Environment/Horno");
@@ -576,6 +590,77 @@ namespace Odisea.EditorTools
             }
             if (File.Exists(Path.Combine(SourceFolder, "Menu/menu_horno.png")))
                 ImportHudIcon("Menu/menu_horno.png", 245, HornoIconPath);
+        }
+
+        private static bool ImportHornoStates()
+        {
+            var sheets = new Sheet[HornoStates];
+            for (int i = 0; i < HornoStates; i++)
+            {
+                sheets[i] = LoadSheet($"Fondos/horno/horno_{i}.png", warnIfMissing: false);
+                if (sheets[i] == null)
+                    return false;
+            }
+            // El mismo cuadro para todos (lo que ocupa cualquiera, con lugar para el delineado).
+            int margin = OutlineLight + OutlineDark + 2;
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
+            foreach (Sheet sheet in sheets)
+            {
+                RectInt b = OpaqueBounds(sheet);
+                minX = Mathf.Min(minX, b.xMin); minY = Mathf.Min(minY, b.yMin);
+                maxX = Mathf.Max(maxX, b.xMax); maxY = Mathf.Max(maxY, b.yMax);
+            }
+            int width = sheets[0].Width, height = sheets[0].Height;
+            var crop = new RectInt(Mathf.Max(0, minX - margin), Mathf.Max(0, minY - margin), 0, 0);
+            crop.xMax = Mathf.Min(width, maxX + margin);
+            crop.yMax = Mathf.Min(height, maxY + margin);
+            // El pivote, igual que el del fondo: el centro del horno a la altura del piso (las filas cuentan desde abajo).
+            var pivot = new Vector2((HornoOvenPixel.x - crop.xMin) / crop.width, (height - HornoOvenPixel.y - crop.yMin) / crop.height);
+            EnsureFolder("Assets/_Project/Art/Environment/Horno");
+            for (int i = 0; i < HornoStates; i++)
+                WriteRegion(sheets[i], crop, HornoStatePath(i), HornoBackgroundPpu, pivot, padding: 0);
+
+            // Delineado: lo que queda a menos de OutlineLight px del horno sano es claro; un poco más afuera, café.
+            Color32[] pixels = sheets[0].Pixels;
+            var distance = new int[pixels.Length];
+            var frontier = new Queue<int>();
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                distance[i] = pixels[i].a > 128 ? 0 : int.MaxValue;
+                if (distance[i] == 0)
+                    frontier.Enqueue(i);
+            }
+            int limit = OutlineLight + OutlineDark;
+            while (frontier.Count > 0)
+            {
+                int i = frontier.Dequeue();
+                if (distance[i] >= limit)
+                    continue;
+                int x = i % width, y = i / width;
+                foreach ((int dx, int dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1) })
+                {
+                    int nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+                        continue;
+                    int n = ny * width + nx;
+                    if (distance[n] > distance[i] + 1)
+                    {
+                        distance[n] = distance[i] + 1;
+                        frontier.Enqueue(n);
+                    }
+                }
+            }
+            var outline = new Color32[pixels.Length];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                int d = distance[i];
+                if (d == 0 || d > limit)
+                    continue;
+                outline[i] = d <= OutlineLight ? new Color32(255, 255, 255, 255) : new Color32(60, 30, 14, 210);
+            }
+            WriteRegion(new Sheet { Width = width, Height = height, Pixels = outline }, crop, HornoOutlinePath, HornoBackgroundPpu,
+                pivot, padding: 0);
+            return true;
         }
 
         // ---------- Jejenes (nivel 2) ----------

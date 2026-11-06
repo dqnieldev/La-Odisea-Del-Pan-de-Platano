@@ -38,6 +38,9 @@ namespace Odisea.EditorTools
         private static float OvenHalfWidth => Patio != null ? 3f : 1.7f;
         private static Vector2 OvenMouth => Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
         private static Sprite Patio => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBackgroundPath);
+        // El horno recortado en sus versiones (de sano a quemado) y su delineado; sin ellos, el horno es parte del patio.
+        private static Sprite[] OvenStates => Enumerable.Range(0, ArtImportBuilder.HornoStates)
+            .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoStatePath(i))).Where(s => s != null).ToArray();
         private const int OvenHealth = 10;
         private const float BakeSeconds = 100f;
         private const int PolifemoHealth = 10;
@@ -220,7 +223,23 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "maxHealth", OvenHealth);
             PlayerSandboxBuilder.SetSerialized(component, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(component, "renderers", shapes.Cast<Object>().ToArray());
-            if (drawn)
+            Sprite[] states = OvenStates;
+            if (drawn && states.Length == ArtImportBuilder.HornoStates)
+            {
+                // El horno es su propio dibujo encima del patio sin horno: cambia de versión con la vida.
+                var drawing = new GameObject("Horno (dibujo)").AddComponent<SpriteRenderer>();
+                drawing.transform.SetParent(visual, false);
+                drawing.sprite = states[0];
+                drawing.sortingOrder = -18;
+                PlayerSandboxBuilder.SetSerialized(component, "stateRenderer", drawing);
+                PlayerSandboxBuilder.SetSerialized(component, "states", states.Cast<Object>().ToArray());
+                var outline = new GameObject("Delineado").AddComponent<SpriteRenderer>();
+                outline.transform.SetParent(visual, false);
+                outline.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoOutlinePath);
+                outline.sortingOrder = -19;
+                PlayerSandboxBuilder.SetSerialized(component, "outlineSprite", outline);
+            }
+            else if (drawn)
                 PlayerSandboxBuilder.SetSerialized(component, "outline", CreateOvenOutline(visual));
             if (drawn && AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
             {

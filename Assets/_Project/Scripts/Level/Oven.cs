@@ -29,6 +29,12 @@ namespace Odisea.Level
         [Tooltip("Opcional: la línea clara alrededor del horno, para que se vea dónde está. Va de dorado (sano) a rojo " +
                  "(casi quemado), respira despacio y destella al recibir un golpe.")]
         [SerializeField] private LineRenderer outline;
+        [Tooltip("Opcional: el delineado como dibujo (sacado del contorno del horno); se tiñe igual que la línea.")]
+        [SerializeField] private SpriteRenderer outlineSprite;
+        [Header("Estados")]
+        [Tooltip("Opcional: el dibujo del horno y sus versiones de sano a quemado; cambia al bajar la vida (el último, al quemarse).")]
+        [SerializeField] private SpriteRenderer stateRenderer;
+        [SerializeField] private Sprite[] states = Array.Empty<Sprite>();
         [SerializeField] private Color outlineHealthy = new(1f, 0.86f, 0.35f);
         [SerializeField] private Color outlineHurt = new(1f, 0.25f, 0.15f);
         [SerializeField] private Color outlineHit = Color.white;
@@ -70,6 +76,7 @@ namespace Odisea.Level
             hitTimer = hitDuration;
             hitSound.Play();
             Changed?.Invoke(Current, maxHealth);
+            ShowState();
             if (Current == 0)
                 Burn();
         }
@@ -81,15 +88,31 @@ namespace Odisea.Level
                 return;
             Burned = true;
             Current = 0;
+            ShowState();
             Changed?.Invoke(Current, maxHealth);
             BurnedUp?.Invoke();
             if (player != null)
                 player.Kill();
         }
 
+        // Sano mientras tenga más de 3/4 de la vida; luego una versión más dañada por cada cuarto; quemado al llegar a 0.
+        private void ShowState()
+        {
+            if (stateRenderer == null || states.Length == 0)
+                return;
+            int last = states.Length - 1;
+            int state = Current <= 0 ? last
+                : Mathf.Clamp(Mathf.FloorToInt((1f - (float)Current / maxHealth) * last), 0, last - 1);
+            if (stateRenderer.sprite == states[state])
+                return;
+            stateRenderer.sprite = states[state];
+            // Al cambiar de versión, una sacudida más larga.
+            hitTimer = hitDuration * 2f;
+        }
+
         private void UpdateOutline()
         {
-            if (outline == null)
+            if (outline == null && outlineSprite == null)
                 return;
             float health = maxHealth > 0 ? (float)Current / maxHealth : 0f;
             Color color = Color.Lerp(outlineHurt, outlineHealthy, health);
@@ -97,7 +120,10 @@ namespace Odisea.Level
             color.a = Mathf.Lerp(0.6f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.time * Mathf.Lerp(7f, 2.5f, health)));
             if (hitTimer > 0f)
                 color = Color.Lerp(color, outlineHit, Mathf.Clamp01(hitTimer / hitDuration));
-            outline.startColor = outline.endColor = color;
+            if (outline != null)
+                outline.startColor = outline.endColor = color;
+            if (outlineSprite != null)
+                outlineSprite.color = color;
         }
 
         private void Update()
