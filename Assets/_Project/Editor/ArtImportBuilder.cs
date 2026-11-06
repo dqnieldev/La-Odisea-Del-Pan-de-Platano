@@ -553,6 +553,8 @@ namespace Odisea.EditorTools
 
         /// <summary>Fondo del patio (Fondos/horno/patio.png) con el horno de barro dibujado.</summary>
         public const string HornoBackgroundPath = "Assets/_Project/Art/Environment/Horno/Patio.png";
+        /// <summary>El mismo patio de noche (Fondos/horno/patio_noche.png): se va mezclando encima conforme anochece.</summary>
+        public const string HornoNightPath = "Assets/_Project/Art/Environment/Horno/Patio_Noche.png";
         /// <summary>Ícono del horno para su vida en el HUD (Menu/menu_horno.png).</summary>
         public const string HornoIconPath = "Assets/_Project/Art/UI/Horno.png";
         /// <summary>
@@ -584,6 +586,9 @@ namespace Odisea.EditorTools
                 WriteRegion(sheet, new RectInt(0, 0, sheet.Width, sheet.Height), HornoBackgroundPath, HornoBackgroundPpu, pivot,
                     padding: 0);
             }
+            if (LoadSheet("Fondos/horno/patio_noche.png", warnIfMissing: false) is { } night)
+                WriteRegion(night, new RectInt(0, 0, night.Width, night.Height), HornoNightPath, HornoBackgroundPpu,
+                    new Vector2(HornoOvenPixel.x / night.Width, 1f - HornoOvenPixel.y / night.Height), padding: 0);
             if (File.Exists(Path.Combine(SourceFolder, "Menu/menu_horno.png")))
                 ImportHudIcon("Menu/menu_horno.png", 245, HornoIconPath);
         }

@@ -109,6 +109,7 @@ namespace Odisea.EditorTools
             bake.transform.SetParent(root, false);
             PlayerSandboxBuilder.SetSerialized(bake, "duration", BakeSeconds);
             PlayerSandboxBuilder.SetSerialized(bake, "player", playerHealth);
+            CreateNightfall(root, bake, oven);
 
             // ----- La meta: el pan horneado (aparece al vencer a Polifemo) -----
             GameObject goal = CreateGoal(root, circle, level.PlayerLayer);
@@ -250,6 +251,37 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "player", player);
             GameSoundsBuilder.SetSound(component, "hitSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.5f);
             return component;
+        }
+
+        // Anochece con el horneado: la luz global de la escena se vuelve azul y baja, el patio de noche aparece encima del
+        // de día y una luz cálida sale de la boca del horno.
+        private static void CreateNightfall(Transform root, BakeTimer bake, Oven oven)
+        {
+            var nightfall = new GameObject("Anochecer").AddComponent<Nightfall>();
+            nightfall.transform.SetParent(root, false);
+            PlayerSandboxBuilder.SetSerialized(nightfall, "bake", bake);
+            var global = Object.FindObjectsByType<UnityEngine.Rendering.Universal.Light2D>(FindObjectsSortMode.None)
+                .FirstOrDefault(light => light.lightType == UnityEngine.Rendering.Universal.Light2D.LightType.Global);
+            if (global != null)
+                PlayerSandboxBuilder.SetSerialized(nightfall, "globalLight", global);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoNightPath) is { } night)
+            {
+                var backdrop = new GameObject("Patio de noche").AddComponent<SpriteRenderer>();
+                backdrop.transform.SetParent(root, false);
+                backdrop.sprite = night;
+                backdrop.sortingOrder = -19;
+                backdrop.color = new Color(1f, 1f, 1f, 0f);
+                PlayerSandboxBuilder.SetSerialized(nightfall, "nightBackdrop", backdrop);
+            }
+            var fireLight = new GameObject("Luz del horno").AddComponent<UnityEngine.Rendering.Universal.Light2D>();
+            fireLight.transform.SetParent(oven.transform, false);
+            fireLight.transform.localPosition = OvenMouth;
+            fireLight.lightType = UnityEngine.Rendering.Universal.Light2D.LightType.Point;
+            fireLight.color = new Color(1f, 0.62f, 0.28f);
+            fireLight.pointLightInnerRadius = 1f;
+            fireLight.pointLightOuterRadius = 9f;
+            fireLight.intensity = 0f;
+            PlayerSandboxBuilder.SetSerialized(nightfall, "ovenLight", fireLight);
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
