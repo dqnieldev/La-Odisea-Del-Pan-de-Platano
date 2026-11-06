@@ -588,19 +588,20 @@ namespace Odisea.EditorTools
             return label;
         }
 
-        // La vida del horno debajo de los corazones (con su ícono) y la barra del horneado arriba al centro.
+        // La vida del horno arriba a la derecha (con su ícono) y la barra del horneado arriba al centro.
         private static void CreateOvenHud(Oven oven, BakeTimer bake, Sprite square, Sprite circle)
         {
             Canvas canvas = OverlayCanvas("HUD del horno", -1);
-            var corner = new Vector2(0f, 1f);
-            RectTransform icon = Box("Ícono del horno", canvas.transform, corner, new Vector2(48f, -138f), new Vector2(56f, 56f));
+            // Arriba a la derecha, debajo del letrero del puntaje (a la izquierda, debajo de los corazones, van los ítems activos).
+            var corner = new Vector2(1f, 1f);
+            RectTransform icon = Box("Ícono del horno", canvas.transform, corner, new Vector2(-320f, -138f), new Vector2(64f, 64f));
             var iconImage = icon.gameObject.AddComponent<Image>();
             var iconArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoIconPath);
             iconImage.sprite = iconArt != null ? iconArt : circle;
             iconImage.color = iconArt != null ? Color.white : Clay;
             iconImage.preserveAspect = true;
             iconImage.raycastTarget = false;
-            Image ovenFill = Bar("Vida del horno", canvas.transform, corner, new Vector2(116f, -146f), new Vector2(260f, 30f), square,
+            Image ovenFill = Bar("Vida del horno", canvas.transform, corner, new Vector2(-48f, -155f), new Vector2(260f, 30f), square,
                 OvenBar, out _);
             ovenFill.fillAmount = 1f;
 
