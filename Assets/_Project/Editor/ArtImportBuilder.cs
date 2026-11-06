@@ -801,6 +801,11 @@ namespace Odisea.EditorTools
             State("Walk", walk, PolifemoWalkFps, loop: true);
             State("Throw", toss, PolifemoHDThrowFps, loop: false);
             State("Hurt", hurt, 9f, loop: false);
+            // Cubrirse (polifemo_cubrirse.png, opcional): mientras no esté, su pose de puños arriba del golpe recibido.
+            List<Sprite> guard = File.Exists(Path.Combine(SourceFolder, PolifemoSource, "polifemo_cubrirse.png"))
+                ? ImportPolifemoStrip("polifemo_cubrirse.png", standing: 0, "HD_Cubrirse", feetAnchor: true, hd: true)
+                : null;
+            State("Guard", guard is { Count: > 0 } ? guard : new List<Sprite> { hurt[hurt.Count - 1] }, 8f, loop: false);
             State("Fall", fall, 6f, loop: false, holdLast: 0.3f);
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();

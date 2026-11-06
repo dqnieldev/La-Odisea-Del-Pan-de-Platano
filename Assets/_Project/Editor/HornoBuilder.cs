@@ -657,6 +657,10 @@ namespace Odisea.EditorTools
                     AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath("Hurt")).length);
                 PlayerSandboxBuilder.SetSerialized(walker, "potPrefab", EnsurePotPrefab(level));
                 GameSoundsBuilder.SetSound(walker, "throwSound", GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.6f);
+                // Cuando se cubre y la masa le rebota (polifemo_bloqueo si existe).
+                AudioClip[] block = GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_bloqueo");
+                GameSoundsBuilder.SetSound(walker, "blockSound",
+                    block.Length > 0 ? block : GameSoundsBuilder.Load(GameSoundsBuilder.HenchmanFolder, "secuaz_golpe"), 0.5f);
             }
             return walker;
         }

@@ -39,7 +39,9 @@ namespace Odisea.Level
         [SerializeField] private PolifemoWalker boss;
         [Tooltip("Mientras camina Polifemo, llega uno de estos cada tanto.")]
         [SerializeField] private GameObject[] bossHelpers = Array.Empty<GameObject>();
-        [SerializeField, Min(0.5f)] private float helperInterval = 6f;
+        [SerializeField, Min(0.5f)] private float helperInterval = 3.5f;
+        [Tooltip("Cada cuánto sale un ayudante cuando Polifemo ya está enojado (a media vida).")]
+        [SerializeField, Min(0.5f)] private float rageHelperInterval = 2.5f;
 
         private int spawned;
         private int alternate = 1;
@@ -103,7 +105,7 @@ namespace Odisea.Level
         {
             while (boss != null && !boss.Defeated && !oven.Burned)
             {
-                yield return new WaitForSeconds(helperInterval);
+                yield return new WaitForSeconds(boss.Enraged ? rageHelperInterval : helperInterval);
                 if (boss.Defeated || oven.Burned || bossHelpers.Length == 0)
                     yield break;
                 Spawn(bossHelpers[UnityEngine.Random.Range(0, bossHelpers.Length)], alternate = -alternate);

@@ -43,6 +43,9 @@ namespace Odisea.Enemies
         private Vector2 velocity;
         private bool landed;
         private float lifeTimer = 8f;
+        private Odisea.Level.Oven oven;
+        private float ovenTimer;
+        private int ovenDamage;
 
         public ThrownKind Kind => kind;
         public float Gravity => gravity;
@@ -57,6 +60,17 @@ namespace Odisea.Enemies
         /// <summary>Lo avienta con esa velocidad inicial (luego la gravedad lo curva).</summary>
         public void Throw(Vector2 initialVelocity) => velocity = initialVelocity;
 
+        /// <summary>
+        /// Va al horno: al llegar (en <paramref name="time"/> segundos) se estrella en él y le quita vida. Si Ulises se
+        /// atraviesa antes, se rompe en él.
+        /// </summary>
+        public void HitOvenAfter(Odisea.Level.Oven target, float time, int ovenDamage)
+        {
+            oven = target;
+            ovenTimer = time;
+            this.ovenDamage = ovenDamage;
+        }
+
         private void FixedUpdate()
         {
             if (landed)
@@ -67,6 +81,16 @@ namespace Odisea.Enemies
 
         private void Update()
         {
+            if (oven != null && !landed)
+            {
+                ovenTimer -= Time.deltaTime;
+                if (ovenTimer <= 0f)
+                {
+                    oven.Hit(ovenDamage);
+                    Break();
+                    return;
+                }
+            }
             lifeTimer -= Time.deltaTime;
             if (lifeTimer <= 0f)
             {
