@@ -29,12 +29,15 @@ namespace Odisea.EditorTools
 
         // Medidas: el piso en y = 0, la pantalla de -HalfWidth a HalfWidth y la cámara fija.
         private const float HalfWidth = 12.5f;
-        private static readonly Vector2 CameraPosition = new(0f, 5f);
+        // Con el dibujo del patio la cámara baja un poco para que la imagen llene la pantalla (ver HornoBackgroundPpu).
+        private static Vector2 CameraPosition => Patio != null ? new Vector2(0f, 4.5f) : new Vector2(0f, 5f);
         // Repisas a los lados del horno, para alcanzar a los jejenes.
         private const float ShelfX = 7f, ShelfY = 3.2f, ShelfWidth = 3.2f;
         // El horno: medio ancho (hasta donde llegan los que caminan) y la boca (a donde vuelan los jejenes).
-        private const float OvenHalfWidth = 1.7f;
-        private static readonly Vector2 OvenMouth = new(0f, 1.1f);
+        // El horno del dibujo es grande (casi tres veces Ulises): medio ancho de su base y centro de la boca.
+        private static float OvenHalfWidth => Patio != null ? 3f : 1.7f;
+        private static Vector2 OvenMouth => Patio != null ? new Vector2(0f, 3.6f) : new Vector2(0f, 1.1f);
+        private static Sprite Patio => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBackgroundPath);
         private const int OvenHealth = 10;
         private const float BakeSeconds = 100f;
         private const int PolifemoHealth = 10;
@@ -62,12 +65,28 @@ namespace Odisea.EditorTools
             int ground = level.GroundLayer;
 
             // ----- Patio: piso, paredes, fondo y las repisas -----
-            PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1.5f), new Vector2(HalfWidth * 2f + 2f, 3f), Dirt, ground);
-            PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, 6f), new Vector2(1f, 16f), Adobe, ground);
-            PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, 6f), new Vector2(1f, 16f), Adobe, ground);
-            var back = PlayerSandboxBuilder.CreateBlock("Barda del patio", root, square, new Vector2(0f, 2.5f), new Vector2(HalfWidth * 2f, 5f), Adobe, 0);
-            Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
-            back.GetComponent<SpriteRenderer>().sortingOrder = -10;
+            var blocks = new[]
+            {
+                PlayerSandboxBuilder.CreateBlock("Suelo", root, square, new Vector2(0f, -1.5f), new Vector2(HalfWidth * 2f + 2f, 3f), Dirt, ground),
+                PlayerSandboxBuilder.CreateBlock("Pared izquierda", root, square, new Vector2(-HalfWidth - 0.5f, 6f), new Vector2(1f, 16f), Adobe, ground),
+                PlayerSandboxBuilder.CreateBlock("Pared derecha", root, square, new Vector2(HalfWidth + 0.5f, 6f), new Vector2(1f, 16f), Adobe, ground),
+            };
+            if (Patio is { } patio)
+            {
+                // El patio con su horno: el pivote del dibujo es el centro del horno a la altura del piso.
+                foreach (GameObject block in blocks)
+                    block.GetComponent<SpriteRenderer>().enabled = false;
+                var backdrop = new GameObject("Patio").AddComponent<SpriteRenderer>();
+                backdrop.transform.SetParent(root, false);
+                backdrop.sprite = patio;
+                backdrop.sortingOrder = -20;
+            }
+            else
+            {
+                var back = PlayerSandboxBuilder.CreateBlock("Barda del patio", root, square, new Vector2(0f, 2.5f), new Vector2(HalfWidth * 2f, 5f), Adobe, 0);
+                Object.DestroyImmediate(back.GetComponent<BoxCollider2D>());
+                back.GetComponent<SpriteRenderer>().sortingOrder = -10;
+            }
             var art = PlayerSandboxBuilder.LevelArt.Load();
             foreach (float side in new[] { -1f, 1f })
                 PlayerSandboxBuilder.CreatePlatform(side < 0f ? "Repisa izquierda" : "Repisa derecha", root, square, art,
@@ -157,10 +176,18 @@ namespace Odisea.EditorTools
             oven.transform.SetParent(root, false);
             var visual = new GameObject("Dibujo").transform;
             visual.SetParent(oven.transform, false);
-            SpriteRenderer dome = Part("Cúpula", visual, circle, new Vector2(0f, 1.4f), new Vector2(3.6f, 3.2f), Clay, -6);
-            SpriteRenderer foot = Part("Base", visual, square, new Vector2(0f, 0.3f), new Vector2(3.8f, 0.6f), ClayDark, -5);
-            Part("Chimenea", visual, square, new Vector2(0.9f, 3f), new Vector2(0.35f, 0.7f), ClayDark, -7);
-            Part("Boca", visual, circle, OvenMouth, new Vector2(1.3f, 1f), Soot, -4);
+            bool drawn = Patio != null;
+            var shapes = new SpriteRenderer[0];
+            if (!drawn)
+            {
+                shapes = new[]
+                {
+                    Part("Cúpula", visual, circle, new Vector2(0f, 1.4f), new Vector2(3.6f, 3.2f), Clay, -6),
+                    Part("Base", visual, square, new Vector2(0f, 0.3f), new Vector2(3.8f, 0.6f), ClayDark, -5),
+                };
+                Part("Chimenea", visual, square, new Vector2(0.9f, 3f), new Vector2(0.35f, 0.7f), ClayDark, -7);
+                Part("Boca", visual, circle, OvenMouth, new Vector2(1.3f, 1f), Soot, -4);
+            }
             var mouth = new GameObject("Boca (a donde vuelan los jejenes)").transform;
             mouth.SetParent(oven.transform, false);
             mouth.localPosition = OvenMouth;
@@ -169,10 +196,11 @@ namespace Odisea.EditorTools
             {
                 var fire = new GameObject("Fuego del horno").AddComponent<OvenFire>();
                 fire.transform.SetParent(visual, false);
-                fire.transform.localPosition = OvenMouth - new Vector2(0f, 0.35f);
+                // La leña va abajo de la boca; en el dibujo la boca es mucho más grande.
+                fire.transform.localPosition = OvenMouth - new Vector2(0f, drawn ? 1.05f : 0.35f);
                 MenuScenesBuilder.SetField(fire, "softDot", softDot);
                 var settings = new SerializedObject(fire);
-                settings.FindProperty("mouthSize").vector2Value = new Vector2(1f, 0.7f);
+                settings.FindProperty("mouthSize").vector2Value = drawn ? new Vector2(2f, 1.4f) : new Vector2(1f, 0.7f);
                 settings.FindProperty("sortingOrder").intValue = -3;
                 settings.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -180,7 +208,13 @@ namespace Odisea.EditorTools
             var component = oven.AddComponent<Oven>();
             PlayerSandboxBuilder.SetSerialized(component, "maxHealth", OvenHealth);
             PlayerSandboxBuilder.SetSerialized(component, "visual", visual);
-            PlayerSandboxBuilder.SetSerialized(component, "renderers", new Object[] { dome, foot });
+            PlayerSandboxBuilder.SetSerialized(component, "renderers", shapes.Cast<Object>().ToArray());
+            if (drawn && AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } glowDot)
+            {
+                // El horno es parte del fondo: en vez de ponerse rojo, se prende un resplandor rojo encima.
+                SpriteRenderer glow = Part("Golpe", visual, glowDot, new Vector2(0f, 2.6f), new Vector2(8f, 7f), new Color(1f, 0.2f, 0.1f, 0f), -2);
+                PlayerSandboxBuilder.SetSerialized(component, "hitGlow", glow);
+            }
             PlayerSandboxBuilder.SetSerialized(component, "mouth", mouth);
             PlayerSandboxBuilder.SetSerialized(component, "halfWidth", OvenHalfWidth);
             PlayerSandboxBuilder.SetSerialized(component, "player", player);
@@ -270,8 +304,29 @@ namespace Odisea.EditorTools
         // Rata: rápida, de un golpe; muerde el horno una vez y huye. Sin su dibujo, una figura café (cuerpo, cabeza, oreja y cola).
         private static GameObject EnsureRat(PlayerSandboxBuilder.LevelContext level, Sprite square, Sprite circle)
         {
-            (GameObject root, Transform visual, Health health, _, OvenRaider raider) = Walker("Rata", level, new Vector2(0.9f, 0.5f), 1);
+            (GameObject root, Transform visual, Health health, _, OvenRaider raider) = Walker("Rata", level, new Vector2(1f, 0.6f), 1);
             var flash = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.RatControllerPath);
+            if (controller != null)
+            {
+                var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
+                renderer.sprite = ArtImportBuilder.LoadStrip(ArtImportBuilder.RatWalkPath).FirstOrDefault();
+                renderer.sharedMaterial = flash;
+                renderer.sortingOrder = 7;
+                var animator = visual.gameObject.AddComponent<Animator>();
+                animator.runtimeAnimatorController = controller;
+                PlayerSandboxBuilder.SetSerialized(raider, "animator", animator);
+                PlayerSandboxBuilder.SetSerialized(raider, "speed", 3.2f);
+                PlayerSandboxBuilder.SetSerialized(raider, "ovenDamage", 1);
+                PlayerSandboxBuilder.SetSerialized(raider, "attackInterval", 0.6f);
+                PlayerSandboxBuilder.SetSerialized(raider, "attackHitDelay", 0.2f);
+                PlayerSandboxBuilder.SetSerialized(raider, "fleeAfterAttack", true);
+                if (AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.RatClipPath("Hurt")) is { } hurt)
+                    PlayerSandboxBuilder.SetSerialized(raider, "hurtStun", hurt.length);
+                float death = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.RatClipPath("Die")) is { } die ? die.length : 0f;
+                Feedback(root, health, visual, new[] { renderer }, death);
+                return SavePrefab(root);
+            }
             var renderers = new[]
             {
                 Part("Cuerpo", visual, circle, new Vector2(-0.05f, 0.25f), new Vector2(0.85f, 0.45f), RatBrown, 6, flash),
@@ -501,8 +556,9 @@ namespace Odisea.EditorTools
             var corner = new Vector2(0f, 1f);
             RectTransform icon = Box("Ícono del horno", canvas.transform, corner, new Vector2(48f, -138f), new Vector2(56f, 56f));
             var iconImage = icon.gameObject.AddComponent<Image>();
-            iconImage.sprite = circle;
-            iconImage.color = Clay;
+            var iconArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoIconPath);
+            iconImage.sprite = iconArt != null ? iconArt : circle;
+            iconImage.color = iconArt != null ? Color.white : Clay;
             iconImage.preserveAspect = true;
             iconImage.raycastTarget = false;
             Image ovenFill = Bar("Vida del horno", canvas.transform, corner, new Vector2(116f, -146f), new Vector2(260f, 30f), square,

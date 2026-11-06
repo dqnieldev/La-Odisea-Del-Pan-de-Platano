@@ -100,6 +100,8 @@ namespace Odisea.EditorTools
             ImportGoldenBunch();
             ImportPolifemo();
             ImportGnats();
+            ImportRat();
+            ImportHornoArt();
             ImportScoreBoard();
             ImportCirceThrowables();
             ImportDonLupe();
@@ -485,6 +487,95 @@ namespace Odisea.EditorTools
             var importer = (TextureImporter)AssetImporter.GetAtPath(ScoreBoardPath);
             importer.mipmapEnabled = true;
             importer.SaveAndReimport();
+        }
+
+        // ---------- Rata (nivel 2) ----------
+
+        public const string RatFolder = HenchmenFolder + "/Rata";
+        public const string RatControllerPath = RatFolder + "/Rata.controller";
+        public const string RatWalkPath = RatFolder + "/Rata_Walk.png";
+        public static string RatClipPath(string state) => $"{RatFolder}/Rata_{state}.anim";
+        /// <summary>Lo largo de la rata corriendo (de la cola a la nariz) en el juego.</summary>
+        private const float RatLength = 1.3f;
+
+        /// <summary>
+        /// La rata (rata.png, fondo blanco, mira a la derecha), en dos filas: arriba 4 cuadros corriendo; abajo 5: se
+        /// planta, muerde, recibe el golpe, sale volando y queda tirada. Mismo controlador que el cocodrilo: Walk en
+        /// bucle y los triggers Bite, Hurt y Die.
+        /// </summary>
+        [MenuItem("Odisea/Arte/Importar rata")]
+        public static void ImportRat()
+        {
+            // Sin borrar huecos encerrados: los ojos son crema claro, casi blancos.
+            Sheet sheet = LoadSheet("Personajes/sprite en png/enemigos/rata/rata.png", 245, warnIfMissing: false,
+                holeMinArea: int.MaxValue);
+            if (sheet == null)
+                return;
+            List<List<Frame>> rows = FindFrames(sheet, coreFraction: 0.3f, attachDistance: 20);
+            if (rows.Count < 2 || rows[0].Count < 4 || rows[1].Count < 5)
+            {
+                Debug.LogWarning($"[Odisea] rata.png: se esperaban 4 y 5 cuadros ({string.Join(", ", rows.Select(r => r.Count))}).");
+                return;
+            }
+            EnsureFolder(RatFolder);
+            List<Frame> run = rows[0], rest = rows[1];
+            float ppu = run[0].Body.Width / RatLength;
+            List<Frame> Grounded(List<Frame> frames)
+            {
+                int ground = frames.Min(f => f.Body.MinY);
+                return frames.Select(f => f.WithGroundAnchor(ground)).ToList();
+            }
+            List<Sprite> walk = WriteStrip(sheet, Grounded(run), RatWalkPath, ppu, "Rata_Walk");
+            List<Sprite> others = WriteStrip(sheet, Grounded(rest), $"{RatFolder}/Rata_Acciones.png", ppu, "Rata_Acciones");
+
+            AnimatorController controller = ResetController(RatControllerPath);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState walkState = machine.AddState("Walk");
+            walkState.motion = CreateClip(RatClipPath("Walk"), walk, 14f, loop: true);
+            machine.defaultState = walkState;
+            AnimatorState State(string name, IList<Sprite> sprites, float fps, float holdLast)
+            {
+                controller.AddParameter(name, AnimatorControllerParameterType.Trigger);
+                AnimatorState state = machine.AddState(name);
+                state.motion = CreateClip(RatClipPath(name), sprites, fps, loop: false, holdLast);
+                AnyState(machine, state, name, toSelf: false);
+                return state;
+            }
+            // La muerte va primero: si el golpe mata, gana.
+            State("Die", new List<Sprite> { others[3], others[4] }, 6f, 0.4f);
+            ExitWhenDone(State("Bite", new List<Sprite> { others[0], others[1] }, 8f, 0.1f), walkState);
+            ExitWhenDone(State("Hurt", new List<Sprite> { others[2] }, 4f, 0.1f), walkState);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+        }
+
+        // ---------- Patio del horno (nivel 2) ----------
+
+        /// <summary>Fondo del patio (Fondos/horno/patio.png) con el horno de barro dibujado.</summary>
+        public const string HornoBackgroundPath = "Assets/_Project/Art/Environment/Horno/Patio.png";
+        /// <summary>Ícono del horno para su vida en el HUD (Menu/menu_horno.png).</summary>
+        public const string HornoIconPath = "Assets/_Project/Art/UI/Horno.png";
+        /// <summary>
+        /// En el dibujo del patio (px de 2752 × 1536, desde arriba): el centro del horno y la fila del piso donde caminan.
+        /// El pivote del fondo queda ahí, así que el horno del dibujo cae en x = 0 y el piso en y = 0.
+        /// </summary>
+        public static readonly Vector2 HornoOvenPixel = new(1405f, 1250f);
+        /// <summary>Píxeles por unidad del fondo: llena la pantalla de la cámara fija (tamaño 7, 16:9).</summary>
+        public const float HornoBackgroundPpu = 107f;
+
+        [MenuItem("Odisea/Arte/Importar patio del horno")]
+        public static void ImportHornoArt()
+        {
+            Sheet sheet = LoadSheet("Fondos/horno/patio.png", warnIfMissing: false);
+            if (sheet != null)
+            {
+                EnsureFolder("Assets/_Project/Art/Environment/Horno");
+                var pivot = new Vector2(HornoOvenPixel.x / sheet.Width, 1f - HornoOvenPixel.y / sheet.Height);
+                WriteRegion(sheet, new RectInt(0, 0, sheet.Width, sheet.Height), HornoBackgroundPath, HornoBackgroundPpu, pivot,
+                    padding: 0);
+            }
+            if (File.Exists(Path.Combine(SourceFolder, "Menu/menu_horno.png")))
+                ImportHudIcon("Menu/menu_horno.png", 245, HornoIconPath);
         }
 
         // ---------- Jejenes (nivel 2) ----------

@@ -22,6 +22,9 @@ namespace Odisea.Level
         [Tooltip("La vida de Ulises: si se quema el pan, pierde.")]
         [SerializeField] private Health player;
         [SerializeField] private Color hitColor = new(1f, 0.45f, 0.35f);
+        [Tooltip("Opcional: resplandor rojo que se prende al recibir un golpe (cuando el horno es parte del fondo).")]
+        [SerializeField] private SpriteRenderer hitGlow;
+        [SerializeField, Range(0f, 1f)] private float hitGlowAlpha = 0.55f;
         [SerializeField, Min(0.01f)] private float hitDuration = 0.25f;
         [SerializeField] private SoundEffect hitSound = new();
 
@@ -80,9 +83,15 @@ namespace Odisea.Level
         private void Update()
         {
             if (hitTimer <= 0f)
+            {
+                if (hitGlow != null && hitGlow.color.a > 0f)
+                    hitGlow.color = new Color(hitGlow.color.r, hitGlow.color.g, hitGlow.color.b, 0f);
                 return;
+            }
             hitTimer -= Time.deltaTime;
             float t = Mathf.Clamp01(hitTimer / hitDuration);
+            if (hitGlow != null)
+                hitGlow.color = new Color(hitGlow.color.r, hitGlow.color.g, hitGlow.color.b, hitGlowAlpha * t);
             if (visual != null)
                 visual.localPosition = rest + new Vector3(Mathf.Sin(Time.time * 70f) * 0.08f * t, 0f, 0f);
             for (int i = 0; i < renderers.Length; i++)
