@@ -760,8 +760,9 @@ namespace Odisea.EditorTools
         private static float OvenBarHeight => ChimneyTop * OvenScale + 0.5f;
         private const float WorldCanvasScale = 0.01f;
 
-        // La vida del horno en una barra encima del mismo horno; el horneado, en el pizarrón del puntaje: el reloj se
-        // vuelve un cronómetro que se va llenando y su texto cuenta lo que falta.
+        // La vida del horno encima del mismo horno: una tablita con un ladrillo por punto (sin su dibujo, una barra). El
+        // horneado, en el pizarrón del puntaje: un reloj de cocina con el pan en medio (sin su dibujo, un cronómetro que
+        // se va llenando). El texto del pizarrón cuenta lo que falta.
         private static void CreateOvenHud(Oven oven, BakeTimer bake, Sprite square, Sprite circle)
         {
             var canvasObject = new GameObject("Vida del horno", typeof(Canvas));
@@ -770,28 +771,158 @@ namespace Odisea.EditorTools
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 20;
             var canvasRect = (RectTransform)canvasObject.transform;
-            canvasRect.sizeDelta = new Vector2(300f, 40f);
             canvasRect.localScale = Vector3.one * WorldCanvasScale;
             canvasRect.localPosition = new Vector3(0f, OvenBarHeight, 0f);
-            var center = new Vector2(0.5f, 0.5f);
-            Image ovenFill = Bar("Barra", canvasObject.transform, center, Vector2.zero, new Vector2(280f, 34f), square, OvenBar, out _);
-            ovenFill.fillAmount = 1f;
-
-            Image bakeFill = CreateStopwatch(circle, square, out ScoreHud score);
             var hud = canvasObject.AddComponent<OvenHud>();
             PlayerSandboxBuilder.SetSerialized(hud, "oven", oven);
             PlayerSandboxBuilder.SetSerialized(hud, "bake", bake);
-            PlayerSandboxBuilder.SetSerialized(hud, "ovenFill", ovenFill);
-            // La barra tiembla al recibir el horno un golpe.
-            PlayerSandboxBuilder.SetSerialized(hud, "ovenIcon", ovenFill.transform.parent);
-            if (bakeFill != null)
-                PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", bakeFill);
+            if (!CreateBrickBoard(canvasRect, hud, oven))
+            {
+                canvasRect.sizeDelta = new Vector2(300f, 40f);
+                var center = new Vector2(0.5f, 0.5f);
+                Image ovenFill = Bar("Barra", canvasObject.transform, center, Vector2.zero, new Vector2(280f, 34f), square, OvenBar, out _);
+                ovenFill.fillAmount = 1f;
+                PlayerSandboxBuilder.SetSerialized(hud, "ovenFill", ovenFill);
+                // La barra tiembla al recibir el horno un golpe.
+                PlayerSandboxBuilder.SetSerialized(hud, "ovenIcon", ovenFill.transform.parent);
+            }
+
+            if (!CreateKitchenClock(hud, circle, out ScoreHud score))
+            {
+                Image bakeFill = CreateStopwatch(circle, square, out score);
+                if (bakeFill != null)
+                    PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", bakeFill);
+            }
             if (score != null)
                 PlayerSandboxBuilder.SetSerialized(score, "bake", bake);
         }
 
-        // En el pizarrón del puntaje, el reloj de pared se vuelve un cronómetro: un aro con su botón arriba y un relleno
-        // que se va llenando como rebanadas, de arriba en el sentido del reloj.
+        private static Image UiImage(string name, Transform parent, Sprite sprite, Vector2 anchor, Vector2 position, Vector2 size)
+        {
+            var rect = (RectTransform)new GameObject(name, typeof(RectTransform), typeof(Image)).transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = anchor;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            var image = rect.GetComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        // Alto de cada ladrillo de la tablita (en píxeles del lienzo del horno), el espacio entre ellos y la orilla. Van
+        // en dos filas, como una pared (la de arriba recorrida medio ladrillo).
+        private const float BrickHeight = 38f, BrickGap = 4f;
+        private static readonly Vector2 BoardPadding = new(26f, 18f);
+
+        private static bool CreateBrickBoard(RectTransform canvas, OvenHud hud, Oven oven)
+        {
+            var boardSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBoardPath);
+            var brick = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickPath);
+            if (boardSprite == null || brick == null)
+                return false;
+            int count = new SerializedObject(oven).FindProperty("maxHealth").intValue;
+            float brickWidth = BrickHeight * brick.rect.width / brick.rect.height;
+            int perRow = Mathf.CeilToInt(count / 2f);
+            float step = brickWidth + BrickGap;
+            float rowWidth = perRow * brickWidth + (perRow - 1) * BrickGap + step / 2f;
+            var size = new Vector2(rowWidth + BoardPadding.x * 2f, BrickHeight * 2f + BrickGap + BoardPadding.y * 2f);
+            canvas.sizeDelta = size;
+            // Encima de la chimenea, sin taparla.
+            canvas.localPosition = new Vector3(0f, ChimneyTop * OvenScale + 0.35f + size.y * WorldCanvasScale / 2f, 0f);
+            var center = new Vector2(0.5f, 0.5f);
+            Image board = UiImage("Tablita", canvas, boardSprite, center, Vector2.zero, size);
+            // Las orillas con sus clavos no se estiran: que ocupen como un tercio del alto.
+            board.type = Image.Type.Sliced;
+            board.pixelsPerUnitMultiplier = boardSprite.border.w / boardSprite.pixelsPerUnit * 100f / (size.y * 0.3f);
+            var bricks = new Image[count];
+            // Primero la fila de abajo y luego la de arriba, de izquierda a derecha: se caen desde arriba a la derecha.
+            for (int i = 0; i < count; i++)
+            {
+                int row = i / perRow, column = i % perRow;
+                float x = -rowWidth / 2f + brickWidth / 2f + column * step + row * step / 2f;
+                float y = (row == 0 ? -1f : 1f) * (BrickHeight + BrickGap) / 2f;
+                bricks[i] = UiImage($"Ladrillo {i + 1}", board.transform, brick, center, new Vector2(x, y), new Vector2(brickWidth, BrickHeight));
+                bricks[i].preserveAspect = true;
+            }
+            PlayerSandboxBuilder.SetSerialized(hud, "board", board.rectTransform);
+            PlayerSandboxBuilder.SetSerialized(hud, "bricks", bricks);
+            PlayerSandboxBuilder.SetSerialized(hud, "brickSprite", brick);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickCrackedPath) is { } cracked)
+                PlayerSandboxBuilder.SetSerialized(hud, "crackedSprite", cracked);
+            Sprite[] halves = Enumerable.Range(0, 2)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBrickHalfPath(i)))
+                .Where(sprite => sprite != null).ToArray();
+            PlayerSandboxBuilder.SetSerialized(hud, "halfSprites", halves);
+            return true;
+        }
+
+        // Ancho de la carátula del reloj de cocina en el pizarrón.
+        private const float ClockSize = 104f;
+
+        // En el pizarrón del puntaje, el reloj de pared se vuelve el reloj de cocina: un anillo dorado que se va llenando
+        // de arriba en el sentido del reloj, el pan en medio (crudo, con el dorado encima apareciendo) y la aguja.
+        private static bool CreateKitchenClock(OvenHud hud, Sprite circle, out ScoreHud score)
+        {
+            score = Object.FindAnyObjectByType<ScoreHud>();
+            var face = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoClockPath);
+            var needleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoNeedlePath);
+            var raw = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBreadRawPath);
+            var baked = AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.HornoBreadBakedPath);
+            Transform icon = score != null ? score.transform.Find("Tiempo/Ícono") : null;
+            if (icon == null || face == null || needleSprite == null || raw == null || baked == null)
+                return false;
+            // El pizarrón un poco más grande en este nivel, para que quepa el reloj.
+            var tray = (RectTransform)score.transform;
+            tray.sizeDelta = new Vector2(tray.sizeDelta.x, 144f);
+            if (tray.GetComponent<HorizontalLayoutGroup>() is { } layout)
+                layout.padding = new RectOffset(44, 54, 14, 14);
+            if (icon.GetComponent<ClockHands>() is { } hands)
+                Object.DestroyImmediate(hands);
+            for (int i = icon.childCount - 1; i >= 0; i--)
+                Object.DestroyImmediate(icon.GetChild(i).gameObject);
+            var faceImage = icon.GetComponent<Image>();
+            faceImage.sprite = face;
+            faceImage.color = Color.white;
+            faceImage.preserveAspect = true;
+            icon.localScale = Vector3.one;
+            float height = ClockSize * face.rect.height / face.rect.width;
+            if (icon.GetComponent<LayoutElement>() is { } element)
+            {
+                element.preferredWidth = ClockSize;
+                element.preferredHeight = height;
+            }
+            // Todo se centra en el centro de la carátula: a medio ancho desde abajo.
+            var dial = new Vector2(0.5f, 0f);
+            var middle = new Vector2(0f, ClockSize / 2f);
+            Image fill = UiImage("Horneado", icon, circle, dial, middle, Vector2.one * ClockSize * 0.78f);
+            fill.color = new Color(0.96f, 0.6f, 0.18f, 0.6f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Radial360;
+            fill.fillOrigin = (int)Image.Origin360.Top;
+            fill.fillClockwise = true;
+            fill.fillAmount = 0f;
+            Vector2 breadSize = Vector2.one * ClockSize * 0.52f;
+            UiImage("Pan crudo", icon, raw, dial, middle, breadSize).preserveAspect = true;
+            Image bakedImage = UiImage("Pan dorado", icon, baked, dial, middle, breadSize);
+            bakedImage.preserveAspect = true;
+            bakedImage.color = new Color(1f, 1f, 1f, 0f);
+            float needleHeight = ClockSize * 0.42f;
+            Image needle = UiImage("Aguja", icon, needleSprite, dial, middle,
+                new Vector2(needleHeight * needleSprite.rect.width / needleSprite.rect.height, needleHeight));
+            needle.rectTransform.pivot = needleSprite.pivot / needleSprite.rect.size;
+            needle.rectTransform.anchoredPosition = middle;
+            PlayerSandboxBuilder.SetSerialized(hud, "bakeFill", fill);
+            PlayerSandboxBuilder.SetSerialized(hud, "needle", needle.rectTransform);
+            PlayerSandboxBuilder.SetSerialized(hud, "bakedBread", bakedImage);
+            // Al sonar tiembla toda la carátula.
+            PlayerSandboxBuilder.SetSerialized(hud, "clock", (RectTransform)icon);
+            GameSoundsBuilder.SetSound(hud, "ringSound", GameSoundsBuilder.Load(OvenSoundFolder, "horno_listo"), 0.8f);
+            return true;
+        }
+
+        // Sin el dibujo del reloj de cocina, el reloj de pared se vuelve un cronómetro: un aro con su botón arriba y un
+        // relleno que se va llenando como rebanadas, de arriba en el sentido del reloj.
         private static Image CreateStopwatch(Sprite circle, Sprite square, out ScoreHud score)
         {
             score = Object.FindAnyObjectByType<ScoreHud>();
