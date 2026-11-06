@@ -93,7 +93,7 @@ namespace Odisea.EditorTools
                     new Vector2(side * ShelfX, ShelfY), ShelfWidth, ground);
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(-3f, 1f), "El Horno",
-                File.Exists(MusicPath + ".mp3") ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
+                GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
             var playerHealth = player.GetComponent<Health>();
 
             // ----- El horno y el horneado -----
