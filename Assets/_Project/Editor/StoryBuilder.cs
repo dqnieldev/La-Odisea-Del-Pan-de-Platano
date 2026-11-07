@@ -29,6 +29,8 @@ namespace Odisea.EditorTools
         private const string PrologueMusicPath = "Assets/_Project/Audio/Music/musica_prologo";
         // Canción de las historietas del Acto I (entrada y salida del Mercado).
         private const string ActOneMusicPath = "Assets/_Project/Audio/Music/musica_acto1";
+        // Canción de las del Acto II (opcional; sin ella usan la del Acto I).
+        private const string ActTwoMusicPath = "Assets/_Project/Audio/Music/musica_acto2";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
         private static readonly Vector2 BookPanelCenter = new(125f, 62f);
@@ -110,6 +112,52 @@ namespace Odisea.EditorTools
              "La mesa de la panadería con todos los ingredientes en fila; Ulises los presenta y Don Lupe sonríe de brazos cruzados."),
         };
 
+        // ---------- Acto II: el Horno ----------
+        // Polifemo entra a la historia: Circe le dice quién se llevó sus plátanos y él va por ellos al horno. Al final,
+        // vencido, prueba el pan, se vuelve aliado y le enseña a Ulises el camino por La Tovara (Acto III).
+
+        private static readonly string[] HornoTitles =
+        {
+            "El Patio del Horno", "La Masa", "Al Horno", "El Olor", "Polifemo se Entera", "El Asedio",
+        };
+
+        private static readonly (string caption, string note)[] HornoIntro =
+        {
+            ("De vuelta en el barrio, el sol del mediodía aprieta. En el patio trasero, el viejo horno de barro y adobe ya " +
+             "ruge con la leña encendida.",
+             "Patio trasero al mediodía: Don Lupe aviva el fuego del horno de barro; Ulises llega con el morral y el racimo."),
+            ("Ulises machaca los plátanos, agrega la canela recién molida y bate con la cuchara de madera hasta lograr una " +
+             "masa densa, brillante y olorosa.",
+             "Ulises bate la masa en un tazón de barro; Don Lupe la prueba con el dedo y asiente."),
+            ("El molde entra al horno. Ahora solo hay que esperar… y cuidar que nadie se acerque.",
+             "Ulises mete el molde al horno con la pala; un vapor dulce y dorado se va volando sobre las bardas del barrio."),
+            ("Pero en la costa, el olor a plátano con canela no pasa desapercibido. Desde la bodega, el aire y el canal, " +
+             "algo despierta.",
+             "Tres cuadros cruzados por el vapor dorado: ratas en las grietas de la bodega, jejenes en el aire y cocodrilos en el canal."),
+            ("En el Mercado, Polifemo descubre el gancho vacío donde colgaban sus plátanos reales. Madame Circe le susurra: " +
+             "«Yo sé quién se los llevó… y a dónde.»",
+             "Polifemo, rojo de coraje, señala el gancho vacío bajo el tragaluz; Circe le susurra y apunta hacia el barrio."),
+            ("Al caer la tarde, el patio se llena de intrusos. Don Lupe grita: «¡Que no se acerquen al horno! ¡Si se quema " +
+             "el pan, se acabó!» Y sobre la barda asoma Polifemo, cargando sus ollas.",
+             "Atardecer: Ulises en guardia con el rodillo frente al horno, rodeado de ratas, cocodrilos y jejenes; Polifemo asoma por la barda."),
+        };
+
+        private static readonly string[] HornoOutroTitles = { "El Gigante Cae", "Pan Horneado", "Una Rebanada", "La Feria ya Empezó" };
+
+        private static readonly (string caption, string note)[] HornoOutro =
+        {
+            ("Embarrado de masa y rodeado de ollas rotas, Polifemo cae sentado. El horno sigue en pie.",
+             "Polifemo sentado en el suelo, mareado y lleno de masa, entre ollas rotas; Ulises protege el horno con el rodillo."),
+            ("Del horno sale un vapor dulce: el pan está listo. Ulises saca la charola intacta, con la corteza dorada perfecta.",
+             "Ulises saca el pan dorado y humeante; Don Lupe aplaude; Polifemo olfatea con la boca hecha agua."),
+            ("Ulises le ofrece una rebanada al gigante. Polifemo la prueba… y se le escapa una lágrima: «Mis plátanos nunca " +
+             "supieron tan bien.»",
+             "Polifemo, sentado, muerde la rebanada llorando de gusto; Don Lupe se ríe; Ulises sonríe con el plato."),
+            ("Ulises guarda el pan en la canasta de mimbre. Al otro lado de la bahía brillan las carpas de la feria… pero " +
+             "la tormenta cerró el camino. Polifemo señala los manglares: «Por La Tovara llegas más rápido.»",
+             "Ulises con la canasta a la espalda; Polifemo señala los manglares y la feria al fondo; tormenta; Don Lupe se despide."),
+        };
+
         [MenuItem("Odisea/Menús/Crear escena de historietas")]
         public static void Build()
         {
@@ -135,6 +183,19 @@ namespace Odisea.EditorTools
             {
                 if (actMusic != null && (act.music == null || oldDefaults.Contains(act.music)))
                     act.music = actMusic;
+                act.musicContinues = false;
+                EditorUtility.SetDirty(act);
+            }
+            // Las dos del Acto II: con musica_acto2 si existe; si no, con la del Acto I. Si diseño les puso otra, se respeta.
+            AudioClip actTwoMusic = GameSoundsBuilder.LoadMusic(ActTwoMusicPath) ?? actMusic;
+            foreach (ComicSequence act in new[]
+                     {
+                         EnsureStory(SceneFlow.HornoStory, "Acto II · El asedio a la panadería", HornoIntro, HornoTitles),
+                         EnsureStory(SceneFlow.HornoOutroStory, "Acto II · El pan sale del horno", HornoOutro, HornoOutroTitles),
+                     })
+            {
+                if (actTwoMusic != null && (act.music == null || act.music == actMusic))
+                    act.music = actTwoMusic;
                 act.musicContinues = false;
                 EditorUtility.SetDirty(act);
             }

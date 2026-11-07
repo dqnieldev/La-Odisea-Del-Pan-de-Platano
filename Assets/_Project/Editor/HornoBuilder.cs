@@ -359,8 +359,9 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Horno);
+            PlayerSandboxBuilder.SetSerialized(component, "outroStory", SceneFlow.HornoOutroStory);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
-                "¡Pan horneado!", "Ulises defendió el horno y Polifemo se fue con las manos vacías."));
+                "¡Pan horneado!", "Ulises defendió el horno y el pan salió perfecto."));
             goal.SetActive(false);
             return goal;
         }
