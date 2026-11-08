@@ -13,7 +13,7 @@ namespace Odisea.Map
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
     /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
     /// avisan qué hay que terminar antes.
-    /// Al pasar el mouse sobre un lugar, se ilumina y la ventanita lo muestra. Al volver con un lugar recién abierto,
+    /// Al pasar el mouse sobre un lugar, se ilumina (la ventanita solo muestra donde está Ulises). Al volver con un lugar recién abierto,
     /// la cámara se acerca, le vuelve el color con un estallido de chispas y regresa. Sobre el lugar elegido rebota una flecha y brilla un
     /// anillo; su nombre sale en la ventanita de abajo.
     /// </summary>
@@ -202,7 +202,7 @@ namespace Odisea.Map
 
         // ---------- Mouse encima ----------
 
-        // El lugar bajo el mouse (que no sea donde está Ulises) se ilumina con un anillo y la ventanita lo muestra.
+        // El lugar bajo el mouse (que no sea donde está Ulises) se ilumina con un anillo; su nombre no sale abajo.
         private void UpdateHover(bool busy)
         {
             int now = busy ? -1 : LocationUnderMouse();
@@ -210,15 +210,9 @@ namespace Odisea.Map
                 now = -1;
             if (now != hovered)
             {
+                // Solo el anillo y el sonido: la ventanita de abajo muestra únicamente el lugar donde está Ulises.
                 if (now >= 0)
-                {
-                    panel.Preview(nodes[now].location);
                     UiAudio.Play(UiSound.Hover);
-                }
-                else if (!busy)
-                {
-                    panel.EndPreview();
-                }
                 hovered = now;
             }
             hoverFocus = Mathf.MoveTowards(hoverFocus, hovered >= 0 ? 1f : 0f, Time.deltaTime * 6f);
