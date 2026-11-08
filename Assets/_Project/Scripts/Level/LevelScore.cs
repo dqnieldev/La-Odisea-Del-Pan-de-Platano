@@ -104,6 +104,7 @@ namespace Odisea.Level
 
         private static Run run = new();
         private int enemiesTotal;
+        private readonly HashSet<Health> discounted = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetOnPlay()
@@ -169,7 +170,21 @@ namespace Odisea.Level
                 return;
             }
             enemiesTotal++;
-            enemy.Died += () => run.Enemies.Add(key);
+            enemy.Died += () =>
+            {
+                if (!discounted.Contains(enemy))
+                    run.Enemies.Add(key);
+            };
+        }
+
+        /// <summary>
+        /// Este enemigo no cuenta como derrotado por Ulises (se llama antes de matarlo: p. ej. los que caen solos al
+        /// vencer a Polifemo). Tampoco cuenta para el máximo posible.
+        /// </summary>
+        public void Discount(Health enemy)
+        {
+            if (enemy != null && discounted.Add(enemy))
+                enemiesTotal = Mathf.Max(0, enemiesTotal - 1);
         }
 
         /// <summary>Lo llama el ingrediente al recogerlo.</summary>

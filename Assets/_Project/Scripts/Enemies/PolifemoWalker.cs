@@ -394,8 +394,12 @@ namespace Odisea.Enemies
         {
             foreach (Health enemy in FindObjectsByType<Health>(FindObjectsInactive.Exclude))
             {
-                if (enemy != health && enemy != player && enemy.gameObject.layer == gameObject.layer)
-                    enemy.Kill();
+                if (enemy == health || enemy == player || enemy.gameObject.layer != gameObject.layer || enemy.IsDead)
+                    continue;
+                // No los venció Ulises: no suman al puntaje.
+                if (LevelScore.Current != null)
+                    LevelScore.Current.Discount(enemy);
+                enemy.Kill();
             }
             foreach (ThrownItem pot in FindObjectsByType<ThrownItem>(FindObjectsInactive.Exclude))
                 Destroy(pot.gameObject);
