@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 6317096102924054543}
   - component: {fileID: 7473183112859800018}
   - component: {fileID: 8607350577802369846}
+  - component: {fileID: 1082586830239795209}
   m_Layer: 8
   m_Name: Rata
   m_TagString: Untagged
@@ -317,6 +318,30 @@ MonoBehaviour:
   shrinkAndDestroyOnDeath: 1
   deathDuration: 0.3
   deathAnimationTime: 0.90000004
+--- !u!114 &1082586830239795209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8551213743637215546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdc899ba44326754a854bc9e194b96e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Odisea::Odisea.Core.GroundShadow
+  sprite: {fileID: -114595351847970599, guid: 700b4d63bb5c5ce4baacd7f131f4baac, type: 3}
+  material: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  color: {r: 0.12, g: 0.06, b: 0.02, a: 1}
+  size: {x: 1.25, y: 0.32}
+  offset: {x: 0, y: 0}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  maxHeight: 3
+  shrink: 0.5
+  sortingOrder: -2
+  health: {fileID: 537892241439806811}
 --- !u!1 &8961524995011877551
 GameObject:
   m_ObjectHideFlags: 0

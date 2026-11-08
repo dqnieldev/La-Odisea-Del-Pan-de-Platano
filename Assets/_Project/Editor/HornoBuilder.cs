@@ -106,6 +106,8 @@ namespace Odisea.EditorTools
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(-3f, 1f), "El Horno",
                 GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
             var playerHealth = player.GetComponent<Health>();
+            // Sombra en el piso: que se vea que Ulises pisa el patio (el centro de Ulises está 0.8 arriba de sus pies).
+            Shadow(player, level, new Vector2(1.4f, 0.38f), new Vector2(0f, -0.8f), null, 4f);
 
             // ----- El horno y el horneado -----
             Oven oven = CreateOven(root, square, circle, playerHealth);
@@ -485,6 +487,7 @@ namespace Odisea.EditorTools
                 GameSoundsBuilder.SetSound(raider, "attackSound", GameSoundsBuilder.Load(RatSoundFolder, "raton_golpe"), 0.8f);
                 AddLoop(root, GameSoundsBuilder.Load(RatSoundFolder, "raton"), health, 0.35f);
                 Feedback(root, health, visual, new[] { renderer }, death);
+                Shadow(root, level, new Vector2(1.25f, 0.32f), Vector2.zero, health, 3f);
                 return SavePrefab(root);
             }
             var renderers = new[]
@@ -500,6 +503,7 @@ namespace Odisea.EditorTools
             // Muerde una vez y huye: el peligro es que se cuelen muchas.
             PlayerSandboxBuilder.SetSerialized(raider, "fleeAfterAttack", true);
             Feedback(root, health, visual, renderers, 0f);
+            Shadow(root, level, new Vector2(1.25f, 0.32f), Vector2.zero, health, 3f);
             return SavePrefab(root);
         }
 
@@ -537,6 +541,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(raider, "reach", 0.9f);
             GameSoundsBuilder.SetSound(raider, "attackSound", GameSoundsBuilder.Load(GameSoundsBuilder.CrocodileFolder, "mordida"), 0.7f);
             Feedback(root, health, visual, new[] { renderer }, deathTime);
+            Shadow(root, level, new Vector2(2.1f, 0.42f), Vector2.zero, health, 3f);
             return SavePrefab(root);
         }
 
@@ -580,7 +585,49 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(swarm, "speed", 2.2f);
             AddLoop(root, GameSoundsBuilder.Load(GnatSoundFolder, "jejenes"), health, 0.45f);
             Feedback(root, health, visual, new[] { renderer }, 0f);
+            // Vuelan: su sombra queda en el piso, chica y clara.
+            Shadow(root, level, new Vector2(1.3f, 0.32f), Vector2.zero, health, 7f);
             return SavePrefab(root);
+        }
+
+        // Óvalo blanco con el centro sólido y la orilla suave (Art/Placeholders/Sombra.png): se importa como sprite.
+        private const string ShadowPath = "Assets/_Project/Art/Placeholders/Sombra.png";
+        private const string UnlitSpritePath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
+
+        private static Sprite ShadowSprite()
+        {
+            if (AssetImporter.GetAtPath(ShadowPath) is not TextureImporter importer)
+                return null;
+            if (importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = 256f;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(ShadowPath);
+        }
+
+        // Sombra ovalada en el piso debajo del personaje (sigue al piso al saltar o volar).
+        private static void Shadow(GameObject target, PlayerSandboxBuilder.LevelContext level, Vector2 size, Vector2 offset,
+            Health health, float maxHeight)
+        {
+            if (ShadowSprite() is not { } dot)
+                return;
+            var shadow = target.AddComponent<GroundShadow>();
+            PlayerSandboxBuilder.SetSerialized(shadow, "sprite", dot);
+            if (AssetDatabase.LoadAssetAtPath<Material>(UnlitSpritePath) is { } unlit)
+                PlayerSandboxBuilder.SetSerialized(shadow, "material", unlit);
+            PlayerSandboxBuilder.SetSerialized(shadow, "size", size);
+            PlayerSandboxBuilder.SetSerialized(shadow, "offset", offset);
+            PlayerSandboxBuilder.SetSerialized(shadow, "maxHeight", maxHeight);
+            var serialized = new SerializedObject(shadow);
+            serialized.FindProperty("groundLayers").intValue = 1 << level.GroundLayer;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            if (health != null)
+                PlayerSandboxBuilder.SetSerialized(shadow, "health", health);
         }
 
         // Polifemo: aparece al terminar el horneado (lo activan las oleadas) y camina hacia el horno.
@@ -631,6 +678,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
             var hazard = boss.AddComponent<Hazard>();
             PlayerSandboxBuilder.SetSerialized(hazard, "targetLayers", 1 << level.PlayerLayer);
+            // Su sombra se queda aunque caiga (ahí se queda tirado).
+            Shadow(boss, level, new Vector2(height * 0.55f, height * 0.11f), Vector2.zero, null, 3f);
             var feedback = boss.AddComponent<DamageFeedback>();
             PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
             PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual.transform);

@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 4775619300021776726}
   - component: {fileID: 175212476707917260}
   - component: {fileID: 5445044378291659174}
+  - component: {fileID: 4093573016116086161}
   m_Layer: 8
   m_Name: Cocodrilo
   m_TagString: Untagged
@@ -314,3 +315,27 @@ MonoBehaviour:
   shrinkAndDestroyOnDeath: 1
   deathDuration: 0.3
   deathAnimationTime: 1.2
+--- !u!114 &4093573016116086161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3315892871247441442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdc899ba44326754a854bc9e194b96e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Odisea::Odisea.Core.GroundShadow
+  sprite: {fileID: -114595351847970599, guid: 700b4d63bb5c5ce4baacd7f131f4baac, type: 3}
+  material: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  color: {r: 0.12, g: 0.06, b: 0.02, a: 1}
+  size: {x: 2.1, y: 0.42}
+  offset: {x: 0, y: 0}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  maxHeight: 3
+  shrink: 0.5
+  sortingOrder: -2
+  health: {fileID: 2178770879941193173}
