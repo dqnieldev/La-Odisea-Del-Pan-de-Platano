@@ -8,10 +8,11 @@ namespace Odisea.Enemies
 {
     /// <summary>
     /// Polifemo en el nivel 2: cuando el pan ya está horneado sale de un lado y camina despacio hacia el horno, con pisadas
-    /// pesadas (la cámara tiembla y sale polvo de sus botas). Cada tanto se detiene y avienta ollas de barro en arco: a
-    /// Ulises o al horno, y a veces dos seguidas. Cuando Ulises lo ataca de lejos, de vez en cuando se cubre y la masa le
-    /// rebota (el rodillo sí le pega). A media vida se enoja: camina más rápido y avienta más seguido. Cada golpe de Ulises
-    /// lo hace retroceder un poco y lo detiene un instante; si llega al horno, se quema el pan. Al acabarse su vida cae y
+    /// pesadas (la cámara tiembla y sale polvo de sus botas). Cada tanto se detiene y avienta ollas de barro en arco a
+    /// Ulises (nunca al horno), a veces dos seguidas. Cuando Ulises lo ataca de lejos, de vez en cuando se cubre y la masa
+    /// le rebota (el rodillo sí le pega). A media vida se enoja: camina más rápido y avienta más seguido. Cada golpe del
+    /// rodillo lo hace retroceder un poco y lo detiene un instante; la masa le quita vida pero no lo frena. Si llega al
+    /// horno, se quema el pan. Al acabarse su vida cae y
     /// aparece el premio (el pan horneado, la meta). Daña a Ulises al tocarlo. El controlador trae los estados Idle, Walk,
     /// Throw, Hurt, Guard y Fall (se ponen con Animator.Play); el dibujo mira a la derecha y se voltea con
     /// <see cref="visual"/>.
@@ -27,7 +28,7 @@ namespace Odisea.Enemies
         [Tooltip("La vida de Ulises: a dónde avienta y para burlarse cuando le atina.")]
         [SerializeField] private Health player;
         [SerializeField, Min(0f)] private float speed = 0.8f;
-        [Tooltip("Lo que retrocede con cada golpe.")]
+        [Tooltip("Lo que retrocede con cada golpe del rodillo (la masa no lo empuja).")]
         [SerializeField, Min(0f)] private float pushBack = 0.6f;
         [Tooltip("Lo que se queda quieto después de un golpe.")]
         [SerializeField, Min(0f)] private float hurtPause = 0.45f;
@@ -62,9 +63,6 @@ namespace Odisea.Enemies
         [SerializeField, Min(0f)] private float minThrowDistance = 2.5f;
         [Tooltip("Probabilidad de aventar dos ollas seguidas.")]
         [SerializeField, Range(0f, 1f)] private float doubleThrowChance = 0.3f;
-        [Tooltip("Probabilidad de que la olla vaya al horno en lugar de a Ulises (se estrella en su boca y le quita vida).")]
-        [SerializeField, Range(0f, 1f)] private float ovenThrowChance = 0.3f;
-        [SerializeField, Min(0)] private int ovenPotDamage = 1;
 
         [Header("Se cubre")]
         [Tooltip("Cada cuánto se cubre cuando Ulises le pega de lejos (al azar entre los dos).")]
@@ -79,7 +77,6 @@ namespace Odisea.Enemies
         [SerializeField, Min(1f)] private float rageSpeedMultiplier = 1.5f;
         [SerializeField] private Vector2 rageThrowInterval = new(2.5f, 3.5f);
         [SerializeField, Range(0f, 1f)] private float rageDoubleThrowChance = 0.55f;
-        [SerializeField, Range(0f, 1f)] private float rageOvenThrowChance = 0.4f;
         [Tooltip("El dibujo se tiñe de este color mientras está enojado.")]
         [SerializeField] private Color rageTint = new(1f, 0.62f, 0.55f);
 
@@ -192,8 +189,14 @@ namespace Odisea.Enemies
             guardTimer -= Time.fixedDeltaTime;
             if (potPrefab != null && throwTimer <= 0f && player != null && !player.IsDead)
             {
-                StartCoroutine(Throw());
-                return;
+                // Con Ulises encima no avienta (ahí ya lo pisa): lo vuelve a intentar en un momento.
+                if (Mathf.Abs(player.transform.position.x - body.position.x) < minThrowDistance)
+                    throwTimer = 0.5f;
+                else
+                {
+                    StartCoroutine(Throw());
+                    return;
+                }
             }
             if (!walking)
             {
@@ -213,7 +216,7 @@ namespace Odisea.Enemies
             }
         }
 
-        // A Ulises (si no lo tiene encima) o al horno; a veces dos seguidas.
+        // A Ulises, a veces dos seguidas. Nunca al horno: las ollas no le hacen daño.
         private IEnumerator Throw()
         {
             throwing = true;
@@ -221,9 +224,7 @@ namespace Odisea.Enemies
             int count = UnityEngine.Random.value < (Enraged ? rageDoubleThrowChance : doubleThrowChance) ? 2 : 1;
             for (int i = 0; i < count; i++)
             {
-                bool atOven = UnityEngine.Random.value < (Enraged ? rageOvenThrowChance : ovenThrowChance) ||
-                              Mathf.Abs(player.transform.position.x - body.position.x) < minThrowDistance;
-                Vector2 target = atOven ? oven.Mouth : (Vector2)player.transform.position;
+                Vector2 target = player.transform.position;
                 Face(target.x - body.position.x);
                 Play(ThrowState);
                 yield return new WaitForSeconds(throwRelease);
@@ -234,8 +235,6 @@ namespace Odisea.Enemies
                 float time = Mathf.Lerp(flightTime.x, flightTime.y, Mathf.InverseLerp(2f, 14f, Mathf.Abs(delta.x)));
                 ThrownItem pot = Instantiate(potPrefab, from, Quaternion.identity);
                 pot.Throw(new Vector2(delta.x / time, delta.y / time + 0.5f * pot.Gravity * time));
-                if (atOven)
-                    pot.HitOvenAfter(oven, time, ovenPotDamage);
                 throwSound.Play();
                 yield return new WaitForSeconds(Mathf.Max(0f, throwDuration - throwRelease) * (i + 1 < count ? 0.5f : 1f));
             }
@@ -309,8 +308,19 @@ namespace Odisea.Enemies
         {
             if (health.IsDead || oven == null)
                 return;
-            if (!IsRanged(info))
-                rangedHits = 0;
+            if (IsRanged(info))
+            {
+                // La masa le quita vida pero no lo empuja ni lo detiene (si no, se le gana de lejos sin acercarse).
+                if (Time.time - lastHurtSound >= hurtSoundCooldown)
+                {
+                    lastHurtSound = Time.time;
+                    hurtSound.Play();
+                }
+                if (!Enraged && health.Current <= health.Max / 2)
+                    Enrage();
+                return;
+            }
+            rangedHits = 0;
             // Retrocede, alejándose del horno, y suelta lo que estuviera aventando.
             float away = -Mathf.Sign(oven.transform.position.x - body.position.x);
             body.position += new Vector2(away * pushBack, 0f);

@@ -153,7 +153,11 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", CameraPosition);
             var gameOver = Object.FindAnyObjectByType<GameOverScreen>(FindObjectsInactive.Include);
             if (gameOver != null)
+            {
                 PlayerSandboxBuilder.SetSerialized(gameOver, "bake", bake);
+                // La barra por fases: el horneado y luego Polifemo.
+                PlayerSandboxBuilder.SetSerialized(gameOver, "boss", boss.Health);
+            }
             var score = Object.FindAnyObjectByType<LevelScore>();
             if (score != null)
                 // El horneado dura BakeSeconds: el tiempo cuenta lo que tarda en vencer a Polifemo después.

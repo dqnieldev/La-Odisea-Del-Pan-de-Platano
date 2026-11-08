@@ -23,6 +23,12 @@ namespace Odisea.UI
         [SerializeField] private Transform goal;
         [Tooltip("Opcional (nivel del horno): la barra mide el horneado en vez del camino.")]
         [SerializeField] private BakeTimer bake;
+        [Tooltip("Opcional, con el horneado: el jefe del final. La barra se parte en dos fases (horneado y jefe) y el " +
+                 "100 % es vencerlo.")]
+        [SerializeField] private Health boss;
+        [SerializeField] private string bossName = "Polifemo";
+        [Tooltip("Lo que ocupa el horneado en la barra (el resto es el jefe).")]
+        [SerializeField, Range(0.1f, 0.9f)] private float bakeShare = 0.6f;
         [SerializeField, Min(0f)] private float showDelay = 1.5f;
 
         [Header("Tarjeta")]
@@ -89,7 +95,49 @@ namespace Odisea.UI
             foreach (TMP_Text label in exitButton.GetComponentsInChildren<TMP_Text>(true))
                 label.text = exitText;
             barWidth = ((RectTransform)progressFill.transform.parent).rect.width;
+            if (Phased)
+                CreatePhaseMarks();
             best = Progress();
+        }
+
+        private bool Phased => bake != null && boss != null;
+
+        // La línea que separa las dos fases y el nombre de cada una dentro de la barra.
+        private void CreatePhaseMarks()
+        {
+            var track = (RectTransform)progressFill.transform.parent;
+            var line = new GameObject("Fin del horneado", typeof(RectTransform), typeof(Image));
+            var lineRect = (RectTransform)line.transform;
+            lineRect.SetParent(track, false);
+            lineRect.anchorMin = new Vector2(bakeShare, 0f);
+            lineRect.anchorMax = new Vector2(bakeShare, 1f);
+            lineRect.sizeDelta = new Vector2(6f, 10f);
+            line.GetComponent<Image>().color = PhaseColor;
+            line.GetComponent<Image>().raycastTarget = false;
+            // Ulises queda encima de la línea.
+            progressMarker.SetAsLastSibling();
+            PhaseLabel(track, "HORNEADO", 0f, bakeShare);
+            PhaseLabel(track, bossName.ToUpperInvariant(), bakeShare, 1f);
+        }
+
+        private static readonly Color PhaseColor = new(0.36f, 0.22f, 0.13f);
+
+        private void PhaseLabel(RectTransform track, string text, float from, float to)
+        {
+            var go = new GameObject(text, typeof(RectTransform));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(track, false);
+            rect.anchorMin = new Vector2(from, 0f);
+            rect.anchorMax = new Vector2(to, 1f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var label = go.AddComponent<TextMeshProUGUI>();
+            label.font = progressLabel.font;
+            label.text = text;
+            label.fontSize = 22f;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = new Color(PhaseColor.r, PhaseColor.g, PhaseColor.b, 0.9f);
+            label.raycastTarget = false;
+            rect.SetSiblingIndex(progressMarker.GetSiblingIndex());
         }
 
         private void Update()
@@ -122,6 +170,13 @@ namespace Odisea.UI
         // verticales).
         private float Progress()
         {
+            if (Phased)
+            {
+                // Horneado de 0 a bakeShare; después, la vida que le quitó al jefe hasta el 100 %.
+                if (bake.Progress < 1f || boss.Max <= 0)
+                    return bake.Progress * bakeShare;
+                return bakeShare + (1f - bakeShare) * (1f - (float)boss.Current / boss.Max);
+            }
             if (bake != null)
                 return bake.Progress;
             if (goal == null || player == null)
@@ -151,9 +206,7 @@ namespace Odisea.UI
             panel.gameObject.SetActive(true);
             progressGroup.SetActive(goal != null || bake != null);
             progressFill.fillAmount = 0f;
-            progressLabel.text = bake != null
-                ? $"El pan llevaba el {Mathf.RoundToInt(best * 100f)} % de horneado"
-                : $"Llegaste al {Mathf.RoundToInt(best * 100f)} % del camino";
+            progressLabel.text = ProgressText();
             // Sin punto de control, Reintentar ya empieza desde el principio: Reiniciar sobra y la salida sube a su lugar.
             bool hasCheckpoint = Checkpoints.TryGet(out _);
             restartButton.gameObject.SetActive(hasCheckpoint);
@@ -166,6 +219,20 @@ namespace Odisea.UI
                 UiAudio.MuteHoverBriefly();
                 EventSystem.current.SetSelectedGameObject(retryButton.gameObject);
             }
+        }
+
+        private string ProgressText()
+        {
+            if (Phased)
+            {
+                if (best < bakeShare)
+                    return $"El pan llevaba el {Mathf.RoundToInt(best / bakeShare * 100f)} % de horneado";
+                int bossDone = Mathf.RoundToInt((best - bakeShare) / (1f - bakeShare) * 100f);
+                return $"Pan horneado; a {bossName} le quitaste el {bossDone} % de vida";
+            }
+            return bake != null
+                ? $"El pan llevaba el {Mathf.RoundToInt(best * 100f)} % de horneado"
+                : $"Llegaste al {Mathf.RoundToInt(best * 100f)} % del camino";
         }
 
         private bool CanChoose => shownTime >= 0f && Time.unscaledTime - shownTime > appearDuration && !SceneFlow.IsLoading;
