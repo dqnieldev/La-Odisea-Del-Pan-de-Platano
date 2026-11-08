@@ -9,7 +9,7 @@ namespace Odisea.UI
 {
     /// <summary>
     /// Tarjeta de "¡Nivel completado!" que sale al llegar a la meta: detiene el juego, aparece con un rebote y, si el
-    /// nivel lleva puntaje, va sumando renglón por renglón (ingredientes, tiempo, enemigos y sin daño), luego el total
+    /// nivel lleva puntaje, va sumando renglón por renglón (ingredientes o vidas del horno, tiempo, enemigos y sin daño), luego el total
     /// y al final cae el sello del rango. Aceptar (Enter, Espacio, clic, A / Cruz o Start) adelanta la cuenta y, ya
     /// terminada, sigue. La abre <see cref="LevelGoal"/>.
     /// </summary>
@@ -30,6 +30,8 @@ namespace Odisea.UI
         [SerializeField] private CanvasGroup[] rows = new CanvasGroup[4];
         [SerializeField] private TMP_Text[] rowDetails = new TMP_Text[4];
         [SerializeField] private TMP_Text[] rowPoints = new TMP_Text[4];
+        [Tooltip("Nombre del primer renglón en el nivel del horno (en lugar de los ingredientes).")]
+        [SerializeField] private string ovenRowName = "Horno";
         [SerializeField] private CanvasGroup totalGroup;
         [SerializeField] private TMP_Text totalText;
         [SerializeField] private RectTransform stamp;
@@ -91,8 +93,16 @@ namespace Odisea.UI
             rowDetails[1].text = LevelScore.FormatTime(score.Seconds);
             rowDetails[2].text = score.EnemiesDefeated.ToString();
             rowDetails[3].text = score.NoDamage ? "¡Sí!" : "No";
-            // Sin ingredientes en el nivel (el tutorial) no sale ese renglón.
-            rows[0].gameObject.SetActive(score.IngredientsTotal > 0);
+            // Sin ingredientes en el nivel (el tutorial) no sale ese renglón. En el del horno, ese renglón son las vidas
+            // que le quedaron al horno.
+            rows[0].gameObject.SetActive(score.IngredientsTotal > 0 || score.OvenMax > 0);
+            if (score.OvenMax > 0)
+            {
+                points[0] = score.OvenPoints;
+                rowDetails[0].text = $"{score.OvenLife}/{score.OvenMax}";
+                if (rows[0].transform.Find("Nombre") is { } label && label.TryGetComponent(out TMP_Text name))
+                    name.text = ovenRowName;
+            }
             foreach (CanvasGroup row in rows)
                 row.alpha = 0f;
             foreach (TMP_Text text in rowPoints)

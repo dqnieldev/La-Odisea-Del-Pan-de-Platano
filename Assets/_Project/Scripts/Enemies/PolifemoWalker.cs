@@ -383,8 +383,22 @@ namespace Odisea.Enemies
             fallSound.Play();
             CameraFollow2D.Shake(shake * 2f, 0.5f);
             Fell?.Invoke();
+            DefeatTheRest();
             if (reward != null)
                 StartCoroutine(ShowReward());
+        }
+
+        // Vencido el jefe se acabó el nivel: los enemigos que siguen vivos caen y las ollas en el aire se rompen, para
+        // que nada mate a Ulises camino al pan (si no, el Game Over salía con el 100 %).
+        private void DefeatTheRest()
+        {
+            foreach (Health enemy in FindObjectsByType<Health>(FindObjectsInactive.Exclude))
+            {
+                if (enemy != health && enemy != player && enemy.gameObject.layer == gameObject.layer)
+                    enemy.Kill();
+            }
+            foreach (ThrownItem pot in FindObjectsByType<ThrownItem>(FindObjectsInactive.Exclude))
+                Destroy(pot.gameObject);
         }
 
         private IEnumerator ShowReward()

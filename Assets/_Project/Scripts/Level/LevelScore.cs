@@ -24,12 +24,15 @@ namespace Odisea.Level
         public readonly int EnemiesDefeated, EnemyPoints;
         public readonly bool NoDamage;
         public readonly int NoDamagePoints;
+        /// <summary>Nivel del horno: las vidas que le quedaron al horno (OvenMax 0 = el nivel no tiene horno).</summary>
+        public readonly int OvenLife, OvenMax, OvenPoints;
         public readonly int Total;
         public readonly ScoreRank Rank;
         public readonly bool NewRecord;
 
         public ScoreResult(int ingredientsFound, int ingredientsTotal, int ingredientPoints, float seconds, int timePoints,
-            int enemiesDefeated, int enemyPoints, bool noDamage, int noDamagePoints, ScoreRank rank, bool newRecord)
+            int enemiesDefeated, int enemyPoints, bool noDamage, int noDamagePoints, ScoreRank rank, bool newRecord,
+            int ovenLife = 0, int ovenMax = 0, int ovenPoints = 0)
         {
             IngredientsFound = ingredientsFound;
             IngredientsTotal = ingredientsTotal;
@@ -40,14 +43,18 @@ namespace Odisea.Level
             EnemyPoints = enemyPoints;
             NoDamage = noDamage;
             NoDamagePoints = noDamagePoints;
-            Total = ingredientPoints + timePoints + enemyPoints + noDamagePoints;
+            OvenLife = ovenLife;
+            OvenMax = ovenMax;
+            OvenPoints = ovenPoints;
+            Total = ingredientPoints + timePoints + enemyPoints + noDamagePoints + ovenPoints;
             Rank = rank;
             NewRecord = newRecord;
         }
     }
 
     /// <summary>
-    /// Puntaje del nivel: ingredientes recogidos, tiempo, enemigos derrotados y si Ulises no recibió daño. Al llegar a
+    /// Puntaje del nivel: ingredientes recogidos (o, en el nivel del horno, las vidas que le quedaron al horno), tiempo,
+    /// enemigos derrotados y si Ulises no recibió daño. Al llegar a
     /// la meta (<see cref="LevelGoal"/>) se calcula el total y el rango (S, A, B o C según qué tanto del máximo posible
     /// logró) y se guarda el récord de la partida.
     /// Al reintentar desde un punto de control la carrera sigue: el tiempo se acumula, los ingredientes recogidos y
@@ -64,6 +71,9 @@ namespace Odisea.Level
         [SerializeField, Min(1f)] private float parTime = 120f;
         [SerializeField, Min(0)] private int timeBonus = 1000;
         [SerializeField, Min(0)] private int noDamageBonus = 500;
+        [Tooltip("Opcional (nivel del horno): cada vida que le quede al horno al terminar suma estos puntos.")]
+        [SerializeField] private Oven oven;
+        [SerializeField, Min(0)] private int pointsPerOvenLife = 200;
 
         [Header("Rango (fracción del máximo posible)")]
         [SerializeField, Range(0f, 1f)] private float rankS = 0.9f;
@@ -182,9 +192,12 @@ namespace Odisea.Level
             int timePoints = Mathf.RoundToInt(timeBonus * Mathf.Clamp01(1f - late));
             bool noDamage = !run.Damaged;
             int noDamagePoints = noDamage ? noDamageBonus : 0;
-            int total = ingredientPoints + enemyPoints + timePoints + noDamagePoints;
+            int ovenLife = oven != null ? oven.Current : 0, ovenMax = oven != null ? oven.Max : 0;
+            int ovenPoints = ovenLife * pointsPerOvenLife;
+            int total = ingredientPoints + enemyPoints + timePoints + noDamagePoints + ovenPoints;
 
-            int max = IngredientsTotal * pointsPerIngredient + enemiesTotal * pointsPerEnemy + timeBonus + noDamageBonus;
+            int max = IngredientsTotal * pointsPerIngredient + enemiesTotal * pointsPerEnemy + timeBonus + noDamageBonus +
+                      ovenMax * pointsPerOvenLife;
             float ratio = max > 0 ? (float)total / max : 1f;
             ScoreRank rank = ratio >= rankS ? ScoreRank.S : ratio >= rankA ? ScoreRank.A : ratio >= rankB ? ScoreRank.B : ScoreRank.C;
 
@@ -195,7 +208,7 @@ namespace Odisea.Level
                 GameProgress.SubmitRank(location, (int)rank);
             }
             return new ScoreResult(IngredientsFound, IngredientsTotal, ingredientPoints, run.Seconds, timePoints,
-                EnemiesDefeated, enemyPoints, noDamage, noDamagePoints, rank, newRecord);
+                EnemiesDefeated, enemyPoints, noDamage, noDamagePoints, rank, newRecord, ovenLife, ovenMax, ovenPoints);
         }
 
         /// <summary>Tiempo como "1:05".</summary>
