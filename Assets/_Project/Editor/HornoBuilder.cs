@@ -56,6 +56,10 @@ namespace Odisea.EditorTools
         private const int OvenHealth = 5;
         private const float BakeSeconds = 100f;
         private const int PolifemoHealth = 10;
+        // Tamaño de Polifemo respecto a su dibujo. Más chico, sus pasos son más cortos: camina más lento (la velocidad
+        // va con el tamaño para que los pies no resbalen) y llega más tarde al horno.
+        private const float PolifemoScale = 0.8f;
+        private const float PolifemoSpeed = 0.8f;
 
         private static readonly Color Sky = new(0.98f, 0.84f, 0.64f);
         private static readonly Color Adobe = new(0.86f, 0.66f, 0.47f);
@@ -611,7 +615,7 @@ namespace Odisea.EditorTools
             bool hd = ArtImportBuilder.PolifemoHD &&
                       AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.PolifemoClipPath("Throw")) != null;
             // Con las hojas grandes es casi del tamaño del horno.
-            float height = hd ? ArtImportBuilder.PolifemoHDHeight : 3f;
+            float height = (hd ? ArtImportBuilder.PolifemoHDHeight : 3f) * PolifemoScale;
             var boss = new GameObject("Polifemo") { layer = level.EnemyLayer };
             boss.transform.SetParent(root, false);
             boss.transform.position = new Vector3(HalfWidth - 0.3f, 0f, 0f);
@@ -626,6 +630,7 @@ namespace Odisea.EditorTools
             var renderer = visual.AddComponent<SpriteRenderer>();
             renderer.sharedMaterial = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
             renderer.sortingOrder = 6;
+            visual.transform.localScale = new Vector3(PolifemoScale, PolifemoScale, 1f);
             var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ArtImportBuilder.PolifemoControllerPath);
             Animator animator = null;
             if (controller != null)
@@ -667,6 +672,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(walker, "oven", oven);
             PlayerSandboxBuilder.SetSerialized(walker, "reward", goal);
             PlayerSandboxBuilder.SetSerialized(walker, "player", player);
+            PlayerSandboxBuilder.SetSerialized(walker, "speed", PolifemoSpeed * PolifemoScale);
             GameSoundsBuilder.SetSound(walker, "fallSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.9f);
             GameSoundsBuilder.SetSound(walker, "hurtSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_dano_recibido"), 0.9f);
             GameSoundsBuilder.SetSound(walker, "laughSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_risa"), 1f);
@@ -675,7 +681,8 @@ namespace Odisea.EditorTools
             if (hd)
             {
                 // Más grande: llega antes a la orilla del horno y la olla sale de arriba de su cabeza.
-                PlayerSandboxBuilder.SetSerialized(walker, "reach", 1.4f);
+                PlayerSandboxBuilder.SetSerialized(walker, "reach", 1.4f * PolifemoScale);
+                PlayerSandboxBuilder.SetSerialized(walker, "footWidth", 1.2f * PolifemoScale);
                 PlayerSandboxBuilder.SetSerialized(walker, "pushBack", 0.8f);
                 PlayerSandboxBuilder.SetSerialized(walker, "stepTime", ArtImportBuilder.PolifemoStepTime);
                 if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } dust)
