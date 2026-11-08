@@ -228,7 +228,8 @@ namespace Odisea.Map
         private int LocationUnderMouse()
         {
             Mouse mouse = Mouse.current;
-            if (mouse == null || view == null)
+            // Con el mando el cursor está escondido: donde quedó no ilumina nada.
+            if (mouse == null || view == null || !Cursor.visible)
                 return -1;
             Vector2 point = view.ScreenToWorldPoint(mouse.position.ReadValue());
             Collider2D hit = Physics2D.OverlapPoint(point);
