@@ -8,7 +8,7 @@ namespace Odisea.Enemies
 {
     /// <summary>
     /// Polifemo en el nivel 2: cuando el pan ya está horneado sale de un lado y camina despacio hacia el horno, con pisadas
-    /// pesadas (la cámara tiembla y sale polvo de sus botas). Cada tanto se detiene y avienta ollas de barro en arco a
+    /// pesadas (la cámara tiembla, vibra el mando y sale polvo de sus botas). Cada tanto se detiene y avienta ollas de barro en arco a
     /// Ulises (nunca al horno), a veces dos seguidas. Cuando Ulises lo ataca de lejos, de vez en cuando se cubre y la masa
     /// le rebota (el rodillo sí le pega). A media vida se enoja: camina más rápido y avienta más seguido. Cada golpe del
     /// rodillo lo hace retroceder un poco y lo detiene un instante; la masa le quita vida pero no lo frena. Si llega al
@@ -41,7 +41,13 @@ namespace Odisea.Enemies
         [Header("Pisadas")]
         [Tooltip("Cada cuánto pisa fuerte mientras camina (0 = sin pisadas).")]
         [SerializeField, Min(0f)] private float stepTime;
-        [SerializeField, Min(0f)] private float shake = 0.18f;
+        [SerializeField, Min(0f)] private float shake = 0.3f;
+        [Tooltip("Vibración del mando en cada pisada: motor grave y agudo (respeta el ajuste Vibración de Opciones). " +
+                 "Con Ulises lejos vibra menos (hasta la mitad).")]
+        [SerializeField] private Vector2 stepRumble = new(0.5f, 0.12f);
+        [SerializeField, Min(0f)] private float stepRumbleDuration = 0.14f;
+        [Tooltip("A esta distancia de Ulises (o más) la pisada vibra a la mitad.")]
+        [SerializeField, Min(0.1f)] private float rumbleFarDistance = 12f;
         [Tooltip("Polvo que sale de la bota al pisar (un punto difuso).")]
         [SerializeField] private Sprite dust;
         [SerializeField] private Color dustColor = new(0.78f, 0.66f, 0.5f, 0.7f);
@@ -291,7 +297,14 @@ namespace Odisea.Enemies
 
         private void Stomp()
         {
-            CameraFollow2D.Shake(shake, 0.25f);
+            // Enojado pisa más fuerte.
+            float strength = Enraged ? 1.35f : 1f;
+            CameraFollow2D.Shake(shake * strength, 0.25f);
+            float near = 1f;
+            if (player != null)
+                near = Mathf.Lerp(1f, 0.5f, Mathf.Abs(player.transform.position.x - body.position.x) / rumbleFarDistance);
+            GamepadRumble.Play(Mathf.Clamp01(stepRumble.x * strength * near), Mathf.Clamp01(stepRumble.y * strength * near),
+                stepRumbleDuration);
             if (dust == null)
                 return;
             Vector3 feet = transform.position;
@@ -348,6 +361,7 @@ namespace Odisea.Enemies
             Enraged = true;
             laughSound.Play();
             CameraFollow2D.Shake(shake * 2.5f, 0.6f);
+            GamepadRumble.Play(0.7f, 0.4f, 0.45f);
             throwTimer = Mathf.Min(throwTimer, rageThrowInterval.x);
             if (animator != null)
                 animator.speed = rageSpeedMultiplier;
@@ -382,6 +396,8 @@ namespace Odisea.Enemies
             Play(FallState);
             fallSound.Play();
             CameraFollow2D.Shake(shake * 2f, 0.5f);
+            // Cae con todo su peso.
+            GamepadRumble.Play(0.9f, 0.35f, 0.5f);
             Fell?.Invoke();
             DefeatTheRest();
             if (reward != null)
