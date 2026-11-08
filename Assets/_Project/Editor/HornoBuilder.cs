@@ -106,8 +106,8 @@ namespace Odisea.EditorTools
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(-3f, 1f), "El Horno",
                 GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
             var playerHealth = player.GetComponent<Health>();
-            // Sombra en el piso: que se vea que Ulises pisa el patio (el centro de Ulises está 0.8 arriba de sus pies).
-            Shadow(player, level, new Vector2(1.4f, 0.38f), new Vector2(0f, -0.8f), null, 4f);
+            // Sombra en el piso: que se vea que Ulises pisa el patio.
+            PlayerSandboxBuilder.AddPlayerShadow(player, level, ShadowOrder);
 
             // ----- El horno y el horneado -----
             Oven oven = CreateOven(root, square, circle, playerHealth);
@@ -590,45 +590,13 @@ namespace Odisea.EditorTools
             return SavePrefab(root);
         }
 
-        // Óvalo blanco con el centro sólido y la orilla suave (Art/Placeholders/Sombra.png): se importa como sprite.
-        private const string ShadowPath = "Assets/_Project/Art/Placeholders/Sombra.png";
-        private const string UnlitSpritePath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
-
-        private static Sprite ShadowSprite()
-        {
-            if (AssetImporter.GetAtPath(ShadowPath) is not TextureImporter importer)
-                return null;
-            if (importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.spritePixelsPerUnit = 256f;
-                importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
-                importer.SaveAndReimport();
-            }
-            return AssetDatabase.LoadAssetAtPath<Sprite>(ShadowPath);
-        }
-
-        // Sombra ovalada en el piso debajo del personaje (sigue al piso al saltar o volar).
+        // Sombra ovalada en el piso debajo del personaje (sigue al piso al saltar o volar). Atrás de todos los
+        // personajes y delante del patio.
         private static void Shadow(GameObject target, PlayerSandboxBuilder.LevelContext level, Vector2 size, Vector2 offset,
-            Health health, float maxHeight)
-        {
-            if (ShadowSprite() is not { } dot)
-                return;
-            var shadow = target.AddComponent<GroundShadow>();
-            PlayerSandboxBuilder.SetSerialized(shadow, "sprite", dot);
-            if (AssetDatabase.LoadAssetAtPath<Material>(UnlitSpritePath) is { } unlit)
-                PlayerSandboxBuilder.SetSerialized(shadow, "material", unlit);
-            PlayerSandboxBuilder.SetSerialized(shadow, "size", size);
-            PlayerSandboxBuilder.SetSerialized(shadow, "offset", offset);
-            PlayerSandboxBuilder.SetSerialized(shadow, "maxHeight", maxHeight);
-            var serialized = new SerializedObject(shadow);
-            serialized.FindProperty("groundLayers").intValue = 1 << level.GroundLayer;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            if (health != null)
-                PlayerSandboxBuilder.SetSerialized(shadow, "health", health);
-        }
+            Health health, float maxHeight) =>
+            PlayerSandboxBuilder.AddGroundShadow(target, level.GroundLayer, size, offset, health, maxHeight, ShadowOrder);
+
+        private const int ShadowOrder = -2;
 
         // Polifemo: aparece al terminar el horneado (lo activan las oleadas) y camina hacia el horno.
         private const string PolifemoSoundFolder = "Assets/_Project/Audio/SFX/Polifemo";

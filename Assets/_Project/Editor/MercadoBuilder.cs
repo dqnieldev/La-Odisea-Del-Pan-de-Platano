@@ -156,6 +156,7 @@ namespace Odisea.EditorTools
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "El Mercado", MusicPath,
                 showControls: false, background: Backdrop);
+            PlayerSandboxBuilder.AddPlayerShadow(player, level, ShadowOrder);
 
             // ----- Enemigos: secuaces en las repisas y Madame Circe en el hueco -----
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
@@ -355,7 +356,11 @@ namespace Odisea.EditorTools
             var deathClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.HenchmanClipPath(male, "Die"));
             if (deathClip != null)
                 PlayerSandboxBuilder.SetSerialized(feedback, "deathAnimationTime", deathClip.length);
+            PlayerSandboxBuilder.AddGroundShadow(henchman, level.GroundLayer, new Vector2(1.8f, 0.46f), Vector2.zero, health, 3f, ShadowOrder);
         }
+
+        // Sombras: delante de los pisos del mercado (3) y detrás de los personajes.
+        private const int ShadowOrder = 4;
 
         // Lo que miden las sogas sobre la tablita: alcanzan más allá de lo que se ve de la cima.
         private const float RopeLength = 20f;

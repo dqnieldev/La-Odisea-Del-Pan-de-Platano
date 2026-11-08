@@ -1214,7 +1214,43 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Cocodrilo que patrulla: 2 golpes, daña a Ulises al tocarlo y da la vuelta en paredes y orillas.</summary>
-        internal static void CreateCrocodile(Transform parent, Sprite square, Vector2 feet, int enemyLayer, int groundLayer, int playerLayer)
+        // ---------- Sombras en el piso ----------
+        // Óvalo blanco con el centro sólido y la orilla suave (Art/Placeholders/Sombra.png). Lo transparente va en la
+        // textura: con alfa en el color de la sombra casi no se ve. Sprite-Unlit para que las luces no la borren.
+        private const string ShadowPath = "Assets/_Project/Art/Placeholders/Sombra.png";
+        private const string UnlitSpritePath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
+
+        /// <summary>
+        /// Sombra ovalada en el piso debajo de un personaje (<see cref="GroundShadow"/>): sigue al piso al saltar o volar
+        /// y se desvanece al morir (con <paramref name="health"/>). <paramref name="order"/>: delante del piso y detrás de
+        /// los personajes de ese nivel.
+        /// </summary>
+        internal static void AddGroundShadow(GameObject target, int groundLayer, Vector2 size, Vector2 offset, Health health,
+            float maxHeight, int order)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ShadowPath) is not { } sprite)
+                return;
+            var shadow = target.AddComponent<GroundShadow>();
+            SetSerialized(shadow, "sprite", sprite);
+            if (AssetDatabase.LoadAssetAtPath<Material>(UnlitSpritePath) is { } unlit)
+                SetSerialized(shadow, "material", unlit);
+            SetSerialized(shadow, "size", size);
+            SetSerialized(shadow, "offset", offset);
+            SetSerialized(shadow, "maxHeight", maxHeight);
+            SetSerialized(shadow, "sortingOrder", order);
+            var serialized = new SerializedObject(shadow);
+            serialized.FindProperty("groundLayers").intValue = 1 << groundLayer;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            if (health != null)
+                SetSerialized(shadow, "health", health);
+        }
+
+        /// <summary>La sombra de Ulises (su centro está 0.8 arriba de sus pies).</summary>
+        internal static void AddPlayerShadow(GameObject player, LevelContext level, int order) =>
+            AddGroundShadow(player, level.GroundLayer, new Vector2(1.8f, 0.48f), new Vector2(0f, -0.8f), null, 4f, order);
+
+        internal static void CreateCrocodile(Transform parent, Sprite square, Vector2 feet, int enemyLayer, int groundLayer, int playerLayer,
+            int shadowOrder = -2)
         {
             var crocodile = new GameObject("Cocodrilo") { layer = enemyLayer };
             crocodile.transform.SetParent(parent, false);
@@ -1290,6 +1326,7 @@ namespace Odisea.EditorTools
             var deathClip = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/_Project/Art/Characters/Enemigos/Cocodrilo/Cocodrilo_Die.anim");
             if (deathClip != null)
                 SetSerialized(feedback, "deathAnimationTime", deathClip.length);
+            AddGroundShadow(crocodile, groundLayer, new Vector2(2.1f, 0.42f), Vector2.zero, health, 3f, shadowOrder);
         }
 
         // Primer cuadro de una tira (Nombre_0) para que la escena se vea bien aun antes de darle Play.

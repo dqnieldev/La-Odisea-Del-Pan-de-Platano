@@ -133,6 +133,8 @@ namespace Odisea.EditorTools
 
             // ----- Puertas -----
             NpcDialogue donLupe = CreateDonLupe(root, square, circle, level.PlayerLayer);
+            // Sombra en el piso, delante de los muebles y detrás de los personajes.
+            PlayerSandboxBuilder.AddGroundShadow(donLupe.gameObject, ground, new Vector2(1.6f, 0.4f), Vector2.zero, null, 3f, FurnitureOrder + 2);
             CreateExitDoor(root, square, donLupe, level.PlayerLayer, drawn: art == null);
             CreateBeachDoor(root, square, level.PlayerLayer, drawn: art == null);
 
@@ -141,6 +143,7 @@ namespace Odisea.EditorTools
                 .First(path => new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(path + ext)));
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(ExitDoorX + 1.6f, 1f), "Panadería de Don Lupe",
                 music, showControls: false, background: Color.black, scored: false);
+            PlayerSandboxBuilder.AddPlayerShadow(player, level, FurnitureOrder + 2);
             // Aquí no hay peligro: sin corazones en pantalla y sin golpear ni lanzar masa (solo caminar, saltar y platicar).
             Object.DestroyImmediate(GameObject.Find("HUD"));
             Object.DestroyImmediate(GameObject.Find("Game Over"));

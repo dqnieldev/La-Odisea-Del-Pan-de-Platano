@@ -126,7 +126,7 @@ namespace Odisea.EditorTools
                 checkpointLayer: level.PlayerLayer);
             CreateSandBlock("Bordillo 1", root, square, ArtImportBuilder.CurbPath, 106f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
             CreateSandBlock("Bordillo 2", root, square, ArtImportBuilder.CurbPath, 122f, new Vector2(1f, ArtImportBuilder.CurbHeight), ground);
-            PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(116f, 0f), level.EnemyLayer, ground, level.PlayerLayer);
+            PlayerSandboxBuilder.CreateCrocodile(root, square, new Vector2(116f, 0f), level.EnemyLayer, ground, level.PlayerLayer, ShadowOrder);
 
             // 10. Meta.
             CreateSign(root, square, titleFont, bodyFont, 127f, "¡LISTO!", Prompt.Text("Ya conoces\nlo básico"));
@@ -140,6 +140,7 @@ namespace Odisea.EditorTools
 
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(0f, 1f), "Tutorial", MusicPath(),
                 showControls: false, background: Paper, scored: false); // El tutorial no lleva puntaje.
+            PlayerSandboxBuilder.AddPlayerShadow(player, level, ShadowOrder);
             // Al morir reaparece en el último letrero que pasó, no al principio.
             player.AddComponent<CheckpointSpawn>();
             // La cámara no se asoma más allá de las paredes ni por debajo de la arena.
@@ -167,6 +168,8 @@ namespace Odisea.EditorTools
         private const float MaxIconSize = 0.8f;
         // Lo que va detrás de la orilla de la arena (su base queda tapada, como enterrada): obstáculos y letreros.
         internal const int BehindSandOrder = -6;
+        // Sombras de Ulises y el cocodrilo: delante de la arena (-5) y de su orilla, como la del muñeco.
+        private const int ShadowOrder = -4;
         private const float RowGap = 0.08f;
 
         /// <summary>
