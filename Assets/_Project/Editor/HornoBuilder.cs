@@ -157,6 +157,14 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
             PlayerSandboxBuilder.SetSerialized(follow, "minPosition", CameraPosition);
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", CameraPosition);
+            // La cámara casi del tamaño del dibujo del patio: al temblar (las pisadas de Polifemo) no debe enseñar su
+            // orilla.
+            if (root.Find("Patio") is { } patioArt && patioArt.TryGetComponent(out SpriteRenderer patioRenderer))
+            {
+                PlayerSandboxBuilder.SetSerialized(follow, "limitView", true);
+                PlayerSandboxBuilder.SetSerialized(follow, "viewMin", (Vector2)patioRenderer.bounds.min);
+                PlayerSandboxBuilder.SetSerialized(follow, "viewMax", (Vector2)patioRenderer.bounds.max);
+            }
             var gameOver = Object.FindAnyObjectByType<GameOverScreen>(FindObjectsInactive.Include);
             if (gameOver != null)
             {
