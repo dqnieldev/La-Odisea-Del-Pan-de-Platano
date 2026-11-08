@@ -67,6 +67,7 @@ namespace Odisea.EditorTools
         private static readonly Color Bread = new(0.82f, 0.55f, 0.24f);
         private static readonly Color BossBar = new(0.82f, 0.24f, 0.16f);
         private static readonly Color BossTrail = new(0.98f, 0.85f, 0.45f);
+        private static readonly Color IntroYellow = new(1f, 0.84f, 0.25f);
 
         [MenuItem("Odisea/Niveles/Crear Horno")]
         public static void Build()
@@ -159,6 +160,7 @@ namespace Odisea.EditorTools
                 PlayerSandboxBuilder.SetSerialized(score, "parTime", BakeSeconds + 40f);
             CreateOvenHud(oven, bake, square, circle);
             CreateBossBar(boss.Health, square);
+            CreateIntroBanner(oven);
 
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
@@ -260,6 +262,10 @@ namespace Odisea.EditorTools
                 // El horno es parte del fondo: en vez de ponerse rojo, se prende un resplandor rojo encima.
                 SpriteRenderer glow = Part("Golpe", visual, glowDot, new Vector2(OvenMouthDrawn.x, OvenMouthDrawn.y - 0.6f), new Vector2(10f, 9f), new Color(1f, 0.2f, 0.1f, 0f), -2);
                 PlayerSandboxBuilder.SetSerialized(component, "hitGlow", glow);
+                // Al empezar el nivel, el horno parpadea con un resplandor amarillo ("¡Protege el horno!").
+                SpriteRenderer highlight = Part("Resplandor de inicio", visual, glowDot, new Vector2(OvenMouthDrawn.x, OvenMouthDrawn.y + 0.2f),
+                    new Vector2(12f, 11f), new Color(1f, 0.9f, 0.3f, 0f), -2);
+                PlayerSandboxBuilder.SetSerialized(component, "highlightGlow", highlight);
             }
             PlayerSandboxBuilder.SetSerialized(component, "mouth", mouth);
             PlayerSandboxBuilder.SetSerialized(component, "halfWidth", OvenHalfWidth);
@@ -906,6 +912,34 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(component, "group", group);
             PlayerSandboxBuilder.SetSerialized(component, "fill", fill);
             PlayerSandboxBuilder.SetSerialized(component, "trail", trail);
+        }
+
+        // Al empezar: "¡Protege el horno!" grande en medio de la pantalla (un poco arriba del horno) mientras el horno
+        // parpadea de amarillo.
+        private static void CreateIntroBanner(Oven oven)
+        {
+            Canvas canvas = OverlayCanvas("Letrero de inicio", 5);
+            var group = canvas.gameObject.AddComponent<CanvasGroup>();
+            group.interactable = group.blocksRaycasts = false;
+            group.alpha = 0f;
+            var middle = new Vector2(0.5f, 0.5f);
+            // Arriba, entre los corazones y el reloj, sobre una franja café para que se lea encima del cielo.
+            RectTransform content = Box("Letrero", canvas.transform, middle, new Vector2(0f, 330f), new Vector2(1160f, 200f));
+            var band = content.gameObject.AddComponent<Image>();
+            band.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+            band.type = Image.Type.Sliced;
+            band.color = new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.82f);
+            band.raycastTarget = false;
+            TMP_Text title = Label("Título", content, middle, new Vector2(0f, 28f), new Vector2(1160f, 124f), "¡PROTEGE EL HORNO!", 88f);
+            title.color = IntroYellow;
+            title.outlineWidth = 0.3f;
+            TMP_Text hint = Label("Ayuda", content, middle, new Vector2(0f, -58f), new Vector2(1160f, 54f),
+                "Que nada lo toque hasta que el pan esté listo", 40f);
+            hint.characterSpacing = 1f;
+            var banner = canvas.gameObject.AddComponent<LevelIntroBanner>();
+            PlayerSandboxBuilder.SetSerialized(banner, "group", group);
+            PlayerSandboxBuilder.SetSerialized(banner, "content", content);
+            PlayerSandboxBuilder.SetSerialized(banner, "oven", oven);
         }
 
         private static SpriteRenderer Part(string name, Transform parent, Sprite sprite, Vector2 position, Vector2 size, Color color,

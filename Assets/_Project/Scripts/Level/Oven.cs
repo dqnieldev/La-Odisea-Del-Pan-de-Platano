@@ -32,11 +32,19 @@ namespace Odisea.Level
         [SerializeField, Min(0.01f)] private float hitDuration = 0.25f;
         [Tooltip("Con una sola vida, el horno late de este color (a punto de quemarse).")]
         [SerializeField] private Color lastLifeColor = new(1f, 0.4f, 0.3f);
+        [Tooltip("Al empezar el nivel, el horno parpadea de este color (\"¡Protege el horno!\").")]
+        [SerializeField] private Color highlightColor = new(1f, 0.85f, 0.2f);
+        [SerializeField, Min(0.1f)] private float highlightBlinks = 3f;
+        [Tooltip("Opcional: resplandor amarillo encima del horno mientras parpadea.")]
+        [SerializeField] private SpriteRenderer highlightGlow;
+        [SerializeField, Range(0f, 1f)] private float highlightGlowAlpha = 0.6f;
         [SerializeField] private SoundEffect hitSound = new();
 
         private float hitTimer;
+        private float highlightTimer, highlightDuration;
         private Vector3 rest;
         private Color[] baseColors;
+        private Color stateBaseColor = Color.white;
 
         public int Max => maxHealth;
         public int Current { get; private set; }
@@ -56,9 +64,19 @@ namespace Odisea.Level
             baseColors = new Color[renderers.Length];
             for (int i = 0; i < renderers.Length; i++)
                 baseColors[i] = renderers[i] != null ? renderers[i].color : Color.white;
+            if (stateRenderer != null)
+                stateBaseColor = stateRenderer.color;
+            if (highlightGlow != null)
+                highlightGlow.color = new Color(highlightGlow.color.r, highlightGlow.color.g, highlightGlow.color.b, 0f);
         }
 
         private void Start() => Changed?.Invoke(Current, maxHealth);
+
+        /// <summary>Parpadea de amarillo un rato para llamar la atención (al empezar el nivel).</summary>
+        public void Highlight(float duration)
+        {
+            highlightDuration = highlightTimer = Mathf.Max(0.01f, duration);
+        }
 
         /// <summary>Un enemigo le pegó al horno.</summary>
         public void Hit(int amount)
@@ -107,6 +125,26 @@ namespace Odisea.Level
 
         private void Update()
         {
+            if (hitTimer <= 0f && highlightTimer > 0f)
+            {
+                // Al empezar: parpadeos amarillos que se van apagando al final.
+                highlightTimer -= Time.deltaTime;
+                float elapsed = highlightDuration - highlightTimer;
+                float blink = Mathf.Abs(Mathf.Sin(elapsed / highlightDuration * highlightBlinks * Mathf.PI));
+                float amount = highlightTimer > 0f ? blink : 0f;
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (renderers[i] != null)
+                        renderers[i].color = Color.Lerp(baseColors[i], highlightColor, amount * 0.75f);
+                }
+                // El dibujo del horno se entinta y se prende el resplandor encima.
+                if (stateRenderer != null)
+                    stateRenderer.color = Color.Lerp(stateBaseColor, highlightColor, amount * 0.45f);
+                if (highlightGlow != null)
+                    highlightGlow.color = new Color(highlightGlow.color.r, highlightGlow.color.g, highlightGlow.color.b,
+                        highlightGlowAlpha * amount);
+                return;
+            }
             if (hitTimer <= 0f)
             {
                 // Última vida: late en rojo, con su resplandor.
