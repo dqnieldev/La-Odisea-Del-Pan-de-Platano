@@ -1005,21 +1005,103 @@ namespace Odisea.EditorTools
         }
 
         // Barra de vida de Polifemo arriba al centro (sale cuando el pan ya está horneado).
+        // La cara de Polifemo en círculo (recortada de su dibujo de caminar) para la barra de vida.
+        private const string PolifemoFacePath = "Assets/_Project/Art/UI/Polifemo_Cara.png";
+        // Vida a la que se enoja Polifemo (PolifemoWalker: a media vida): ahí va la marca de la barra.
+        private const float PolifemoRageAt = 0.5f;
+        private const int PolifemoBarSegments = PolifemoHealth;
+
+        // Barra de vida de Polifemo, abajo al centro (arriba van el puntaje y la vida de Ulises): placa café con orilla
+        // crema, su cara en un círculo a la izquierda, el nombre con la letra de los títulos y la vida dividida en un
+        // segmento por golpe, con una marca dorada donde se enoja.
         private static void CreateBossBar(Health boss, Sprite square)
         {
             Canvas canvas = OverlayCanvas("HUD de Polifemo", -1);
             var group = canvas.gameObject.AddComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = false;
-            var top = new Vector2(0.5f, 1f);
-            // Abajo al centro (arriba van el puntaje y la vida de Ulises).
-            RectTransform bar = Box("Barra", canvas.transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(640f, 74f));
-            Label("Nombre", bar, top, Vector2.zero, new Vector2(640f, 40f), "POLIFEMO", 32f);
-            Image fill = Bar("Vida", bar, top, new Vector2(0f, -42f), new Vector2(640f, 30f), square, BossBar, out Image trail, BossTrail);
+            var middle = new Vector2(0.5f, 0.5f);
+            Sprite rounded = UiAssetsBuilder.EnsureRoundedSprite();
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            RectTransform content = Box("Barra", canvas.transform, new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(840f, 140f));
+            // Lo de abajo se vuelve a centrar en la placa.
+            content.pivot = middle;
+            content.anchoredPosition = new Vector2(0f, 26f + 70f);
+
+            Image Shape(string name, Transform parent, Sprite sprite, Vector2 position, Vector2 size, Color color, bool sliced = false)
+            {
+                var image = Box(name, parent, middle, position, size).gameObject.AddComponent<Image>();
+                image.sprite = sprite;
+                image.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
+                image.color = color;
+                image.raycastTarget = false;
+                return image;
+            }
+
+            Shape("Orilla", content, rounded, new Vector2(45f, -6f), new Vector2(736f, 112f), PlayerSandboxBuilder.Crema, sliced: true);
+            Shape("Placa", content, rounded, new Vector2(45f, -6f), new Vector2(726f, 102f),
+                new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.94f), sliced: true);
+
+            TMP_Text name = Label("Nombre", content, middle, new Vector2(85f, 20f), new Vector2(600f, 48f), "POLIFEMO", 36f);
+            name.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
+            name.alignment = TextAlignmentOptions.Left;
+            name.characterSpacing = 2f;
+
+            Image fill = Bar("Vida", content, middle, new Vector2(85f, -26f), new Vector2(600f, 34f), square, BossBar, out Image trail, BossTrail);
+            var frame = (RectTransform)fill.transform.parent;
+            // Destello blanco de cada golpe, encima de la vida.
+            var flash = (RectTransform)new GameObject("Destello", typeof(RectTransform), typeof(Image)).transform;
+            flash.SetParent(frame, false);
+            flash.anchorMin = Vector2.zero;
+            flash.anchorMax = Vector2.one;
+            flash.offsetMin = new Vector2(5f, 5f);
+            flash.offsetMax = new Vector2(-5f, -5f);
+            var flashImage = flash.GetComponent<Image>();
+            flashImage.sprite = square;
+            flashImage.type = Image.Type.Filled;
+            flashImage.fillMethod = Image.FillMethod.Horizontal;
+            flashImage.raycastTarget = false;
+            // Un segmento por golpe y la marca del enojo.
+            float inner = 600f - 10f;
+            for (int i = 1; i < PolifemoBarSegments; i++)
+                Shape($"División {i}", frame, square, new Vector2(-inner / 2f + inner * i / PolifemoBarSegments, 0f), new Vector2(3f, 24f),
+                    PlayerSandboxBuilder.Cafe);
+            float rageX = -inner / 2f + inner * PolifemoRageAt;
+            Shape("Marca del enojo", frame, square, new Vector2(rageX, 0f), new Vector2(6f, 48f), IntroYellow);
+            Shape("Rombo del enojo", frame, square, new Vector2(rageX, -25f), new Vector2(14f, 14f), IntroYellow)
+                .rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+            // La cara en un círculo con orilla crema y café.
+            RectTransform portrait = Box("Cara", content, middle, new Vector2(-340f, 0f), new Vector2(140f, 140f));
+            Shape("Orilla", portrait, circle, Vector2.zero, new Vector2(140f, 140f), PlayerSandboxBuilder.Crema);
+            Shape("Aro", portrait, circle, Vector2.zero, new Vector2(130f, 130f), PlayerSandboxBuilder.Cafe);
+            if (LoadUiSprite(PolifemoFacePath) is { } face)
+                Shape("Dibujo", portrait, face, Vector2.zero, new Vector2(118f, 118f), Color.white);
+
             var component = canvas.gameObject.AddComponent<BossHealthBar>();
             PlayerSandboxBuilder.SetSerialized(component, "boss", boss);
             PlayerSandboxBuilder.SetSerialized(component, "group", group);
+            PlayerSandboxBuilder.SetSerialized(component, "content", content);
             PlayerSandboxBuilder.SetSerialized(component, "fill", fill);
             PlayerSandboxBuilder.SetSerialized(component, "trail", trail);
+            PlayerSandboxBuilder.SetSerialized(component, "flash", flashImage);
+            PlayerSandboxBuilder.SetSerialized(component, "portrait", portrait);
+            PlayerSandboxBuilder.SetSerialized(component, "nameText", name);
+            PlayerSandboxBuilder.SetSerialized(component, "rageAt", PolifemoRageAt);
+            PlayerSandboxBuilder.SetSerialized(component, "calmColor", BossBar);
+        }
+
+        // Un PNG de la carpeta de arte como sprite de UI (lo configura la primera vez).
+        private static Sprite LoadUiSprite(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         // Al empezar: "¡Protege el horno!" grande en medio de la pantalla (un poco arriba del horno) mientras el horno
