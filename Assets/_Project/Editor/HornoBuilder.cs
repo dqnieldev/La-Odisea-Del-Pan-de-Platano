@@ -377,7 +377,26 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(alert, "enemyLayers", 1 << enemyLayer);
         }
 
-        // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo).
+        // Estrellita de cuatro puntas blanca (se tiñe de morado) para los destellos de la meta.
+        private const string SparklePath = "Assets/_Project/Art/Placeholders/Destello.png";
+        private const string UnlitSpritePath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
+
+        private static Sprite LoadSparkle()
+        {
+            if (AssetImporter.GetAtPath(SparklePath) is TextureImporter importer && importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.spritePixelsPerUnit = 128f;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(SparklePath);
+        }
+
+        // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo). Flota subiendo
+        // y bajando, rodeado de destellos morados.
         private static GameObject CreateGoal(Transform root, Sprite circle, int playerLayer)
         {
             var goal = new GameObject("Meta (pan horneado)");
@@ -385,16 +404,22 @@ namespace Odisea.EditorTools
             goal.transform.position = new Vector3(0f, 0.8f, 0f);
             var area = goal.AddComponent<BoxCollider2D>();
             area.size = new Vector2(2f, 2f);
-            var glow = Part("Brillo", goal.transform, circle, Vector2.zero, new Vector2(2.4f, 2.4f), new Color(1f, 0.93f, 0.6f, 0.6f), 4);
-            glow.name = "Brillo";
+            // El dibujo va en su propio objeto: es lo que flota (el área para tocarlo se queda quieta).
+            var visual = new GameObject("Dibujo").transform;
+            visual.SetParent(goal.transform, false);
             if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.BananaBreadPath) is { } bread)
-                Part("Pan", goal.transform, bread, Vector2.zero, Vector2.one, Color.white, 5);
+                Part("Pan", visual, bread, Vector2.zero, Vector2.one, Color.white, 5);
             else
             {
                 // Sin su dibujo, un óvalo café con su corteza.
-                Part("Pan", goal.transform, circle, Vector2.zero, new Vector2(1.6f, 0.8f), Bread, 5);
-                Part("Corteza", goal.transform, circle, new Vector2(0f, 0.12f), new Vector2(1.3f, 0.45f), new Color(0.66f, 0.38f, 0.14f), 6);
+                Part("Pan", visual, circle, Vector2.zero, new Vector2(1.6f, 0.8f), Bread, 5);
+                Part("Corteza", visual, circle, new Vector2(0f, 0.12f), new Vector2(1.3f, 0.45f), new Color(0.66f, 0.38f, 0.14f), 6);
             }
+            var sparkles = goal.AddComponent<GoalSparkles>();
+            PlayerSandboxBuilder.SetSerialized(sparkles, "floating", visual);
+            PlayerSandboxBuilder.SetSerialized(sparkles, "sparkle", LoadSparkle());
+            if (AssetDatabase.LoadAssetAtPath<Material>(UnlitSpritePath) is { } unlit)
+                PlayerSandboxBuilder.SetSerialized(sparkles, "material", unlit);
             var component = goal.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
