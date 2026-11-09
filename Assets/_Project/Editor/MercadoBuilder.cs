@@ -269,7 +269,7 @@ namespace Odisea.EditorTools
         /// (PatrolEnemy, como el cocodrilo), quita un corazón al tocarlo y, si tiene a Ulises enfrente, se detiene y le
         /// pega con el utensilio. Cae con 2 golpes y cuenta para el puntaje. Sin su arte, una figura azul marino.
         /// </summary>
-        private static void CreateHenchman(Transform parent, Sprite square, Sprite circle, Vector2 feet, int number, bool male,
+        internal static void CreateHenchman(Transform parent, Sprite square, Sprite circle, Vector2 feet, int number, bool male,
             PlayerSandboxBuilder.LevelContext level)
         {
             var henchman = new GameObject($"Secuaz de Circe {number} ({(male ? "cocinero" : "cocinera")})") { layer = level.EnemyLayer };

@@ -15,6 +15,12 @@ namespace Odisea.Core
         [SerializeField] private Vector2 minPosition = new(-100f, -100f);
         [SerializeField] private Vector2 maxPosition = new(100f, 100f);
 
+        [Header("Avance (niveles que corren de izquierda a derecha)")]
+        [Tooltip("La cámara nunca regresa hacia la izquierda (como en Metal Slug).")]
+        [SerializeField] private bool noBacktrack;
+        [Tooltip("Cuánto se adelanta la cámara hacia la derecha de Ulises, para ver lo que viene.")]
+        [SerializeField] private float lookAhead;
+
         [Header("Orilla del dibujo (opcional)")]
         [Tooltip("Lo que se ve nunca sale de este rectángulo (el fondo): al sacudirse, la cámara se acerca lo justo " +
                  "para no enseñar la orilla del dibujo.")]
@@ -23,6 +29,7 @@ namespace Odisea.Core
         [SerializeField] private Vector2 viewMax;
 
         private Vector3 velocity;
+        private float furthestX = float.NegativeInfinity;
         private Camera view;
         private float baseSize;
         // Sacudida (pisadas de Polifemo): se suma a la posición y se apaga sola.
@@ -44,6 +51,11 @@ namespace Odisea.Core
             set => target = value;
         }
 
+        /// <summary>La orilla izquierda de lo que se ve (sin la sacudida).</summary>
+        public float LeftEdge => transform.position.x - shakeOffset.x - HalfWidth;
+
+        private float HalfWidth => view != null ? view.orthographicSize * view.aspect : 0f;
+
         // Empieza ya encima del objetivo: si Ulises reaparece en un punto de control, no recorre todo el nivel.
         private void Start()
         {
@@ -60,6 +72,15 @@ namespace Odisea.Core
                 return;
             Vector3 position = transform.position - shakeOffset;
             position = Vector3.SmoothDamp(position, Desired(), ref velocity, smoothTime);
+            if (noBacktrack)
+            {
+                if (position.x < furthestX)
+                {
+                    position.x = furthestX;
+                    velocity.x = Mathf.Max(0f, velocity.x);
+                }
+                furthestX = position.x;
+            }
             shakeOffset = Vector3.zero;
             if (shakeTimer > 0f)
             {
@@ -91,6 +112,7 @@ namespace Odisea.Core
         private Vector3 Desired()
         {
             Vector3 desired = target.position + (Vector3)offset;
+            desired.x += lookAhead;
             desired.z = transform.position.z;
 
             if (useBounds)

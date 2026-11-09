@@ -81,7 +81,10 @@ namespace Odisea.EditorTools
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
                 "El Horno", new Vector2(1380f, 565f), new Rect(1165f, 120f, 455f, 500f),
                 "Lugares_tovara", 0.865f, new Vector2(474.3f, -89.8f)),
-            new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", "Festival", "Festival",
+            // El festival no es un nivel: al entrar se vuelve a ver el final (la historieta de salida de La Tovara y los
+            // créditos).
+            new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", SceneFlow.Credits,
+                SceneFlow.TovaraOutroStory,
                 GameProgress.Tovara, "La Tovara", new Vector2(1760f, 557f),
                 new Rect(1630f, 190f, 305f, 500f), "Lugares_festival", 0.63f, new Vector2(1167.5f, 100f)),
         };

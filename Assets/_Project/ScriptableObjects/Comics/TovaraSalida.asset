@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: TovaraSalida
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: "Final \xB7 El Festival del Pan de Pl\xE1tano"
+  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
+  musicContinues: 0
+  panels:
+  - title: El Festival
+    art: {fileID: 0}
+    caption: Ulises cruza el arco de papel picado justo cuando empieza a llover. La feria entera voltea a verlo.
+    placeholderNote: Ulises atraviesa el arco del festival con la canasta en alto; gente aplaudiendo; primeras gotas de lluvia; carpas de colores.
+  - title: "El Pan de Pl\xE1tano"
+    art: {fileID: 0}
+    caption: "Sobre la mesa del concurso, el pan de pl\xE1tano todav\xEDa est\xE1 tibio. Llegan Don Lupe y Polifemo\u2026 y hasta Madame Circe pide una rebanada."
+    placeholderNote: "Mesa del concurso con el pan dorado; Don Lupe orgulloso, Polifemo con un plato, Circe probando a escondidas; los jueces sonr\xEDen."
+  - title: "\xA1Que Viva San Blas!"
+    art: {fileID: 0}
+    caption: "Esa noche, bajo las luces de la feria, todo San Blas brinda con pan de pl\xE1tano. La odisea termin\xF3\u2026 y sabe a gloria."
+    placeholderNote: "Fiesta de noche: luces, rueda de la fortuna, Ulises y Don Lupe celebrando rodeados de gente; Polifemo carga a unos ni\xF1os; el pan al centro."

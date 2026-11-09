@@ -31,6 +31,8 @@ namespace Odisea.EditorTools
         private const string ActOneMusicPath = "Assets/_Project/Audio/Music/musica_acto1";
         // Canción de las del Acto II (opcional; sin ella usan la del Acto I).
         private const string ActTwoMusicPath = "Assets/_Project/Audio/Music/musica_acto2";
+        // Canción de las del Acto III (opcional; sin ella usan la del Acto II).
+        private const string ActThreeMusicPath = "Assets/_Project/Audio/Music/musica_acto3";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
         private static readonly Vector2 BookPanelCenter = new(125f, 62f);
@@ -158,6 +160,42 @@ namespace Odisea.EditorTools
              "Ulises con la canasta a la espalda; Polifemo señala los manglares y la feria al fondo; tormenta; Don Lupe se despide."),
         };
 
+        // ---------- Acto III: La Tovara ----------
+        // Polifemo le enseñó el atajo: Ulises cruza los manglares antes de la tormenta, entre los secuaces de Circe, y
+        // llega al festival con el pan. Es el final del juego (después van los créditos).
+
+        private static readonly string[] TovaraTitles = { "Los Manglares", "La Tormenta", "La Emboscada" };
+
+        private static readonly (string caption, string note)[] TovaraIntro =
+        {
+            ("Con la canasta a la espalda, Ulises llega al embarcadero de La Tovara. Entre los manglares, el canal lleva " +
+             "directo a la feria.",
+             "Ulises con la canasta del pan en el embarcadero de madera; pangas amarradas; el canal se pierde entre los " +
+             "manglares; al fondo, las luces de la feria."),
+            ("Detrás, la tormenta avanza sobre la bahía. No hay tiempo que perder: hay que cruzar saltando de panga en panga.",
+             "Nubes negras y relámpagos sobre la bahía; Ulises salta a una panga que se mece; Polifemo le hace señas desde la orilla."),
+            ("Pero entre las raíces lo esperan los secuaces de Circe, y con ellos ratas, jejenes y cocodrilos. " +
+             "¡Que no se caiga el pan al agua!",
+             "Secuaces de Circe escondidos entre las raíces con cucharas y batidores; ratas sobre los tablones, jejenes en el " +
+             "aire y cocodrilos asomando del agua; Ulises protege la canasta."),
+        };
+
+        private static readonly string[] TovaraOutroTitles = { "El Festival", "El Pan de Plátano", "¡Que Viva San Blas!" };
+
+        private static readonly (string caption, string note)[] TovaraOutro =
+        {
+            ("Ulises cruza el arco de papel picado justo cuando empieza a llover. La feria entera voltea a verlo.",
+             "Ulises atraviesa el arco del festival con la canasta en alto; gente aplaudiendo; primeras gotas de lluvia; " +
+             "carpas de colores."),
+            ("Sobre la mesa del concurso, el pan de plátano todavía está tibio. Llegan Don Lupe y Polifemo… y hasta Madame " +
+             "Circe pide una rebanada.",
+             "Mesa del concurso con el pan dorado; Don Lupe orgulloso, Polifemo con un plato, Circe probando a escondidas; " +
+             "los jueces sonríen."),
+            ("Esa noche, bajo las luces de la feria, todo San Blas brinda con pan de plátano. La odisea terminó… y sabe a gloria.",
+             "Fiesta de noche: luces, rueda de la fortuna, Ulises y Don Lupe celebrando rodeados de gente; Polifemo carga a " +
+             "unos niños; el pan al centro."),
+        };
+
         [MenuItem("Odisea/Menús/Crear escena de historietas")]
         public static void Build()
         {
@@ -196,6 +234,19 @@ namespace Odisea.EditorTools
             {
                 if (actTwoMusic != null && (act.music == null || act.music == actMusic))
                     act.music = actTwoMusic;
+                act.musicContinues = false;
+                EditorUtility.SetDirty(act);
+            }
+            // Las dos del Acto III: con musica_acto3 si existe; si no, con la del Acto II. Si diseño les puso otra, se respeta.
+            AudioClip actThreeMusic = GameSoundsBuilder.LoadMusic(ActThreeMusicPath) ?? actTwoMusic;
+            foreach (ComicSequence act in new[]
+                     {
+                         EnsureStory(SceneFlow.TovaraStory, "Acto III · Carrera por los manglares", TovaraIntro, TovaraTitles),
+                         EnsureStory(SceneFlow.TovaraOutroStory, "Final · El Festival del Pan de Plátano", TovaraOutro, TovaraOutroTitles),
+                     })
+            {
+                if (actThreeMusic != null && (act.music == null || act.music == actTwoMusic))
+                    act.music = actThreeMusic;
                 act.musicContinues = false;
                 EditorUtility.SetDirty(act);
             }

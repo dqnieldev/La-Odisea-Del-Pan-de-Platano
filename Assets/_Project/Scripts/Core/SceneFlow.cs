@@ -35,6 +35,11 @@ namespace Odisea.Core
         /// <summary>Historietas del Acto II: al entrar al Horno (desde el mapa) y después de vencer a Polifemo.</summary>
         public const string HornoStory = "Horno";
         public const string HornoOutroStory = "HornoSalida";
+        /// <summary>Nivel 3: la carrera por los manglares hasta el festival.</summary>
+        public const string Tovara = "Tovara";
+        /// <summary>Historietas del Acto III: al entrar a La Tovara (desde el mapa) y al llegar al festival.</summary>
+        public const string TovaraStory = "Tovara";
+        public const string TovaraOutroStory = "TovaraSalida";
 
         /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
         public static string PendingStory { get; private set; }

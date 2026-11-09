@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: Tovara
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: "Acto III \xB7 Carrera por los manglares"
+  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
+  musicContinues: 0
+  panels:
+  - title: Los Manglares
+    art: {fileID: 0}
+    caption: Con la canasta a la espalda, Ulises llega al embarcadero de La Tovara. Entre los manglares, el canal lleva directo a la feria.
+    placeholderNote: Ulises con la canasta del pan en el embarcadero de madera; pangas amarradas; el canal se pierde entre los manglares; al fondo, las luces de la feria.
+  - title: La Tormenta
+    art: {fileID: 0}
+    caption: "Detr\xE1s, la tormenta avanza sobre la bah\xEDa. No hay tiempo que perder: hay que cruzar saltando de panga en panga."
+    placeholderNote: "Nubes negras y rel\xE1mpagos sobre la bah\xEDa; Ulises salta a una panga que se mece; Polifemo le hace se\xF1as desde la orilla."
+  - title: La Emboscada
+    art: {fileID: 0}
+    caption: "Pero entre las ra\xEDces lo esperan los secuaces de Circe, y con ellos ratas, jejenes y cocodrilos. \xA1Que no se caiga el pan al agua!"
+    placeholderNote: "Secuaces de Circe escondidos entre las ra\xEDces con cucharas y batidores; ratas sobre los tablones, jejenes en el aire y cocodrilos asomando del agua; Ulises protege la canasta."
