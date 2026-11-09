@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Horno
   m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
   title: "Acto II \xB7 El asedio a la panader\xEDa"
-  music: {fileID: 8300000, guid: 44811eca46e6572498f3b20ace1b0458, type: 3}
+  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
   musicContinues: 0
   panels:
   - title: El Patio del Horno
