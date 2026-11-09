@@ -377,7 +377,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(alert, "enemyLayers", 1 << enemyLayer);
         }
 
-        // Estrellita de cuatro puntas blanca (se tiñe de morado) para los destellos de la meta.
+        // Estrellita de cuatro puntas blanca (se tiñe de dorado) para los destellos de la meta.
         private const string SparklePath = "Assets/_Project/Art/Placeholders/Destello.png";
         private const string UnlitSpritePath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
 
@@ -396,7 +396,7 @@ namespace Odisea.EditorTools
         }
 
         // El pan de plátano recién horneado, frente al horno: la meta (apagada hasta vencer a Polifemo). Flota subiendo
-        // y bajando, rodeado de destellos morados.
+        // y bajando, rodeado de destellos dorados.
         private static GameObject CreateGoal(Transform root, Sprite circle, int playerLayer)
         {
             var goal = new GameObject("Meta (pan horneado)");

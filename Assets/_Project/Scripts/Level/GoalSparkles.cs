@@ -20,7 +20,7 @@ namespace Odisea.Level
         [Tooltip("Sprite-Unlit: las luces de la escena no los apagan.")]
         [SerializeField] private Material material;
         [Tooltip("Lo transparente va en la textura: con alfa en el color casi no se ven.")]
-        [SerializeField] private Color color = new(0.72f, 0.42f, 1f);
+        [SerializeField] private Color color = new(1f, 0.82f, 0.25f);
         [SerializeField, Min(1)] private int count = 14;
         [Tooltip("Medio ancho y medio alto del óvalo donde salen.")]
         [SerializeField] private Vector2 area = new(1.3f, 0.95f);
