@@ -137,7 +137,10 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(spawner, "groundX", HalfWidth - 0.3f);
             PlayerSandboxBuilder.SetSerialized(spawner, "airHeights", new Vector2(2.2f, 4f));
             PlayerSandboxBuilder.SetSerialized(spawner, "boss", boss);
-            PlayerSandboxBuilder.SetSerialized(spawner, "bossHelpers", new Object[] { rat, gnats });
+            // Con Polifemo salen más jejenes que ratas (2 de cada 3): obligan a saltar sin que se cuelen al horno tan
+            // fácil como las ratas mientras peleas con él.
+            PlayerSandboxBuilder.SetSerialized(spawner, "bossHelpers", new Object[] { rat, gnats, gnats });
+            PlayerSandboxBuilder.SetSerialized(spawner, "rageHelperInterval", 2.2f);
             SetWaves(spawner, rat, crocodile, gnats);
 
             // ----- Ítems de ayuda que caen del cielo cada tanto (pescado, hoja o café) -----

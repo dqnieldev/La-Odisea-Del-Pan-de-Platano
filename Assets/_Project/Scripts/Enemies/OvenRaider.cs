@@ -21,6 +21,8 @@ namespace Odisea.Enemies
         [Tooltip("Cuánta vida le quita al horno cada mordida.")]
         [SerializeField, Min(1)] private int ovenDamage = 1;
         [SerializeField, Min(0.1f)] private float attackInterval = 1.4f;
+        [Tooltip("Lo que tarda en dar la primera mordida al llegar al horno (para que se note a qué llegó).")]
+        [SerializeField, Min(0f)] private float firstAttackDelay = 0.2f;
         [Tooltip("Del inicio de la mordida al momento en que le pega al horno.")]
         [SerializeField, Min(0f)] private float attackHitDelay = 0.25f;
         [Tooltip("Dónde se detiene, además del medio ancho del horno (el hocico llega antes que el cuerpo).")]
@@ -35,12 +37,14 @@ namespace Odisea.Enemies
         private static readonly int BiteId = Animator.StringToHash("Bite");
         private static readonly int HurtId = Animator.StringToHash("Hurt");
         private static readonly int DieId = Animator.StringToHash("Die");
+        private static readonly int WalkId = Animator.StringToHash("Walk");
 
         private Rigidbody2D body;
         private Oven oven;
         private float stunTimer;
         private float attackTimer;
         private bool dead;
+        private bool arrived;
         private bool fleeing;
         private float fleeFrom;
 
@@ -73,7 +77,7 @@ namespace Odisea.Enemies
         {
             if (oven == null)
                 oven = FindAnyObjectByType<Oven>();
-            attackTimer = attackInterval * 0.3f;
+            attackTimer = firstAttackDelay;
         }
 
         private void FixedUpdate()
@@ -85,6 +89,7 @@ namespace Odisea.Enemies
             {
                 // Huye alejándose del horno y desaparece fuera de la pantalla.
                 Face(-dx);
+                Walk();
                 body.MovePosition(body.position + new Vector2(-Mathf.Sign(dx) * speed * 1.3f * Time.fixedDeltaTime, 0f));
                 if (Mathf.Abs(body.position.x - fleeFrom) > fleeDistance)
                     Destroy(gameObject);
@@ -101,11 +106,21 @@ namespace Odisea.Enemies
             {
                 float step = Mathf.Min(speed * Time.fixedDeltaTime, Mathf.Abs(dx) - stop);
                 body.MovePosition(body.position + new Vector2(Mathf.Sign(dx) * step, 0f));
+                Walk();
                 return;
+            }
+            if (!arrived)
+            {
+                // Al llegar muerde casi de inmediato; luego, cada attackInterval.
+                arrived = true;
+                attackTimer = Mathf.Min(attackTimer, firstAttackDelay);
             }
             attackTimer -= Time.fixedDeltaTime;
             if (attackTimer > 0f)
+            {
+                Rest();
                 return;
+            }
             attackTimer = attackInterval;
             StartCoroutine(Attack());
         }
@@ -160,7 +175,27 @@ namespace Odisea.Enemies
         private void SetTrigger(int id)
         {
             if (animator != null && animator.runtimeAnimatorController != null)
+            {
+                animator.speed = 1f;
                 animator.SetTrigger(id);
+            }
+        }
+
+        // Entre mordidas no camina en su lugar: se queda quieto en el primer cuadro de la caminata (no hay animación de
+        // parado). En cuanto se mueve, lo golpean o muerde, la animación sigue.
+        private void Rest()
+        {
+            if (animator == null || animator.runtimeAnimatorController == null || animator.speed == 0f ||
+                animator.IsInTransition(0) || animator.GetCurrentAnimatorStateInfo(0).shortNameHash != WalkId)
+                return;
+            animator.Play(WalkId, 0, 0f);
+            animator.speed = 0f;
+        }
+
+        private void Walk()
+        {
+            if (animator != null)
+                animator.speed = 1f;
         }
     }
 }

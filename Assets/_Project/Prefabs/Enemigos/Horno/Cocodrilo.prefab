@@ -277,6 +277,7 @@ MonoBehaviour:
   speed: 1.4
   ovenDamage: 1
   attackInterval: 2.6
+  firstAttackDelay: 0.2
   attackHitDelay: 0.3
   reach: 0.9
   hurtStun: 0.45
