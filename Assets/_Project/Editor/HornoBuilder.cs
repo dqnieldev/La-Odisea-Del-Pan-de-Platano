@@ -384,8 +384,14 @@ namespace Odisea.EditorTools
             area.size = new Vector2(2f, 2f);
             var glow = Part("Brillo", goal.transform, circle, Vector2.zero, new Vector2(2.4f, 2.4f), new Color(1f, 0.93f, 0.6f, 0.6f), 4);
             glow.name = "Brillo";
-            Part("Pan", goal.transform, circle, Vector2.zero, new Vector2(1.6f, 0.8f), Bread, 5);
-            Part("Corteza", goal.transform, circle, new Vector2(0f, 0.12f), new Vector2(1.3f, 0.45f), new Color(0.66f, 0.38f, 0.14f), 6);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(ArtImportBuilder.BananaBreadPath) is { } bread)
+                Part("Pan", goal.transform, bread, Vector2.zero, Vector2.one, Color.white, 5);
+            else
+            {
+                // Sin su dibujo, un óvalo café con su corteza.
+                Part("Pan", goal.transform, circle, Vector2.zero, new Vector2(1.6f, 0.8f), Bread, 5);
+                Part("Corteza", goal.transform, circle, new Vector2(0f, 0.12f), new Vector2(1.3f, 0.45f), new Color(0.66f, 0.38f, 0.14f), 6);
+            }
             var component = goal.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
@@ -571,7 +577,7 @@ namespace Odisea.EditorTools
             root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var area = root.AddComponent<CircleCollider2D>();
             area.isTrigger = true;
-            area.radius = 0.65f;
+            area.radius = 0.85f;
             var visual = new GameObject("Visual") { layer = level.EnemyLayer }.transform;
             visual.SetParent(root.transform, false);
             var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
@@ -605,7 +611,7 @@ namespace Odisea.EditorTools
             AddLoop(root, GameSoundsBuilder.Load(GnatSoundFolder, "jejenes"), health, 0.45f);
             Feedback(root, health, visual, new[] { renderer }, 0f);
             // Vuelan: su sombra queda en el piso, chica y clara.
-            Shadow(root, level, new Vector2(1.3f, 0.32f), Vector2.zero, health, 7f);
+            Shadow(root, level, new Vector2(1.7f, 0.36f), Vector2.zero, health, 7f);
             return SavePrefab(root);
         }
 

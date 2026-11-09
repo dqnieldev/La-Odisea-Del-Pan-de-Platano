@@ -100,6 +100,7 @@ namespace Odisea.EditorTools
             ImportGoldenBunch();
             ImportPolifemo();
             ImportGnats();
+            ImportBananaBread();
             ImportRat();
             ImportHornoArt();
             ImportScoreBoard();
@@ -668,8 +669,8 @@ namespace Odisea.EditorTools
         public const string GnatsFolder = HenchmenFolder + "/Jejenes";
         public static string GnatFramePath(int frame) => $"{GnatsFolder}/Jejenes_{frame}.png";
         public const int GnatFrames = 4;
-        /// <summary>Lo ancho del enjambre en el juego.</summary>
-        private const float GnatSwarmWidth = 1.6f;
+        /// <summary>Lo ancho del enjambre en el juego (son pocos jejenes grandes: se les ve la cara).</summary>
+        private const float GnatSwarmWidth = 2.2f;
 
         /// <summary>
         /// La hoja trae 4 enjambres en fila, cada uno hecho de muchos bichitos sueltos: se parte en 4 columnas iguales
@@ -693,6 +694,24 @@ namespace Odisea.EditorTools
             float ppu = widest / GnatSwarmWidth;
             for (int i = 0; i < GnatFrames; i++)
                 WriteRegion(sheet, regions[i], GnatFramePath(i), ppu, new Vector2(0.5f, 0.5f));
+        }
+
+        // ---------- El pan de plátano horneado (la meta del Horno) ----------
+
+        public const string BananaBreadPath = ItemsFolder + "/PanDePlatano.png";
+        /// <summary>Lo ancho del pan (con su hoja) en el juego.</summary>
+        public const float BananaBreadWidth = 1.9f;
+
+        /// <summary>El pan de plátano sobre su hoja (Items/pan_de_platano.png), recortado a lo que tiene.</summary>
+        [MenuItem("Odisea/Arte/Importar pan de plátano")]
+        public static void ImportBananaBread()
+        {
+            Sheet sheet = LoadSheet("Items/pan_de_platano.png", warnIfMissing: false);
+            if (sheet == null)
+                return;
+            EnsureFolder(ItemsFolder);
+            RectInt bounds = OpaqueBounds(sheet);
+            WriteRegion(sheet, bounds, BananaBreadPath, bounds.width / BananaBreadWidth, new Vector2(0.5f, 0.5f));
         }
 
         // ---------- Polifemo (jefe del Mercado) ----------
