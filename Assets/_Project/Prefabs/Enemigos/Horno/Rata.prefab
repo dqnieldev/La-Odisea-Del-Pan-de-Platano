@@ -178,6 +178,18 @@ MonoBehaviour:
     pitchVariation: 0.06
     clipVolumes:
     - 1
+  hurtSound:
+    clips: []
+    volume: 1
+    pitchVariation: 0.06
+    clipVolumes: []
+  deathSound:
+    clips:
+    - {fileID: 8300000, guid: 0774cca5ae665fb43bd9d86f844b5b21, type: 3}
+    volume: 0.8
+    pitchVariation: 0.06
+    clipVolumes:
+    - 1
 --- !u!82 &6317096102924054543
 AudioSource:
   m_ObjectHideFlags: 0

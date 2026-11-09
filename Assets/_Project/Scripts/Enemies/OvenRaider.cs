@@ -33,6 +33,9 @@ namespace Odisea.Enemies
         [SerializeField] private bool fleeAfterAttack;
         [SerializeField, Min(0f)] private float fleeDistance = 14f;
         [SerializeField] private SoundEffect attackSound = new();
+        [SerializeField] private SoundEffect hurtSound = new();
+        [Tooltip("Al morir (si no tiene, suena el de daño).")]
+        [SerializeField] private SoundEffect deathSound = new();
 
         private static readonly int BiteId = Animator.StringToHash("Bite");
         private static readonly int HurtId = Animator.StringToHash("Hurt");
@@ -147,6 +150,7 @@ namespace Odisea.Enemies
             stunTimer = hurtStun;
             attackTimer = Mathf.Max(attackTimer, hurtStun + 0.2f);
             SetTrigger(HurtId);
+            hurtSound.Play();
             // Retrocede, alejándose de quien le pegó.
             float away = Mathf.Sign(body.position.x - info.SourcePosition.x);
             if (Mathf.Approximately(away, 0f))
@@ -161,6 +165,7 @@ namespace Odisea.Enemies
             if (contact != null)
                 contact.enabled = false;
             SetTrigger(DieId);
+            (deathSound.HasClips ? deathSound : hurtSound).Play();
         }
 
         private void Face(float dx)

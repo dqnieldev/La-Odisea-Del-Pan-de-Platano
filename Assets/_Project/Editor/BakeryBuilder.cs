@@ -83,6 +83,13 @@ namespace Odisea.EditorTools
                 "¡Ese plátano huele a gloria! Sigue así, muchacho.",
                 "El horno y la panadería te necesitan. No te rindas.",
             }),
+            (GameProgress.Horno, new[]
+            {
+                "¡Mira nada más qué corteza! Ni mi abuelo sacaba un pan así de dorado.",
+                "Y quién lo diría: hasta Polifemo terminó pidiendo otra rebanada.",
+                "Pero la feria ya empezó y la tormenta cerró el camino de la costa.",
+                "Hazle caso al gigante: por los manglares de La Tovara llegas más rápido. ¡Y cuida esa canasta!",
+            }),
         };
 
         private static readonly string[] ExitLockedLines =

@@ -513,6 +513,7 @@ namespace Odisea.EditorTools
                     PlayerSandboxBuilder.SetSerialized(raider, "hurtStun", hurt.length);
                 float death = AssetDatabase.LoadAssetAtPath<AnimationClip>(ArtImportBuilder.RatClipPath("Die")) is { } die ? die.length : 0f;
                 GameSoundsBuilder.SetSound(raider, "attackSound", GameSoundsBuilder.Load(RatSoundFolder, "raton_golpe"), 0.8f);
+                GameSoundsBuilder.SetSound(raider, "deathSound", GameSoundsBuilder.Load(RatSoundFolder, "raton_muerte"), 0.8f);
                 AddLoop(root, GameSoundsBuilder.Load(RatSoundFolder, "raton"), health, 0.35f);
                 Feedback(root, health, visual, new[] { renderer }, death);
                 Shadow(root, level, new Vector2(1.25f, 0.32f), Vector2.zero, health, 3f);
@@ -568,6 +569,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(raider, "attackHitDelay", 0.3f);
             PlayerSandboxBuilder.SetSerialized(raider, "reach", 0.9f);
             GameSoundsBuilder.SetSound(raider, "attackSound", GameSoundsBuilder.Load(GameSoundsBuilder.CrocodileFolder, "mordida"), 0.7f);
+            GameSoundsBuilder.SetSound(raider, "hurtSound", GameSoundsBuilder.Load(GameSoundsBuilder.CrocodileFolder, "dano"), 0.8f);
+            GameSoundsBuilder.SetSound(raider, "deathSound", GameSoundsBuilder.Load(GameSoundsBuilder.CrocodileFolder, "muerte"), 0.9f);
             Feedback(root, health, visual, new[] { renderer }, deathTime);
             Shadow(root, level, new Vector2(2.1f, 0.42f), Vector2.zero, health, 3f);
             return SavePrefab(root);
