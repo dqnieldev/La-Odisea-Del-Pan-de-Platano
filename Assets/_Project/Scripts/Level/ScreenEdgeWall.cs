@@ -16,6 +16,7 @@ namespace Odisea.Level
         [SerializeField, Min(0f)] private float halfWidth = 0.5f;
 
         private Rigidbody2D body;
+        private bool placed;
 
         private void Awake()
         {
@@ -29,8 +30,17 @@ namespace Odisea.Level
         {
             if (follow == null)
                 return;
-            float y = follow.transform.position.y;
-            body.MovePosition(new Vector2(follow.LeftEdge - halfWidth, y));
+            var target = new Vector2(follow.LeftEdge - halfWidth, follow.transform.position.y);
+            // La primera vez (y si la cámara saltó lejos) aparece directo en su lugar: si se deslizara hasta ahí,
+            // arrastraría a Ulises fuera de la pantalla. Después sí se mueve, para empujarlo si se queda atrás.
+            if (!placed || Mathf.Abs(body.position.x - target.x) > 1f)
+            {
+                body.position = target;
+                transform.position = target;
+                placed = true;
+                return;
+            }
+            body.MovePosition(target);
         }
     }
 }

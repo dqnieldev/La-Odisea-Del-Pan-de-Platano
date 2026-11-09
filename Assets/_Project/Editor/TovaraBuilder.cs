@@ -79,7 +79,7 @@ namespace Odisea.EditorTools
         };
 
         // Enemigos: secuaces (x, altura del piso), ratas, cocodrilos y jejenes (x, altura en el aire).
-        private static readonly (float x, float y)[] Henchmen = { (12f, 0f), (47f, 0f), (113.5f, 1.0f), (133f, 0.2f), (165f, 1.4f) };
+        private static readonly (float x, float y)[] Henchmen = { (15.5f, 0f), (47f, 0f), (113.5f, 1.0f), (133f, 0.2f), (165f, 1.4f) };
         private static readonly (float x, float y)[] Rats = { (27f, 0f), (31f, 0f), (51f, 0f), (129f, 0.2f), (137f, 0.2f), (180f, 0f) };
         private static readonly (float x, float y)[] Crocodiles = { (94f, 1.6f), (67f, 1.2f), (135f, 0.2f) };
         private static readonly (float x, float y)[] Gnats = { (88f, 4f), (110f, 4.5f), (149f, 4f), (176f, 4f) };
@@ -172,6 +172,8 @@ namespace Odisea.EditorTools
 
             var wall = new GameObject("Orilla de la pantalla") { layer = level.GroundLayer };
             wall.transform.SetParent(level.Root, false);
+            // Ya en la orilla izquierda de la primera vista (16:9), lejos de donde aparece Ulises.
+            wall.transform.position = new Vector3(CameraMinX - 7f * 16f / 9f - 0.5f, CameraY, 0f);
             wall.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             wall.AddComponent<BoxCollider2D>().size = new Vector2(1f, 40f);
             PlayerSandboxBuilder.SetSerialized(wall.AddComponent<ScreenEdgeWall>(), "follow", follow);
