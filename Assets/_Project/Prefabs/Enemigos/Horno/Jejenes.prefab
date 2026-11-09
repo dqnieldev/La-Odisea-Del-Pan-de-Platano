@@ -116,7 +116,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6233bc11f9366d84594059bd266a5838, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.Health
-  maxHealth: 2
+  maxHealth: 1
   invulnerabilityTime: 0.3
   destroyOnDeath: 0
 --- !u!114 &8725588945355357135

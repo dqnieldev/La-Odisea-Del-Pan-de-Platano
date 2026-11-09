@@ -632,9 +632,10 @@ namespace Odisea.EditorTools
                 renderer.color = new Color(0.3f, 0.3f, 0.32f, 0.85f);
                 visual.localScale = new Vector3(1.3f, 1f, 1f);
             }
-            // Aguantan dos golpes: el primero deshace parte del enjambre.
+            // De un golpe (con más vida se sentían muy difíciles con su vuelo a arrancones). Si se les sube, el primer
+            // golpe los achica y los dispersa (GnatSwarm).
             var health = root.AddComponent<Health>();
-            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
+            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 1);
             PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.3f);
             PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
             var hazard = root.AddComponent<Hazard>();
