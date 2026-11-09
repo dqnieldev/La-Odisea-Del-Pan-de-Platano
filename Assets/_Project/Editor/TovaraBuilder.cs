@@ -16,7 +16,8 @@ namespace Odisea.EditorTools
     /// <list type="bullet">
     /// <item>Tramo 1 (muelle y orilla, x 0-55): piso firme con huecos chicos de agua.</item>
     /// <item>Tramo 2 (manglar, x 55-125): pangas, tablones con cocodrilos, piedras y jejenes.</item>
-    /// <item>Tramo 3 (canal final, x 125-190): más enemigos juntos y, al final, el festival.</item>
+    /// <item>Tramo 3 (raíces altas, x 125-205): piedras y tablones que suben, una isla con enemigos y pangas.</item>
+    /// <item>Tramo 4 (canal final, x 205-270): más enemigos juntos y, al final, el festival.</item>
     /// </list>
     /// </summary>
     public static class TovaraBuilder
@@ -34,8 +35,8 @@ namespace Odisea.EditorTools
         private const float WaterKill = -1.1f;
         private const float WaterBottom = -9f;
         private const float LevelStart = -16f;
-        private const float LevelEnd = 200f;
-        private const float GoalX = 186f;
+        private const float LevelEnd = 280f;
+        private const float GoalX = 266f;
         // La cámara a una altura fija (el nivel corre a lo ancho) y hasta dónde llega.
         private const float CameraY = 3.4f;
         private const float CameraMinX = -2f;
@@ -58,31 +59,39 @@ namespace Odisea.EditorTools
         private static readonly (float from, float to, float top)[] Shores =
         {
             (LevelStart, 18f, 0f), (21.5f, 34f, 0f), (38.5f, 55f, 0f),
-            (126f, 140f, 0.2f), (171f, LevelEnd, 0f),
+            (147.5f, 160f, 0.3f),
+            (206f, 220f, 0.2f), (251f, LevelEnd, 0f),
         };
         // Pangas que flotan: centro y ancho.
         private static readonly (float x, float width)[] Boats =
         {
             (36.2f, 3f), (57.5f, 3f), (81.5f, 3f), (86f, 3f), (105.5f, 3f), (123f, 3f),
-            (143.5f, 3f), (147.8f, 3f), (152.1f, 3f),
+            (140.5f, 3f), (144.5f, 3f), (181f, 3f), (189f, 3f), (203.5f, 3f),
+            (223.5f, 3f), (227.8f, 3f), (232.1f, 3f),
         };
         // Tablones sobre raíces (de un sentido): centro, ancho, altura.
         private static readonly (float x, float width, float y)[] Planks =
         {
-            (64.5f, 8f, 1.2f), (94f, 10f, 1.6f), (113.5f, 10f, 1.0f), (165f, 8f, 1.4f),
+            (64.5f, 8f, 1.2f), (94f, 10f, 1.6f), (113.5f, 10f, 1.0f),
+            (132f, 6f, 1.4f), (164.5f, 6f, 1.6f), (171.5f, 6f, 2.6f), (196f, 10f, 1.2f),
+            (245f, 8f, 1.4f),
         };
         // Piedras: centro, ancho, altura de la cara de arriba.
         private static readonly (float x, float width, float top)[] Stones =
         {
             (70.5f, 2f, 0.6f), (74f, 2f, 1.2f), (77.5f, 2f, 0.4f), (101.2f, 2f, 1.0f), (118.6f, 2f, 0.6f),
-            (156f, 2f, 0.8f), (159.5f, 2f, 1.4f),
+            (126.5f, 2f, 0.4f), (137f, 2f, 1.0f), (177f, 2f, 1.2f), (185f, 2f, 0.6f),
+            (236f, 2f, 0.8f), (239.5f, 2f, 1.4f),
         };
 
         // Enemigos: secuaces (x, altura del piso), ratas, cocodrilos y jejenes (x, altura en el aire).
-        private static readonly (float x, float y)[] Henchmen = { (15.5f, 0f), (47f, 0f), (113.5f, 1.0f), (133f, 0.2f), (165f, 1.4f) };
-        private static readonly (float x, float y)[] Rats = { (27f, 0f), (31f, 0f), (51f, 0f), (129f, 0.2f), (137f, 0.2f), (180f, 0f) };
-        private static readonly (float x, float y)[] Crocodiles = { (94f, 1.6f), (67f, 1.2f), (135f, 0.2f) };
-        private static readonly (float x, float y)[] Gnats = { (88f, 4f), (110f, 4.5f), (149f, 4f), (176f, 4f) };
+        private static readonly (float x, float y)[] Henchmen = { (15.5f, 0f), (47f, 0f), (113.5f, 1.0f), (132f, 1.4f), (153f, 0.3f),
+            (213f, 0.2f), (245f, 1.4f) };
+        private static readonly (float x, float y)[] Rats = { (27f, 0f), (31f, 0f), (51f, 0f), (149f, 0.3f), (157.5f, 0.3f),
+            (209f, 0.2f), (217f, 0.2f), (260f, 0f) };
+        private static readonly (float x, float y)[] Crocodiles = { (94f, 1.6f), (67f, 1.2f), (171.5f, 2.6f), (196f, 1.2f), (215f, 0.2f) };
+        private static readonly (float x, float y)[] Gnats = { (88f, 4f), (110f, 4.5f), (143f, 4.5f), (180f, 4f), (190f, 4.5f),
+            (229f, 4f), (256f, 4f) };
 
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
@@ -112,7 +121,7 @@ namespace Odisea.EditorTools
                 GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
             PlayerSandboxBuilder.AddPlayerShadow(player, level, ShadowOrder);
             if (Object.FindAnyObjectByType<LevelScore>() is { } score)
-                PlayerSandboxBuilder.SetSerialized(score, "parTime", 100f);
+                PlayerSandboxBuilder.SetSerialized(score, "parTime", 140f);
             SetUpCamera(level);
 
             // ----- Enemigos: se encienden al acercarse la cámara -----
