@@ -91,6 +91,18 @@ namespace Odisea.Core
             return true;
         }
 
+        /// <summary>Se acaba la vida de golpe (sin escudo ni invulnerabilidad): p. ej. se quemó el pan del horno.</summary>
+        public void Kill()
+        {
+            if (IsDead)
+                return;
+            Current = 0;
+            HealthChanged?.Invoke(Current, maxHealth);
+            Died?.Invoke();
+            if (destroyOnDeath)
+                Destroy(gameObject);
+        }
+
         public void ResetHealth()
         {
             Current = maxHealth;

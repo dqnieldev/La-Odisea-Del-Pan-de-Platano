@@ -16,6 +16,8 @@ namespace Odisea.UI
         [SerializeField] private TMP_Text ingredientsText;
         [SerializeField] private TMP_Text timeText;
         [SerializeField, Min(0.01f)] private float popDuration = 0.3f;
+        [Tooltip("Opcional (nivel del horno): el texto del tiempo cuenta lo que falta de horneado en vez del tiempo del nivel.")]
+        [SerializeField] private BakeTimer bake;
 
         private int shownSecond = -1;
         private int shownIngredients = -1;
@@ -46,11 +48,12 @@ namespace Odisea.UI
         {
             if (score == null)
                 return;
-            int second = Mathf.FloorToInt(score.Seconds);
+            float shown = bake != null ? Mathf.Ceil(bake.Duration - bake.Elapsed) : score.Seconds;
+            int second = Mathf.FloorToInt(shown);
             if (second != shownSecond)
             {
                 shownSecond = second;
-                timeText.text = LevelScore.FormatTime(score.Seconds);
+                timeText.text = LevelScore.FormatTime(shown);
             }
             if (popTime < 0f)
                 return;

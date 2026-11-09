@@ -32,8 +32,16 @@ namespace Odisea.UI
                     : levelName;
             if (!allowRestart)
                 book.HideRestart();
+            if (!CanGoToMap())
+                book.HideMap();
             book.gameObject.SetActive(false);
         }
+
+        // "Volver al mapa" solo si ya se llegó a él (tutorial terminado), no estando en él y no en el tutorial que se
+        // juega desde el menú principal (ese regresa al menú).
+        private static bool CanGoToMap() =>
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != SceneFlow.Map &&
+            !SceneFlow.TutorialFromMenu && GameProgress.IsDone(GameProgress.Tutorial);
 
         private void Update()
         {

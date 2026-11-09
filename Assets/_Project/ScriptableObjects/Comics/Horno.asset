@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: Horno
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: "Acto II \xB7 El asedio a la panader\xEDa"
+  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
+  musicContinues: 0
+  panels:
+  - title: El Patio del Horno
+    art: {fileID: 21300000, guid: d72ab52a52850f1498538b7b352f5198, type: 3}
+    caption: "De vuelta en el barrio, el sol del mediod\xEDa aprieta. En el patio trasero, el viejo horno de barro y adobe ya ruge con la le\xF1a encendida."
+    placeholderNote: "Patio trasero al mediod\xEDa: Don Lupe aviva el fuego del horno de barro; Ulises llega con el morral y el racimo."
+  - title: La Masa
+    art: {fileID: 21300000, guid: 5a7fa72ac7431e54bb519862eefca7aa, type: 3}
+    caption: "Ulises machaca los pl\xE1tanos, agrega la canela reci\xE9n molida y bate con la cuchara de madera hasta lograr una masa densa, brillante y olorosa."
+    placeholderNote: "Ulises bate la masa en un taz\xF3n de barro; Don Lupe la prueba con el dedo y asiente."
+  - title: Al Horno
+    art: {fileID: 21300000, guid: afbb37362a3244c4aa83a3a99dd867db, type: 3}
+    caption: "El molde entra al horno. Ahora solo hay que esperar\u2026 y cuidar que nadie se acerque."
+    placeholderNote: Ulises mete el molde al horno con la pala; un vapor dulce y dorado se va volando sobre las bardas del barrio.
+  - title: El Olor
+    art: {fileID: 21300000, guid: c9bf665546d5966419b67d0f7759cca7, type: 3}
+    caption: "Pero en la costa, el olor a pl\xE1tano con canela no pasa desapercibido. Desde la bodega, el aire y el canal, algo despierta."
+    placeholderNote: 'Tres cuadros cruzados por el vapor dorado: ratas en las grietas de la bodega, jejenes en el aire y cocodrilos en el canal.'
+  - title: Polifemo se Entera
+    art: {fileID: 21300000, guid: 313c2f1c74849624abfd9cc481e6ce14, type: 3}
+    caption: "En el Mercado, Polifemo descubre el gancho vac\xEDo donde colgaban sus pl\xE1tanos reales. Madame Circe le susurra: \xABYo s\xE9 qui\xE9n se los llev\xF3\u2026 y a d\xF3nde.\xBB"
+    placeholderNote: "Polifemo, rojo de coraje, se\xF1ala el gancho vac\xEDo bajo el tragaluz; Circe le susurra y apunta hacia el barrio."
+  - title: El Asedio
+    art: {fileID: 21300000, guid: f526a444984b9cc46aa00aa4929df302, type: 3}
+    caption: "Al caer la tarde, el patio se llena de intrusos. Don Lupe grita: \xAB\xA1Que no se acerquen al horno! \xA1Si se quema el pan, se acab\xF3!\xBB Y sobre la barda asoma Polifemo, cargando sus ollas."
+    placeholderNote: 'Atardecer: Ulises en guardia con el rodillo frente al horno, rodeado de ratas, cocodrilos y jejenes; Polifemo asoma por la barda.'

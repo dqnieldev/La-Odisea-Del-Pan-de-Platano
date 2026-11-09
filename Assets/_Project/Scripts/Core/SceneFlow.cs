@@ -32,6 +32,9 @@ namespace Odisea.Core
         /// <summary>Historietas del Acto I: al entrar al Mercado (desde el mapa) y al llegar al racimo.</summary>
         public const string MercadoStory = "Mercado";
         public const string MercadoOutroStory = "MercadoSalida";
+        /// <summary>Historietas del Acto II: al entrar al Horno (desde el mapa) y después de vencer a Polifemo.</summary>
+        public const string HornoStory = "Horno";
+        public const string HornoOutroStory = "HornoSalida";
 
         /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
         public static string PendingStory { get; private set; }

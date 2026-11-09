@@ -193,6 +193,14 @@ namespace Odisea.Core
             Destroy(gameObject);
         }
 
+        /// <summary>Cambia el color normal del dibujo (al que regresa después de cada destello).</summary>
+        public void Tint(Color color)
+        {
+            for (int i = 0; i < originalColors.Length; i++)
+                originalColors[i] = color;
+            SetColors(_ => color);
+        }
+
         private void SetColors(System.Func<int, Color> colorFor)
         {
             for (int i = 0; i < renderers.Length; i++)

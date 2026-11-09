@@ -44,6 +44,8 @@ namespace Odisea.UI
         [SerializeField] private Button backButton;
         [Tooltip("Opcional (pausa): reinicia la escena actual.")]
         [SerializeField] private Button restartButton;
+        [Tooltip("Opcional (pausa): sale del nivel al mapa.")]
+        [SerializeField] private Button mapButton;
         [Tooltip("Opcional: regresa al inicio del juego (logo y luego el video del título).")]
         [SerializeField] private Button titleButton;
         [Tooltip("Opcional (pausa): sale al menú principal.")]
@@ -134,42 +136,65 @@ namespace Odisea.UI
                     Checkpoints.Clear();
                     SceneFlow.ReloadCurrent();
                 }));
+            if (mapButton != null)
+                mapButton.onClick.AddListener(() => Leave(() =>
+                {
+                    // Al volver a entrar al nivel se empieza desde el principio.
+                    Checkpoints.Clear();
+                    SceneFlow.Load(SceneFlow.Map);
+                }));
             if (titleButton != null)
                 titleButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.Splash)));
             if (exitToMenuButton != null)
                 exitToMenuButton.onClick.AddListener(() => Leave(() => SceneFlow.Load(SceneFlow.MainMenu)));
         }
 
-        /// <summary>
-        /// Quita "Reiniciar nivel" del índice (en el mapa) y une los botones de arriba y de abajo para que el teclado y el
-        /// mando lo salten.
-        /// </summary>
+        /// <summary>Quita "Reiniciar nivel" del índice (en el mapa).</summary>
         public void HideRestart()
         {
-            if (restartButton == null)
+            HideIndexItem(restartButton);
+            restartButton = null;
+        }
+
+        /// <summary>Quita "Volver al mapa" del índice (en el mapa o cuando todavía no se llega a él).</summary>
+        public void HideMap()
+        {
+            HideIndexItem(mapButton);
+            mapButton = null;
+        }
+
+        // Quita un botón del índice y une los de arriba y abajo para que el teclado y el mando lo salten. Los de arriba
+        // bajan a medio camino, para que no quede un hueco solo debajo de ellos.
+        private void HideIndexItem(Button item)
+        {
+            if (item == null || !item.gameObject.activeSelf)
                 return;
-            Navigation skipped = restartButton.navigation;
+            Navigation skipped = item.navigation;
             foreach (Selectable selectable in GetComponentsInChildren<Selectable>(true))
             {
                 Navigation navigation = selectable.navigation;
                 if (navigation.mode != Navigation.Mode.Explicit)
                     continue;
-                if (navigation.selectOnDown == restartButton)
+                if (navigation.selectOnDown == item)
                     navigation.selectOnDown = skipped.selectOnDown;
-                if (navigation.selectOnUp == restartButton)
+                if (navigation.selectOnUp == item)
                     navigation.selectOnUp = skipped.selectOnUp;
                 selectable.navigation = navigation;
             }
-            // El de arriba (Continuar) baja a medio camino, para que no quede un hueco solo debajo de él.
-            if (skipped.selectOnUp != null)
+            var removed = (RectTransform)item.transform;
+            if (skipped.selectOnUp != null && skipped.selectOnUp.transform.parent == removed.parent)
             {
                 var above = (RectTransform)skipped.selectOnUp.transform;
-                var removed = (RectTransform)restartButton.transform;
-                above.anchoredPosition = new Vector2(above.anchoredPosition.x,
-                    (above.anchoredPosition.y + removed.anchoredPosition.y) / 2f);
+                float shift = (above.anchoredPosition.y - removed.anchoredPosition.y) / 2f;
+                if (shift > 0f)
+                    foreach (RectTransform sibling in removed.parent)
+                    {
+                        if (sibling != removed && sibling.gameObject.activeSelf && sibling.GetComponent<Button>() != null &&
+                            sibling.anchoredPosition.y > removed.anchoredPosition.y)
+                            sibling.anchoredPosition -= new Vector2(0f, shift);
+                    }
             }
-            restartButton.gameObject.SetActive(false);
-            restartButton = null;
+            item.gameObject.SetActive(false);
         }
 
         public void Open(Action onClosed)

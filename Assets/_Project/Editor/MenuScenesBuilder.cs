@@ -318,6 +318,57 @@ namespace Odisea.EditorTools
         private const string PageSoundName = "ui_clickOptions";
         // El libro de pausa es más chico para que se vea el juego alrededor.
         private const float PauseBookScale = 0.72f;
+        // Altura de cada renglón del índice de la pausa: Continuar, Reiniciar, Volver al mapa | Audio, Pantalla,
+        // Controles | Ir al título, Salir al menú.
+        private static readonly float[] PauseIndexY = { -235f, -290f, -345f, -420f, -475f, -530f, -605f, -660f };
+
+        /// <summary>
+        /// Agrega "Volver al mapa" al prefab de la pausa ya hecho, sin regenerarlo (regenerarlo cambia los ids internos y
+        /// los niveles que lo usan pierden la referencia).
+        /// </summary>
+        [MenuItem("Odisea/Menús/Agregar \"Volver al mapa\" a la pausa")]
+        public static void AddMapButtonToPausePrefab()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(PausePrefabPath);
+            try
+            {
+                OptionsPanel options = root.GetComponentInChildren<OptionsPanel>(true);
+                var serialized = new SerializedObject(options);
+                if (serialized.FindProperty("mapButton").objectReferenceValue != null)
+                {
+                    Debug.Log("[Odisea] La pausa ya tiene \"Volver al mapa\".");
+                    return;
+                }
+                var restart = (Button)serialized.FindProperty("restartButton").objectReferenceValue;
+                Transform index = restart.transform.parent;
+                Button Item(string label) => index.Find($"Botón {label}").GetComponent<Button>();
+                Button map = UnityEngine.Object.Instantiate(restart, index);
+                map.name = "Botón VOLVER AL MAPA";
+                // El texto y sus dos aberraciones de color.
+                foreach (TMP_Text text in map.GetComponentsInChildren<TMP_Text>(true))
+                    text.text = "VOLVER AL MAPA";
+                map.transform.SetSiblingIndex(restart.transform.GetSiblingIndex() + 1);
+                Button[] order =
+                {
+                    Item("CONTINUAR"), restart, map, Item("AUDIO"), Item("PANTALLA"), Item("CONTROLES"), Item("IR AL TÍTULO"),
+                    Item("SALIR AL MENÚ"),
+                };
+                for (int i = 0; i < order.Length; i++)
+                {
+                    var rect = (RectTransform)order[i].transform;
+                    rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, PauseIndexY[i]);
+                }
+                LinkVertically(order);
+                serialized.FindProperty("mapButton").objectReferenceValue = map;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, PausePrefabPath);
+                Debug.Log("[Odisea] \"Volver al mapa\" agregado a la pausa.");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
 
         private enum BookMode
         {
@@ -717,18 +768,20 @@ namespace Odisea.EditorTools
             CreateDivider(left, -180f);
 
             Button audioTab, screenTab, controlsTab, titleTab, closeTab;
-            Button restartTab = null, exitTab = null;
+            Button restartTab = null, mapTab = null, exitTab = null;
             if (pause)
             {
+                // Mismas posiciones que PausePrefabLayout (que acomoda un prefab ya hecho sin regenerarlo).
                 const float size = 46f;
-                closeTab = CreateIndexItem("CONTINUAR", left, menuFont, -240f, size);
-                restartTab = CreateIndexItem("REINICIAR NIVEL", left, menuFont, -300f, size);
-                audioTab = CreateIndexItem("AUDIO", left, menuFont, -385f, size);
-                screenTab = CreateIndexItem("PANTALLA", left, menuFont, -445f, size);
-                controlsTab = CreateIndexItem("CONTROLES", left, menuFont, -505f, size);
-                titleTab = CreateIndexItem("IR AL TÍTULO", left, menuFont, -590f, size);
-                exitTab = CreateIndexItem("SALIR AL MENÚ", left, menuFont, -650f, size);
-                LinkVertically(closeTab, restartTab, audioTab, screenTab, controlsTab, titleTab, exitTab);
+                closeTab = CreateIndexItem("CONTINUAR", left, menuFont, PauseIndexY[0], size);
+                restartTab = CreateIndexItem("REINICIAR NIVEL", left, menuFont, PauseIndexY[1], size);
+                mapTab = CreateIndexItem("VOLVER AL MAPA", left, menuFont, PauseIndexY[2], size);
+                audioTab = CreateIndexItem("AUDIO", left, menuFont, PauseIndexY[3], size);
+                screenTab = CreateIndexItem("PANTALLA", left, menuFont, PauseIndexY[4], size);
+                controlsTab = CreateIndexItem("CONTROLES", left, menuFont, PauseIndexY[5], size);
+                titleTab = CreateIndexItem("IR AL TÍTULO", left, menuFont, PauseIndexY[6], size);
+                exitTab = CreateIndexItem("SALIR AL MENÚ", left, menuFont, PauseIndexY[7], size);
+                LinkVertically(closeTab, restartTab, mapTab, audioTab, screenTab, controlsTab, titleTab, exitTab);
             }
             else
             {
@@ -842,6 +895,7 @@ namespace Odisea.EditorTools
             if (pause)
             {
                 SetField(options, "restartButton", restartTab);
+                SetField(options, "mapButton", mapTab);
                 SetField(options, "exitToMenuButton", exitTab);
                 SetField(options, "homeSection", home.gameObject);
                 SetBool(options, "closeWithStart", true);
@@ -1702,6 +1756,8 @@ namespace Odisea.EditorTools
         /// Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio). Es la misma en el menú,
         /// las partidas, las historietas y el mapa: pasa entre ellas sin cortarse y solo cambia al entrar a un nivel.
         /// </summary>
+        internal const string CreditsMusicPath = "Assets/_Project/Audio/Music/musica_creditos";
+
         internal static void CreateMenuMusic()
         {
             SceneMusic music = GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
@@ -1709,8 +1765,11 @@ namespace Odisea.EditorTools
                 return;
             var serialized = new SerializedObject(music);
             SerializedProperty scenes = serialized.FindProperty("continueInto");
-            // Sigue sin cortarse en partidas y créditos; la historia y el mapa tienen su propia canción.
-            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Credits };
+            // Sigue sin cortarse en partidas (y en créditos si no tienen canción propia); la historia y el mapa tienen la
+            // suya.
+            string[] names = GameSoundsBuilder.LoadMusic(CreditsMusicPath) != null
+                ? new[] { SceneFlow.MainMenu, SceneFlow.Slots }
+                : new[] { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Credits };
             scenes.arraySize = names.Length;
             for (int i = 0; i < names.Length; i++)
                 scenes.GetArrayElementAtIndex(i).stringValue = names[i];
