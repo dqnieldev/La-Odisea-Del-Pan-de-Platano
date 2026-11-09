@@ -1048,13 +1048,30 @@ namespace Odisea.EditorTools
 
             Image fill = Bar("Vida", content, middle, new Vector2(85f, -26f), new Vector2(600f, 34f), square, BossBar, out Image trail, BossTrail);
             var frame = (RectTransform)fill.transform.parent;
+            // El interior tiene la misma forma redondeada que el marco: la vida, lo perdido, el destello y las divisiones
+            // se recortan con ella (si no, sus esquinas cuadradas se salen del marco).
+            var interior = (RectTransform)new GameObject("Interior", typeof(RectTransform), typeof(Image), typeof(Mask)).transform;
+            interior.SetParent(frame, false);
+            interior.anchorMin = Vector2.zero;
+            interior.anchorMax = Vector2.one;
+            interior.offsetMin = new Vector2(5f, 5f);
+            interior.offsetMax = new Vector2(-5f, -5f);
+            var interiorShape = interior.GetComponent<Image>();
+            interiorShape.sprite = rounded;
+            interiorShape.type = Image.Type.Sliced;
+            interiorShape.raycastTarget = false;
+            interior.GetComponent<Mask>().showMaskGraphic = false;
+            foreach (Image part in new[] { trail, fill })
+            {
+                part.rectTransform.SetParent(interior, false);
+                part.rectTransform.offsetMin = part.rectTransform.offsetMax = Vector2.zero;
+            }
             // Destello blanco de cada golpe, encima de la vida.
             var flash = (RectTransform)new GameObject("Destello", typeof(RectTransform), typeof(Image)).transform;
-            flash.SetParent(frame, false);
+            flash.SetParent(interior, false);
             flash.anchorMin = Vector2.zero;
             flash.anchorMax = Vector2.one;
-            flash.offsetMin = new Vector2(5f, 5f);
-            flash.offsetMax = new Vector2(-5f, -5f);
+            flash.offsetMin = flash.offsetMax = Vector2.zero;
             var flashImage = flash.GetComponent<Image>();
             flashImage.sprite = square;
             flashImage.type = Image.Type.Filled;
@@ -1063,7 +1080,7 @@ namespace Odisea.EditorTools
             // Un segmento por golpe y la marca del enojo.
             float inner = 600f - 10f;
             for (int i = 1; i < PolifemoBarSegments; i++)
-                Shape($"División {i}", frame, square, new Vector2(-inner / 2f + inner * i / PolifemoBarSegments, 0f), new Vector2(3f, 24f),
+                Shape($"División {i}", interior, square, new Vector2(-inner / 2f + inner * i / PolifemoBarSegments, 0f), new Vector2(3f, 24f),
                     PlayerSandboxBuilder.Cafe);
             float rageX = -inner / 2f + inner * PolifemoRageAt;
             Shape("Marca del enojo", frame, square, new Vector2(rageX, 0f), new Vector2(6f, 48f), IntroYellow);
