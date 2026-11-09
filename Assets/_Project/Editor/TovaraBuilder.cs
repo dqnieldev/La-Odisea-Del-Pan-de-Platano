@@ -14,10 +14,10 @@ namespace Odisea.EditorTools
     /// hasta la entrada del festival. Si cae al agua pierde (Game Over y "Reintentar" empieza de nuevo). La cámara lo
     /// sigue sin regresar. Sin su arte, todo es de color.
     /// <list type="bullet">
-    /// <item>Tramo 1 (muelle y orilla, x 0-55): piso firme con huecos chicos de agua.</item>
-    /// <item>Tramo 2 (manglar, x 55-125): pangas, tablones con cocodrilos, piedras y jejenes.</item>
-    /// <item>Tramo 3 (raíces altas, x 125-205): piedras y tablones que suben, una isla con enemigos y pangas.</item>
-    /// <item>Tramo 4 (canal final, x 205-270): más enemigos juntos y, al final, el festival.</item>
+    /// <item>Tramo 1 (muelle y orilla, x 0-56): orillas con huecos de agua y una panga lejos de la tierra.</item>
+    /// <item>Tramo 2 (manglar, x 56-131): tablones con cocodrilos, piedras, pangas y jejenes.</item>
+    /// <item>Tramo 3 (raíces altas, x 131-205): un salto doble a una isla con enemigos, tablones que suben.</item>
+    /// <item>Tramo 4 (canal final, x 205-292): pangas en fila, más enemigos juntos y un último salto largo.</item>
     /// </list>
     /// </summary>
     public static class TovaraBuilder
@@ -35,8 +35,8 @@ namespace Odisea.EditorTools
         private const float WaterKill = -1.1f;
         private const float WaterBottom = -9f;
         private const float LevelStart = -16f;
-        private const float LevelEnd = 280f;
-        private const float GoalX = 266f;
+        private const float LevelEnd = 292f;
+        private const float GoalX = 278f;
         // La cámara a una altura fija (el nivel corre a lo ancho) y hasta dónde llega.
         private const float CameraY = 3.4f;
         private const float CameraMinX = -2f;
@@ -55,43 +55,55 @@ namespace Odisea.EditorTools
         private static readonly Color NearMangrove = new(0.20f, 0.32f, 0.22f);
 
         // ----- El recorrido (x de izquierda a derecha) -----
+        // Ulises alcanza ~6.5 de distancia con un salto y ~10.5 con doble salto (config de La Tovara). Casi todos los
+        // huecos miden 3.5-5.5 (hay que correr y saltar a tiempo); algunos piden el doble salto. Los enemigos esperan
+        // donde se cae, para que un salto mal medido cueste un golpe.
         // Tierra firme: desde, hasta, altura de la cara de arriba.
         private static readonly (float from, float to, float top)[] Shores =
         {
-            (LevelStart, 18f, 0f), (21.5f, 34f, 0f), (38.5f, 55f, 0f),
-            (147.5f, 160f, 0.3f),
-            (206f, 220f, 0.2f), (251f, LevelEnd, 0f),
+            (LevelStart, 16f, 0f), (20f, 32f, 0f), (45f, 56f, 0f),
+            (153f, 166f, 0.3f),
+            (210f, 222f, 0.2f), (266f, LevelEnd, 0f),
         };
         // Pangas que flotan: centro y ancho.
         private static readonly (float x, float width)[] Boats =
         {
-            (36.2f, 3f), (57.5f, 3f), (81.5f, 3f), (86f, 3f), (105.5f, 3f), (123f, 3f),
-            (140.5f, 3f), (144.5f, 3f), (181f, 3f), (189f, 3f), (203.5f, 3f),
-            (223.5f, 3f), (227.8f, 3f), (232.1f, 3f),
+            (38.5f, 3f), (84.5f, 3f), (92f, 3f), (129.5f, 3f),
+            (171.5f, 3f), (203f, 3f),
+            (227.5f, 3f), (234f, 3f), (241f, 3f),
         };
         // Tablones sobre raíces (de un sentido): centro, ancho, altura.
         private static readonly (float x, float width, float y)[] Planks =
         {
-            (64.5f, 8f, 1.2f), (94f, 10f, 1.6f), (113.5f, 10f, 1.0f),
-            (132f, 6f, 1.4f), (164.5f, 6f, 1.6f), (171.5f, 6f, 2.6f), (196f, 10f, 1.2f),
-            (245f, 8f, 1.4f),
+            (62.5f, 6f, 1.4f), (102f, 8f, 2.0f), (119.5f, 7f, 1.4f),
+            (143f, 5f, 2.2f), (179f, 5f, 2.0f), (187.5f, 5f, 3.0f),
+            (256f, 7f, 1.6f),
         };
         // Piedras: centro, ancho, altura de la cara de arriba.
         private static readonly (float x, float width, float top)[] Stones =
         {
-            (70.5f, 2f, 0.6f), (74f, 2f, 1.2f), (77.5f, 2f, 0.4f), (101.2f, 2f, 1.0f), (118.6f, 2f, 0.6f),
-            (126.5f, 2f, 0.4f), (137f, 2f, 1.0f), (177f, 2f, 1.2f), (185f, 2f, 0.6f),
-            (236f, 2f, 0.8f), (239.5f, 2f, 1.4f),
+            (71f, 2f, 0.8f), (77f, 2f, 1.6f), (111f, 2f, 1.0f),
+            (136f, 2f, 0.6f), (196f, 2f, 1.0f),
+            (247.5f, 2f, 1.2f),
         };
 
         // Enemigos: secuaces (x, altura del piso), ratas, cocodrilos y jejenes (x, altura en el aire).
-        private static readonly (float x, float y)[] Henchmen = { (15.5f, 0f), (47f, 0f), (113.5f, 1.0f), (132f, 1.4f), (153f, 0.3f),
-            (213f, 0.2f), (245f, 1.4f) };
-        private static readonly (float x, float y)[] Rats = { (27f, 0f), (31f, 0f), (51f, 0f), (149f, 0.3f), (157.5f, 0.3f),
-            (209f, 0.2f), (217f, 0.2f), (260f, 0f) };
-        private static readonly (float x, float y)[] Crocodiles = { (94f, 1.6f), (67f, 1.2f), (171.5f, 2.6f), (196f, 1.2f), (215f, 0.2f) };
-        private static readonly (float x, float y)[] Gnats = { (88f, 4f), (110f, 4.5f), (143f, 4.5f), (180f, 4f), (190f, 4.5f),
-            (229f, 4f), (256f, 4f) };
+        private static readonly (float x, float y)[] Henchmen =
+        {
+            (14.5f, 0f), (53f, 0f), (120f, 1.4f), (143f, 2.2f), (160f, 0.3f), (221f, 0.2f), (256f, 1.6f),
+        };
+        private static readonly (float x, float y)[] Rats =
+        {
+            (22f, 0f), (30f, 0f), (47f, 0f), (155f, 0.3f), (164f, 0.3f), (212f, 0.2f), (269f, 0f),
+        };
+        private static readonly (float x, float y)[] Crocodiles =
+        {
+            (63f, 1.4f), (102f, 2.0f), (179f, 2.0f), (217f, 0.2f),
+        };
+        private static readonly (float x, float y)[] Gnats =
+        {
+            (40f, 4.5f), (90f, 4.5f), (186f, 5.5f), (200f, 4.5f), (234f, 4.5f), (262f, 4f),
+        };
 
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
