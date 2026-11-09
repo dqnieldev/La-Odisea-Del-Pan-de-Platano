@@ -26,7 +26,11 @@ namespace Odisea.EditorTools
             Transform canvas = MenuScenesBuilder.CreateCanvas("Créditos");
             MenuScenesBuilder.CreateEventSystem();
             MenuScenesBuilder.CreateUiAudio();
-            MenuScenesBuilder.CreateMenuMusic();
+            // Con su canción propia; si no está, sigue la del menú.
+            if (GameSoundsBuilder.LoadMusic(MenuScenesBuilder.CreditsMusicPath) != null)
+                GameSoundsBuilder.CreateMusic("Música de créditos", MenuScenesBuilder.CreditsMusicPath);
+            else
+                MenuScenesBuilder.CreateMenuMusic();
             var canvasRect = (RectTransform)canvas;
 
             var background = AssetDatabase.LoadAssetAtPath<Sprite>(BackgroundPath);

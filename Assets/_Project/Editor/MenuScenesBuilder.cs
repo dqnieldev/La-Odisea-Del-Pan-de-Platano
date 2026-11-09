@@ -1702,6 +1702,8 @@ namespace Odisea.EditorTools
         /// Música del menú principal (Audio/Music/musica_menu, cualquier formato de audio). Es la misma en el menú,
         /// las partidas, las historietas y el mapa: pasa entre ellas sin cortarse y solo cambia al entrar a un nivel.
         /// </summary>
+        internal const string CreditsMusicPath = "Assets/_Project/Audio/Music/musica_creditos";
+
         internal static void CreateMenuMusic()
         {
             SceneMusic music = GameSoundsBuilder.CreateMusic("Música del menú", MenuMusicPath);
@@ -1709,8 +1711,11 @@ namespace Odisea.EditorTools
                 return;
             var serialized = new SerializedObject(music);
             SerializedProperty scenes = serialized.FindProperty("continueInto");
-            // Sigue sin cortarse en partidas y créditos; la historia y el mapa tienen su propia canción.
-            string[] names = { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Credits };
+            // Sigue sin cortarse en partidas (y en créditos si no tienen canción propia); la historia y el mapa tienen la
+            // suya.
+            string[] names = GameSoundsBuilder.LoadMusic(CreditsMusicPath) != null
+                ? new[] { SceneFlow.MainMenu, SceneFlow.Slots }
+                : new[] { SceneFlow.MainMenu, SceneFlow.Slots, SceneFlow.Credits };
             scenes.arraySize = names.Length;
             for (int i = 0; i < names.Length; i++)
                 scenes.GetArrayElementAtIndex(i).stringValue = names[i];
