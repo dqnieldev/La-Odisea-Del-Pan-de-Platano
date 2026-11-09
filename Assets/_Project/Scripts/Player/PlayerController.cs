@@ -272,7 +272,7 @@ namespace Odisea.Player
                 body.linearVelocity = Vector2.zero;
                 StopClimbing();
             }
-            else if (vy < 0f && HasSolidGroundBelow())
+            else if (vy < 0f && HasSolidGroundBelow(out _))
             {
                 // Llegó abajo (al suelo o a una plataforma que no atraviesa esta escalera).
                 StopClimbing();
@@ -304,8 +304,12 @@ namespace Odisea.Player
         private void UpdateGrounded()
         {
             bool wasGrounded = IsGrounded;
-            // Al despegar el sensor sigue tocando el suelo un instante; solo cuenta si no va subiendo.
-            IsGrounded = HasSolidGroundBelow() && body.linearVelocity.y <= 0.01f;
+            // Al despegar el sensor sigue tocando el suelo un instante; solo cuenta si no va subiendo. Se compara con
+            // la velocidad del suelo: sobre una plataforma que sube (las pangas) Ulises sube con ella y sigue parado.
+            // La física de Ulises va un paso atrás de la plataforma: sobre suelo que se mueve hay un margen chico (un
+            // salto sale a más de 10 u/s, así que no se confunde).
+            bool onGround = HasSolidGroundBelow(out float groundRise, out bool movingGround);
+            IsGrounded = onGround && body.linearVelocity.y - groundRise <= (movingGround ? 1f : 0.01f);
 
             if (IsGrounded)
             {
@@ -316,16 +320,29 @@ namespace Odisea.Player
             }
         }
 
-        private bool HasSolidGroundBelow()
+        // rise: lo más rápido que sube el suelo que pisa (0 si está quieto).
+        private bool HasSolidGroundBelow(out float rise) => HasSolidGroundBelow(out rise, out _);
+
+        private bool HasSolidGroundBelow(out float rise, out bool moving)
         {
+            rise = 0f;
+            moving = false;
+            bool found = false;
             Physics2D.OverlapBox(FeetPosition, config.groundCheckSize, 0f, groundFilter, groundHits);
             foreach (Collider2D hit in groundHits)
             {
                 // Una plataforma que se está atravesando no cuenta como suelo.
-                if (!ignoredPlatforms.Contains(hit))
-                    return true;
+                if (ignoredPlatforms.Contains(hit))
+                    continue;
+                if (hit.attachedRigidbody != null && hit.attachedRigidbody.bodyType != RigidbodyType2D.Static)
+                {
+                    rise = Mathf.Max(rise, hit.attachedRigidbody.linearVelocity.y);
+                    moving |= hit.attachedRigidbody.bodyType == RigidbodyType2D.Kinematic
+                        && hit.attachedRigidbody.linearVelocity.sqrMagnitude > 0.0001f;
+                }
+                found = true;
             }
-            return false;
+            return found;
         }
 
         private void TryJump()

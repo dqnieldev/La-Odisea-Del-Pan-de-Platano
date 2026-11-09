@@ -30,9 +30,13 @@ namespace Odisea.Level
 
         private void FixedUpdate()
         {
-            float t = Time.time * 2f * Mathf.PI / period + phase;
-            body.MovePosition(start + Vector2.up * (Mathf.Sin(t) * height));
-            body.MoveRotation(Mathf.Sin(t * 0.5f) * tilt);
+            // Con velocidad (no MovePosition) para que quien la pisa sepa que el piso sube: si no, Ulises parecía ir en
+            // el aire mientras la panga subía y el salto desde ella gastaba el doble salto.
+            float dt = Time.fixedDeltaTime;
+            float t = (Time.time + dt) * 2f * Mathf.PI / period + phase;
+            Vector2 target = start + Vector2.up * (Mathf.Sin(t) * height);
+            body.linearVelocity = (target - body.position) / dt;
+            body.angularVelocity = Mathf.DeltaAngle(body.rotation, Mathf.Sin(t * 0.5f) * tilt) / dt;
         }
     }
 }
