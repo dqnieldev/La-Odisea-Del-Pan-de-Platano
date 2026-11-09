@@ -215,6 +215,9 @@ namespace Odisea.EditorTools
                 item.FindPropertyRelative("side").intValue = waves[i].side;
                 item.FindPropertyRelative("count").intValue = waves[i].count;
                 item.FindPropertyRelative("interval").floatValue = waves[i].interval;
+                // Las ratas pueden salir en ráfaga o en pinza; los jejenes solo en pinza; los cocodrilos, de uno en uno.
+                item.FindPropertyRelative("bursts").boolValue = waves[i].prefab == rat;
+                item.FindPropertyRelative("pincers").boolValue = waves[i].prefab == rat || waves[i].prefab == gnats;
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
