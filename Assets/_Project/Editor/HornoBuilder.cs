@@ -725,6 +725,7 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(walker, "player", player);
             PlayerSandboxBuilder.SetSerialized(walker, "speed", PolifemoSpeed * PolifemoScale);
             GameSoundsBuilder.SetSound(walker, "fallSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "caja_golpe"), 0.9f);
+            GameSoundsBuilder.SetSound(walker, "deathSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_muerte"), 1f);
             GameSoundsBuilder.SetSound(walker, "hurtSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_dano_recibido"), 0.9f);
             GameSoundsBuilder.SetSound(walker, "laughSound", GameSoundsBuilder.Load(PolifemoSoundFolder, "polifemo_risa"), 1f);
             // Los pasos suenan en bucle mientras camina.

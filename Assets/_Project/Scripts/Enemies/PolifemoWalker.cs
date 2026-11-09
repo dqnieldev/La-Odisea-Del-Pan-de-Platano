@@ -88,6 +88,8 @@ namespace Odisea.Enemies
 
         [Header("Sonidos")]
         [SerializeField] private SoundEffect fallSound = new();
+        [Tooltip("Su voz al ser vencido (suena junto con el golpe de la caída).")]
+        [SerializeField] private SoundEffect deathSound = new();
         [SerializeField] private SoundEffect hurtSound = new();
         [Tooltip("No repite el quejido antes de esto (el sonido es largo).")]
         [SerializeField, Min(0f)] private float hurtSoundCooldown = 2.5f;
@@ -395,6 +397,7 @@ namespace Odisea.Enemies
                 animator.speed = 1f;
             Play(FallState);
             fallSound.Play();
+            deathSound.Play();
             CameraFollow2D.Shake(shake * 2f, 0.5f);
             // Cae con todo su peso.
             GamepadRumble.Play(0.9f, 0.35f, 0.5f);
