@@ -17,7 +17,8 @@ namespace Odisea.EditorTools
     /// <item>Tramo 1 (muelle y orilla, x 0-56): orillas con huecos de agua y una panga lejos de la tierra.</item>
     /// <item>Tramo 2 (manglar, x 56-131): tablones con cocodrilos, piedras, pangas y jejenes.</item>
     /// <item>Tramo 3 (raíces altas, x 131-205): un salto doble a una isla con enemigos, tablones que suben.</item>
-    /// <item>Tramo 4 (canal final, x 205-292): pangas en fila, más enemigos juntos y un último salto largo.</item>
+    /// <item>Tramo 4 (canal final, x 205-292): tres pangas angostas bajo jejenes, más enemigos y un último salto largo.</item>
+    /// <item>En cada tramo sale un ítem de ayuda (pescado, hoja o café) en un lugar al azar.</item>
     /// </list>
     /// </summary>
     public static class TovaraBuilder
@@ -70,7 +71,7 @@ namespace Odisea.EditorTools
         {
             (38.5f, 3f), (84.5f, 3f), (92f, 3f), (129.5f, 3f),
             (171.5f, 3f), (203f, 3f),
-            (227.5f, 3f), (234f, 3f), (241f, 3f),
+            (227.5f, 2.5f), (234.5f, 2.5f), (241.5f, 2.5f),
         };
         // Tablones sobre raíces (de un sentido): centro, ancho, altura.
         private static readonly (float x, float width, float y)[] Planks =
@@ -102,8 +103,20 @@ namespace Odisea.EditorTools
         };
         private static readonly (float x, float y)[] Gnats =
         {
-            (40f, 4.5f), (90f, 4.5f), (186f, 5.5f), (200f, 4.5f), (234f, 4.5f), (262f, 4f),
+            (40f, 4.5f), (90f, 4.5f), (186f, 5.5f), (200f, 4.5f),
+            (226f, 5f), (234.5f, 4.5f), (243f, 5f), (262f, 4f),
         };
+
+        // Ítems de ayuda: en cada tramo sale uno, en uno de sus dos lugares y de un tipo al azar (pescado, hoja o
+        // café). Algunos lugares cuestan: en el aire sobre un salto o junto a un cocodrilo.
+        private static readonly (float x, float y)[][] HelperSpots =
+        {
+            new[] { (26f, 1f), (50f, 1f) },
+            new[] { (77f, 2.6f), (92f, 1.2f) },
+            new[] { (149f, 3.6f), (187.5f, 4f) },
+            new[] { (216f, 1.2f), (247.5f, 2.2f) },
+        };
+        private static readonly PickupKind[] HelperKinds = { PickupKind.Heal, PickupKind.Shield, PickupKind.Speed };
 
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
@@ -158,6 +171,19 @@ namespace Odisea.EditorTools
             // Los enemigos ordenados de izquierda a derecha (así se van encendiendo).
             foreach (Transform child in enemies.Cast<Transform>().OrderBy(t => t.position.x).ToArray())
                 child.SetAsLastSibling();
+
+            // ----- Ítems de ayuda al azar -----
+            for (int i = 0; i < HelperSpots.Length; i++)
+            {
+                var helpers = new System.Collections.Generic.List<Object>();
+                foreach ((float x, float y) in HelperSpots[i])
+                    foreach (PickupKind kind in HelperKinds)
+                        helpers.Add(PlayerSandboxBuilder.CreatePickup(level, kind, new Vector2(x, y)).GetComponent<Pickup>());
+                var spawner = new GameObject($"Ítem de ayuda al azar {i + 1}").AddComponent<RandomPickups>();
+                spawner.transform.SetParent(root, false);
+                PlayerSandboxBuilder.SetSerialized(spawner, "candidates", helpers.ToArray());
+                PlayerSandboxBuilder.SetSerialized(spawner, "keep", 1);
+            }
 
             // ----- La meta: la entrada del festival -----
             CreateFestivalGate(root, square, circle, level.PlayerLayer);
