@@ -608,7 +608,8 @@ namespace Odisea.EditorTools
             root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var area = root.AddComponent<CircleCollider2D>();
             area.isTrigger = true;
-            area.radius = 0.85f;
+            // Del tamaño de los jejenes, no del dibujo completo (que tiene aire entre ellos).
+            area.radius = 0.65f;
             var visual = new GameObject("Visual") { layer = level.EnemyLayer }.transform;
             visual.SetParent(root.transform, false);
             var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
@@ -631,14 +632,15 @@ namespace Odisea.EditorTools
                 renderer.color = new Color(0.3f, 0.3f, 0.32f, 0.85f);
                 visual.localScale = new Vector3(1.3f, 1f, 1f);
             }
+            // Aguantan dos golpes: el primero deshace parte del enjambre.
             var health = root.AddComponent<Health>();
-            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 1);
+            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
+            PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.3f);
             PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
             var hazard = root.AddComponent<Hazard>();
             PlayerSandboxBuilder.SetSerialized(hazard, "targetLayers", 1 << level.PlayerLayer);
             var swarm = root.AddComponent<GnatSwarm>();
             PlayerSandboxBuilder.SetSerialized(swarm, "health", health);
-            PlayerSandboxBuilder.SetSerialized(swarm, "speed", 2.2f);
             AddLoop(root, GameSoundsBuilder.Load(GnatSoundFolder, "jejenes"), health, 0.45f);
             Feedback(root, health, visual, new[] { renderer }, 0f);
             // Vuelan: su sombra queda en el piso, chica y clara.
