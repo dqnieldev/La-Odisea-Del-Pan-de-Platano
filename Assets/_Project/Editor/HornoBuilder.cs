@@ -853,8 +853,9 @@ namespace Odisea.EditorTools
             return image;
         }
 
-        // Ancho de la carátula del reloj de cocina en el pizarrón.
-        private const float ClockSize = 104f;
+        // Ancho de la carátula del reloj de cocina: casi del alto de los números del tiempo.
+        private const float ClockSize = 58f;
+        private const string OutlinedTimeMaterialPath = "Assets/_Project/Art/UI/Materiales/Outfit_Contorno.mat";
 
         // En el pizarrón del puntaje, el reloj de pared se vuelve el reloj de cocina: solo su aguja, que da la vuelta en
         // lo que dura el horneado.
@@ -866,11 +867,16 @@ namespace Odisea.EditorTools
             Transform icon = score != null ? score.transform.Find("Tiempo/Ícono") : null;
             if (icon == null || face == null || needleSprite == null)
                 return false;
-            // El pizarrón un poco más grande en este nivel, para que quepa el reloj.
+            // En este nivel sin pizarrón: el reloj y el tiempo sueltos en la esquina, con el número contorneado de café
+            // para que se lea sobre el cielo.
             var tray = (RectTransform)score.transform;
-            tray.sizeDelta = new Vector2(tray.sizeDelta.x, 144f);
+            tray.sizeDelta = new Vector2(tray.sizeDelta.x, 76f);
+            if (tray.TryGetComponent(out Image board))
+                board.enabled = false;
             if (tray.GetComponent<HorizontalLayoutGroup>() is { } layout)
-                layout.padding = new RectOffset(44, 54, 14, 14);
+                layout.padding = new RectOffset(0, 0, 0, 0);
+            if (score.transform.Find("Tiempo/Texto") is { } timeObject && timeObject.TryGetComponent(out TMP_Text timeText))
+                timeText.fontSharedMaterial = OutlinedTextMaterial(timeText);
             if (icon.GetComponent<ClockHands>() is { } hands)
                 Object.DestroyImmediate(hands);
             for (int i = icon.childCount - 1; i >= 0; i--)
@@ -899,6 +905,28 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(hud, "clock", (RectTransform)icon);
             GameSoundsBuilder.SetSound(hud, "ringSound", GameSoundsBuilder.Load(OvenSoundFolder, "horno_listo"), 0.8f);
             return true;
+        }
+
+        // El material de la letra con contorno café y una sombrita abajo (para texto sin fondo detrás).
+        private static Material OutlinedTextMaterial(TMP_Text text)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(OutlinedTimeMaterialPath);
+            if (material == null)
+            {
+                material = new Material(text.font.material) { name = "Outfit_Contorno" };
+                AssetDatabase.CreateAsset(material, OutlinedTimeMaterialPath);
+            }
+            material.shader = text.font.material.shader;
+            material.SetTexture(ShaderUtilities.ID_MainTex, text.font.material.GetTexture(ShaderUtilities.ID_MainTex));
+            material.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.22f);
+            material.SetColor(ShaderUtilities.ID_OutlineColor, PlayerSandboxBuilder.Cafe);
+            material.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+            material.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 0.45f));
+            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.6f);
+            material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.3f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         // Sin el dibujo del reloj de cocina, el reloj de pared se vuelve un cronómetro: un aro con su botón arriba y un

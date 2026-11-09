@@ -31,7 +31,7 @@ namespace Odisea.UI
         [SerializeField] private TMP_Text[] rowDetails = new TMP_Text[4];
         [SerializeField] private TMP_Text[] rowPoints = new TMP_Text[4];
         [Tooltip("Nombre del primer renglón en el nivel del horno (en lugar de los ingredientes).")]
-        [SerializeField] private string ovenRowName = "Horno";
+        [SerializeField] private string ovenRowName = "Vida del horno";
         [SerializeField] private CanvasGroup totalGroup;
         [SerializeField] private TMP_Text totalText;
         [SerializeField] private RectTransform stamp;
@@ -101,7 +101,13 @@ namespace Odisea.UI
                 points[0] = score.OvenPoints;
                 rowDetails[0].text = $"{score.OvenLife}/{score.OvenMax}";
                 if (rows[0].transform.Find("Nombre") is { } label && label.TryGetComponent(out TMP_Text name))
+                {
+                    // Es más largo que los otros renglones: se encoge lo justo para no encimarse con el detalle.
                     name.text = ovenRowName;
+                    name.fontSizeMax = name.fontSize;
+                    name.fontSizeMin = name.fontSize * 0.7f;
+                    name.enableAutoSizing = true;
+                }
             }
             foreach (CanvasGroup row in rows)
                 row.alpha = 0f;
