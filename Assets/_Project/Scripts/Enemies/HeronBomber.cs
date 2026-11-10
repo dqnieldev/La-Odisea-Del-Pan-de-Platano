@@ -5,11 +5,12 @@ using UnityEngine;
 namespace Odisea.Enemies
 {
     /// <summary>
-    /// La garza de La Tovara: acompaña a Ulises por todo el nivel volando alto (fuera del alcance de sus saltos), como
-    /// Madame Circe en el Mercado: no se le puede vencer. Entra a los pocos segundos y, cada tanto, vuela hacia donde
+    /// La garza de La Tovara: acompaña a Ulises en ciertos tramos del nivel (<see cref="zones"/>) volando alto (fuera del
+    /// alcance de sus saltos), como Madame Circe en el Mercado: no se le puede vencer. Al entrar Ulises a un tramo llega
+    /// volando; al salir de él se va. Mientras está, cada tanto vuela hacia donde
     /// Ulises va a estar, se detiene sacudiendo las alas (aviso) y suelta un pescado podrido (<see cref="HeronDrop"/>),
     /// cuya sombra en el piso avisa dónde cae. Entre tirada y tirada se pasea por la pantalla. Deja de tirar si Ulises
-    /// muere y se va volando al llegar al final del nivel.
+    /// muere.
     /// </summary>
     public class HeronBomber : MonoBehaviour
     {
@@ -32,28 +33,28 @@ namespace Odisea.Enemies
         [Tooltip("Velocidad (respecto a la pantalla) al ir hacia Ulises o al pasearse.")]
         [SerializeField, Min(0.1f)] private float speed = 7f;
         [SerializeField, Min(0f)] private float bob = 0.3f;
-        [Tooltip("Segundos antes de entrar al empezar el nivel.")]
+        [Tooltip("Segundos antes de entrar (al empezar el nivel o al llegar Ulises a uno de sus tramos).")]
         [SerializeField, Min(0f)] private float startDelay = 3f;
-        [Tooltip("Al pasar Ulises de esta x (cerca del festival) se va.")]
-        [SerializeField] private float leaveX = 1000f;
+        [Tooltip("Tramos (x de Ulises, desde y hasta) donde lo acompaña. Sin tramos, todo el nivel.")]
+        [SerializeField] private Vector2[] zones = new Vector2[0];
 
         [Header("Tirar")]
         [Tooltip("Segundos entre tiradas (al azar entre los dos).")]
-        [SerializeField] private Vector2 interval = new(2f, 3.5f);
+        [SerializeField] private Vector2 interval = new(2.5f, 4f);
         [Tooltip("Lo que se detiene en el aire antes de soltar el pescado (aviso); mientras, sigue a Ulises.")]
         [SerializeField, Min(0f)] private float warnTime = 0.45f;
         [Tooltip("Qué tanto se adelanta a la carrera de Ulises al apuntar (1 = justo donde estará si no cambia de paso).")]
-        [SerializeField, Range(0f, 1.2f)] private float aimLead = 0.85f;
+        [SerializeField, Range(0f, 1.2f)] private float aimLead = 0.7f;
         [Tooltip("Con qué fuerza avienta el pescado hacia abajo (u/s).")]
         [SerializeField, Min(0f)] private float throwDown = 2f;
         [Tooltip("Probabilidad de soltar 2 o de soltar 3 pescados seguidos.")]
         [SerializeField, Range(0f, 1f)] private float doubleChance = 0.3f;
-        [SerializeField, Range(0f, 1f)] private float tripleChance = 0.2f;
+        [SerializeField, Range(0f, 1f)] private float tripleChance;
         [SerializeField, Min(0.05f)] private float burstGap = 0.3f;
         [SerializeField] private SoundEffect squawk = new();
         [SerializeField] private SoundEffect dropSound = new();
 
-        private enum State { Waiting, Wander, Hunt, Warning, Burst, Leaving }
+        private enum State { Waiting, Wander, Hunt, Warning, Burst, Leaving, Away }
 
         private PlayerController player;
         private Health playerHealth;
@@ -104,8 +105,20 @@ namespace Odisea.Enemies
             float height = view.transform.position.y + heightAboveView + Mathf.Sin(Time.time * 2f) * bob;
 
             bool playerGone = playerHealth != null && playerHealth.IsDead;
-            if (state != State.Leaving && state != State.Waiting && player != null && player.transform.position.x > leaveX)
-                state = State.Leaving;
+            bool inZone = InZone();
+            if (!inZone && state != State.Leaving && state != State.Away)
+            {
+                // Ulises salió del tramo: se va (o, si aún no había entrado, ni entra).
+                if (state == State.Waiting)
+                    state = State.Away;
+                else
+                    state = State.Leaving;
+            }
+            else if (inZone && state == State.Away)
+            {
+                state = State.Waiting;
+                timer = 0f;
+            }
 
             switch (state)
             {
@@ -170,11 +183,29 @@ namespace Odisea.Enemies
                     position += new Vector3(-speed * 0.5f, speed * 0.7f, 0f) * dt;
                     facing = -1;
                     if (position.y > view.transform.position.y + view.orthographicSize + 3f)
-                        gameObject.SetActive(false);
+                    {
+                        state = State.Away;
+                        SetVisible(false);
+                    }
+                    break;
+                case State.Away:
                     break;
             }
             transform.position = position;
             Animate();
+        }
+
+        private bool InZone()
+        {
+            if (zones.Length == 0 || player == null)
+                return true;
+            float x = player.transform.position.x;
+            foreach (Vector2 zone in zones)
+            {
+                if (x >= zone.x && x <= zone.y)
+                    return true;
+            }
+            return false;
         }
 
         private void Wander(float viewX)

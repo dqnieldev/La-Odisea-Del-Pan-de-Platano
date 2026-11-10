@@ -893,8 +893,13 @@ namespace Odisea.EditorTools
                 PlayerSandboxBuilder.SetSerialized(bomber, "drawingFacesRight", true);
             }
             PlayerSandboxBuilder.SetSerialized(bomber, "dropTemplate", falling);
-            // Se va al acercarse Ulises al festival.
-            PlayerSandboxBuilder.SetSerialized(bomber, "leaveX", GoalX - 14f);
+            // Solo en dos tramos: el inicio (hasta entrar al manglar) y el canal final (hasta acercarse al festival).
+            var zonesData = new SerializedObject(bomber);
+            SerializedProperty zones = zonesData.FindProperty("zones");
+            zones.arraySize = 2;
+            zones.GetArrayElementAtIndex(0).vector2Value = new Vector2(LevelStart, 58f);
+            zones.GetArrayElementAtIndex(1).vector2Value = new Vector2(205f, GoalX - 14f);
+            zonesData.ApplyModifiedPropertiesWithoutUndo();
             // Su graznido de aviso y el "fiuu" al soltar el pescado.
             GameSoundsBuilder.SetSound(bomber, "squawk", GameSoundsBuilder.Load(HeronSoundFolder, "garza_grito"), 0.8f);
             GameSoundsBuilder.SetSound(bomber, "dropSound", GameSoundsBuilder.Load(HeronSoundFolder, "garza_suelta"), 0.7f);
