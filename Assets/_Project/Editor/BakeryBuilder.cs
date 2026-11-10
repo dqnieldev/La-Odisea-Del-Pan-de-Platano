@@ -142,6 +142,8 @@ namespace Odisea.EditorTools
             NpcDialogue donLupe = CreateDonLupe(root, square, circle, level.PlayerLayer);
             // Sombra en el piso, delante de los muebles y detrás de los personajes.
             PlayerSandboxBuilder.AddGroundShadow(donLupe.gameObject, ground, new Vector2(1.6f, 0.4f), Vector2.zero, null, 3f, FurnitureOrder + 2);
+            // Al terminar La Tovara, Don Lupe se va al festival: ya no está en la panadería.
+            PlayerSandboxBuilder.SetSerialized(donLupe.gameObject.AddComponent<HideWhenDone>(), "location", GameProgress.Tovara);
             CreateExitDoor(root, square, donLupe, level.PlayerLayer, drawn: art == null);
             CreateBeachDoor(root, square, level.PlayerLayer, drawn: art == null);
 
