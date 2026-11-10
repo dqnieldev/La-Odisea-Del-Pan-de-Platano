@@ -39,15 +39,21 @@ namespace Odisea.Enemies
 
         [Header("Tirar")]
         [Tooltip("Segundos entre tiradas (al azar entre los dos).")]
-        [SerializeField] private Vector2 interval = new(3f, 5f);
-        [Tooltip("Lo que se detiene en el aire antes de soltar el pescado (aviso).")]
-        [SerializeField, Min(0f)] private float warnTime = 0.5f;
-        [Tooltip("Lo que tarda el pescado en llegar al piso (para adelantarse a Ulises).")]
-        [SerializeField, Min(0f)] private float fallTime = 1f;
+        [SerializeField] private Vector2 interval = new(2f, 3.5f);
+        [Tooltip("Lo que se detiene en el aire antes de soltar el pescado (aviso); mientras, sigue a Ulises.")]
+        [SerializeField, Min(0f)] private float warnTime = 0.45f;
+        [Tooltip("Qué tanto se adelanta a la carrera de Ulises al apuntar (1 = justo donde estará si no cambia de paso).")]
+        [SerializeField, Range(0f, 1.2f)] private float aimLead = 0.85f;
+        [Tooltip("Con qué fuerza avienta el pescado hacia abajo (u/s).")]
+        [SerializeField, Min(0f)] private float throwDown = 2f;
+        [Tooltip("Probabilidad de soltar 2 o de soltar 3 pescados seguidos.")]
+        [SerializeField, Range(0f, 1f)] private float doubleChance = 0.3f;
+        [SerializeField, Range(0f, 1f)] private float tripleChance = 0.2f;
+        [SerializeField, Min(0.05f)] private float burstGap = 0.3f;
         [SerializeField] private SoundEffect squawk = new();
         [SerializeField] private SoundEffect dropSound = new();
 
-        private enum State { Waiting, Wander, Hunt, Warning, Leaving }
+        private enum State { Waiting, Wander, Hunt, Warning, Burst, Leaving }
 
         private PlayerController player;
         private Health playerHealth;
@@ -58,6 +64,7 @@ namespace Odisea.Enemies
         private float lastViewX;
         private float wanderX;
         private float huntX;
+        private int burstLeft;
         private int facing = -1;
         private float flap;
         private Vector3 visualScale;
@@ -124,12 +131,12 @@ namespace Odisea.Enemies
                         Wander(viewX);
                         break;
                     }
-                    // Hacia donde va a estar Ulises cuando el pescado llegue al piso (sin salirse de la pantalla).
-                    huntX = player.transform.position.x + player.Velocity.x * (warnTime + fallTime);
-                    huntX = Mathf.Clamp(huntX, viewX - HalfWidth + 1f, viewX + HalfWidth - 1f);
-                    position.x = Approach(position.x, huntX, dt * 1.3f);
+                    // Se pone sobre Ulises (un poco adelante si corre), sin salirse de la pantalla.
+                    huntX = Mathf.Clamp(player.transform.position.x + player.Velocity.x * 0.5f, viewX - HalfWidth + 1f,
+                        viewX + HalfWidth - 1f);
+                    position.x = Approach(position.x, huntX, dt * 1.5f);
                     position.y = height;
-                    if (Mathf.Abs(position.x - huntX) < 0.4f)
+                    if (Mathf.Abs(position.x - huntX) < 1f)
                     {
                         state = State.Warning;
                         timer = 0f;
@@ -137,11 +144,26 @@ namespace Odisea.Enemies
                     }
                     break;
                 case State.Warning:
+                case State.Burst:
+                    // Sigue a Ulises mientras avisa (o entre pescado y pescado) y los avienta hacia donde va a estar.
                     position.y = height;
-                    if (timer >= warnTime)
+                    if (player != null && !playerGone)
+                        position.x = Approach(position.x, Mathf.Clamp(player.transform.position.x + player.Velocity.x * 0.3f,
+                            viewX - HalfWidth + 1f, viewX + HalfWidth - 1f), dt * 1.2f);
+                    if (timer >= (state == State.Warning ? warnTime : burstGap))
                     {
-                        Drop(position);
-                        Wander(viewX);
+                        if (state == State.Warning)
+                        {
+                            float roll = Random.value;
+                            burstLeft = roll < tripleChance ? 3 : roll < tripleChance + doubleChance ? 2 : 1;
+                        }
+                        Drop(position, burstLeft > 1 ? Random.Range(-1.2f, 1.2f) : 0f);
+                        burstLeft--;
+                        timer = 0f;
+                        if (burstLeft > 0 && !playerGone)
+                            state = State.Burst;
+                        else
+                            Wander(viewX);
                     }
                     break;
                 case State.Leaving:
@@ -171,13 +193,26 @@ namespace Odisea.Enemies
             return x + step;
         }
 
-        private void Drop(Vector3 position)
+        // Avienta el pescado para que caiga donde Ulises va a estar (spread: un poco a un lado, en las ráfagas).
+        private void Drop(Vector3 position, float spread = 0f)
         {
             if (dropTemplate == null)
                 return;
-            HeronDrop drop = Instantiate(dropTemplate, position + Vector3.down * 0.4f, Quaternion.identity);
+            Vector3 start = position + Vector3.down * 0.4f;
+            Vector2 velocity = new(0f, -throwDown);
+            if (player != null)
+            {
+                float targetY = player.transform.position.y;
+                float height = Mathf.Max(0.5f, start.y - targetY);
+                float g = dropTemplate.Gravity;
+                // Tiempo de caída hasta la altura de Ulises con la velocidad inicial hacia abajo.
+                float time = (-throwDown + Mathf.Sqrt(throwDown * throwDown + 2f * g * height)) / g;
+                float targetX = player.transform.position.x + player.Velocity.x * time * aimLead + spread;
+                velocity.x = Mathf.Clamp((targetX - start.x) / time, -12f, 12f);
+            }
+            HeronDrop drop = Instantiate(dropTemplate, start, Quaternion.identity);
             drop.gameObject.SetActive(true);
-            drop.Launch(Vector2.zero);
+            drop.Launch(velocity);
             dropSound.Play();
         }
 

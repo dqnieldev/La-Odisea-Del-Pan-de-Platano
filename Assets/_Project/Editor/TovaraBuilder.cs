@@ -823,7 +823,7 @@ namespace Odisea.EditorTools
             drop.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var dropCollider = drop.AddComponent<CircleCollider2D>();
             dropCollider.isTrigger = true;
-            dropCollider.radius = 0.3f;
+            dropCollider.radius = 0.45f;
             var dropHazard = drop.AddComponent<Hazard>();
             PlayerSandboxBuilder.SetSerialized(dropHazard, "targetLayers", 1 << level.PlayerLayer);
             PlayerSandboxBuilder.SetSerialized(dropHazard, "destroyOnHit", true);
@@ -831,12 +831,28 @@ namespace Odisea.EditorTools
             dropVisual.SetParent(drop.transform, false);
             if (art.RottenFish != null)
             {
+                // Más grande, sin la luz de noche (con sus colores) y con un brillo verdoso de podrido detrás: así se
+                // ve contra el fondo oscuro.
+                var unlitFish = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
+                if (art.Foam != null)
+                {
+                    var glow = new GameObject("Brillo").AddComponent<SpriteRenderer>();
+                    glow.transform.SetParent(dropVisual, false);
+                    glow.transform.localScale = new Vector3(2f / art.Foam.bounds.size.x, 1.3f / art.Foam.bounds.size.y, 1f);
+                    glow.sprite = art.Foam;
+                    glow.color = new Color(0.8f, 1f, 0.45f, 0.55f);
+                    glow.sortingOrder = 8;
+                    if (unlitFish != null)
+                        glow.sharedMaterial = unlitFish;
+                }
                 var fishDrawing = new GameObject("Pescado (dibujo)").AddComponent<SpriteRenderer>();
                 fishDrawing.transform.SetParent(dropVisual, false);
-                float fishScale = 1f / art.RottenFish.bounds.size.x;
+                float fishScale = 1.4f / art.RottenFish.bounds.size.x;
                 fishDrawing.transform.localScale = new Vector3(fishScale, fishScale, 1f);
                 fishDrawing.sprite = art.RottenFish;
                 fishDrawing.sortingOrder = 9;
+                if (unlitFish != null)
+                    fishDrawing.sharedMaterial = unlitFish;
             }
             else
             {
