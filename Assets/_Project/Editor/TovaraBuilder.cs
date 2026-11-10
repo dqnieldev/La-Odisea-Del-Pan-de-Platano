@@ -145,7 +145,7 @@ namespace Odisea.EditorTools
         // El arte del nivel (Assets/_Project/Art/Environment/Tovara). Lo que falte se queda de color.
         private sealed class TovaraArt
         {
-            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist, RainDrop;
+            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist, RainDrop, Sign;
             public Sprite[] Stones = new Sprite[0];
             public Sprite[] Heron = new Sprite[0];
             public Sprite RottenFish;
@@ -749,6 +749,7 @@ namespace Odisea.EditorTools
             loaded.NearMangrove = Load("ManglarCercano");
             loaded.Festival = Load("Festival");
             loaded.Gate = Load("Arco");
+            loaded.Sign = Load("Letrero");
             loaded.Foam = Load("Espuma");
             loaded.WaterOverlay = Load("AguaCorriente");
             loaded.Mist = Load("Bruma");
@@ -999,7 +1000,29 @@ namespace Odisea.EditorTools
             var area = gate.AddComponent<BoxCollider2D>();
             area.isTrigger = true;
             area.size = new Vector2(2.5f, 4f);
-            if (art.Gate != null)
+            if (art.Sign != null)
+            {
+                // El letrero de madera que apunta a la feria, con "FESTIVAL" pintado en la tabla.
+                const float signHeight = 3.8f;
+                float signWidth = signHeight * art.Sign.bounds.size.x / art.Sign.bounds.size.y;
+                Picture(gate.transform, "Letrero (dibujo)", art.Sign, Vector2.zero, signWidth, 2)
+                    .transform.localPosition = new Vector3(0f, -2f + signHeight / 2f, 0f);
+                var label = new GameObject("FESTIVAL").AddComponent<TMPro.TextMeshPro>();
+                label.transform.SetParent(gate.transform, false);
+                // La parte rectangular de la tabla (sin la punta de la flecha): un poco a la izquierda, arriba.
+                label.transform.localPosition = new Vector3(signWidth * -0.1f, -2f + signHeight * 0.82f, 0f);
+                label.transform.localRotation = Quaternion.Euler(0f, 0f, 1.5f);
+                label.rectTransform.sizeDelta = new Vector2(signWidth * 0.7f, signHeight * 0.14f);
+                label.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+                label.text = "FESTIVAL";
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 1f;
+                label.fontSizeMax = 12f;
+                label.alignment = TMPro.TextAlignmentOptions.Center;
+                label.color = new Color(0.33f, 0.18f, 0.09f);
+                label.sortingOrder = 3;
+            }
+            else if (art.Gate != null)
             {
                 const float gateWidth = 6f;
                 float gateHeight = gateWidth * art.Gate.bounds.size.y / art.Gate.bounds.size.x;

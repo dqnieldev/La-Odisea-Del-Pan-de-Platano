@@ -187,10 +187,10 @@ namespace Odisea.EditorTools
             ("Ulises cruza el arco de papel picado justo cuando empieza a llover. La feria entera voltea a verlo.",
              "Ulises atraviesa el arco del festival con la canasta en alto; gente aplaudiendo; primeras gotas de lluvia; " +
              "carpas de colores."),
-            ("Sobre la mesa del concurso, el pan de plátano todavía está tibio. Llegan Don Lupe y Polifemo… y hasta Madame " +
-             "Circe pide una rebanada.",
-             "Mesa del concurso con el pan dorado; Don Lupe orgulloso, Polifemo con un plato, Circe probando a escondidas; " +
-             "los jueces sonríen."),
+            ("Sobre la mesa del concurso, el pan de plátano todavía está tibio. Los jueces se acercan a olerlo… y no " +
+             "pueden dejar de sonreír.",
+             "Ulises pone el pan dorado y humeante sobre la mesa del concurso; tres jueces con sus hojas lo huelen sonriendo; " +
+             "la gente mira desde la carpa."),
             ("Esa noche, bajo las luces de la feria, todo San Blas brinda con pan de plátano. La odisea terminó… y sabe a gloria.",
              "Fiesta de noche: luces, rueda de la fortuna, Ulises y Don Lupe celebrando rodeados de gente; Polifemo carga a " +
              "unos niños; el pan al centro."),

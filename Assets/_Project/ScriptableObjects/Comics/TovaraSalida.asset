@@ -17,14 +17,14 @@ MonoBehaviour:
   musicContinues: 0
   panels:
   - title: El Festival
-    art: {fileID: 0}
+    art: {fileID: 21300000, guid: 07609a389213efb4f8d7ab9b83b0c055, type: 3}
     caption: Ulises cruza el arco de papel picado justo cuando empieza a llover. La feria entera voltea a verlo.
     placeholderNote: Ulises atraviesa el arco del festival con la canasta en alto; gente aplaudiendo; primeras gotas de lluvia; carpas de colores.
   - title: "El Pan de Pl\xE1tano"
-    art: {fileID: 0}
-    caption: "Sobre la mesa del concurso, el pan de pl\xE1tano todav\xEDa est\xE1 tibio. Llegan Don Lupe y Polifemo\u2026 y hasta Madame Circe pide una rebanada."
-    placeholderNote: "Mesa del concurso con el pan dorado; Don Lupe orgulloso, Polifemo con un plato, Circe probando a escondidas; los jueces sonr\xEDen."
+    art: {fileID: 21300000, guid: c32f7f34559e1e1408c1222a92d490ce, type: 3}
+    caption: "Sobre la mesa del concurso, el pan de pl\xE1tano todav\xEDa est\xE1 tibio. Los jueces se acercan a olerlo\u2026 y no pueden dejar de sonre\xEDr."
+    placeholderNote: Ulises pone el pan dorado y humeante sobre la mesa del concurso; tres jueces con sus hojas lo huelen sonriendo; la gente mira desde la carpa.
   - title: "\xA1Que Viva San Blas!"
-    art: {fileID: 0}
+    art: {fileID: 21300000, guid: 5925a6d970b48784aa1d3f67879834c3, type: 3}
     caption: "Esa noche, bajo las luces de la feria, todo San Blas brinda con pan de pl\xE1tano. La odisea termin\xF3\u2026 y sabe a gloria."
     placeholderNote: "Fiesta de noche: luces, rueda de la fortuna, Ulises y Don Lupe celebrando rodeados de gente; Polifemo carga a unos ni\xF1os; el pan al centro."
