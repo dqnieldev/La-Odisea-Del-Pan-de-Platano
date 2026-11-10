@@ -191,6 +191,10 @@ namespace Odisea.EditorTools
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(-6f, 1f), "La Tovara",
                 GameSoundsBuilder.LoadMusic(MusicPath) != null ? MusicPath : FallbackMusicPath, showControls: false, background: Sky);
             PlayerSandboxBuilder.AddPlayerShadow(player, level, ShadowOrder);
+            // Ulises no se oscurece con la noche: sin luz de la escena se ve con sus colores, como en los otros niveles.
+            var unlitPlayer = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
+            foreach (SpriteRenderer part in player.GetComponentsInChildren<SpriteRenderer>(true))
+                part.sharedMaterial = unlitPlayer;
             if (Object.FindAnyObjectByType<LevelScore>() is { } score)
                 PlayerSandboxBuilder.SetSerialized(score, "parTime", 140f);
             SetUpCamera(level);
@@ -1012,10 +1016,13 @@ namespace Odisea.EditorTools
                     .transform.localPosition = new Vector3(0f, -2f + signHeight / 2f, 0f);
                 var label = new GameObject("FESTIVAL").AddComponent<TMPro.TextMeshPro>();
                 label.transform.SetParent(gate.transform, false);
-                // La parte rectangular de la tabla (sin la punta de la flecha): un poco a la izquierda, arriba.
-                label.transform.localPosition = new Vector3(signWidth * -0.1f, -2f + signHeight * 0.82f, 0f);
-                label.transform.localRotation = Quaternion.Euler(0f, 0f, 1.5f);
-                label.rectTransform.sizeDelta = new Vector2(signWidth * 0.7f, signHeight * 0.14f);
+                // Centrado en la parte rectangular de la tabla (del 3 % al 73 % del ancho, sin la punta de la flecha; del 64 %
+                // al 90 % del alto), con margen para que no toque las orillas.
+                label.transform.localPosition = new Vector3(signWidth * (0.38f - 0.5f), -2f + signHeight * 0.775f, 0f);
+                label.transform.localRotation = Quaternion.Euler(0f, 0f, 1f);
+                label.rectTransform.sizeDelta = new Vector2(signWidth * 0.58f, signHeight * 0.15f);
+                label.characterSpacing = 3f;
+                label.verticalAlignment = TMPro.VerticalAlignmentOptions.Middle;
                 label.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
                 label.text = "FESTIVAL";
                 label.enableAutoSizing = true;
