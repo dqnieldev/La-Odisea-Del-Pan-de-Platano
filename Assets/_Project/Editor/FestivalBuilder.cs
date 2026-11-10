@@ -148,7 +148,7 @@ namespace Odisea.EditorTools
                 ground);
             // Se ríe al empezar a platicar.
             GameSoundsBuilder.SetSound(circe, "talkSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "circe_risa"), 0.7f);
-            CreateScoreboard(root, square);
+            CreateScoreboard(root, square, ground);
             CreateMapDoor(root, square, level.PlayerLayer, drawn: art == null);
             CreateStageDoor(root, square, circle, level.PlayerLayer, drawn: art == null);
 
@@ -303,7 +303,7 @@ namespace Odisea.EditorTools
         // ---------- Tablero de Honor ----------
 
         // Un tablero de madera sobre dos postes con el mejor puntaje y rango de cada nivel (FestivalScoreboard).
-        private static void CreateScoreboard(Transform root, Sprite square)
+        private static void CreateScoreboard(Transform root, Sprite square, int ground)
         {
             var board = new GameObject("Tablero de Honor").transform;
             board.SetParent(root, false);
@@ -311,7 +311,7 @@ namespace Odisea.EditorTools
             Sprite art = File.Exists(BoardArtPath) ? MenuScenesBuilder.LoadUiSprite(BoardArtPath) : null;
             if (art != null)
             {
-                CreateDrawnScoreboard(board, art);
+                CreateDrawnScoreboard(board, art, ground);
                 return;
             }
             const float width = 3.8f, height = 2.5f, centerY = 3.55f;
@@ -363,7 +363,7 @@ namespace Odisea.EditorTools
 
         // El tablero dibujado (listón arriba, tres tiras de papel y una placa abajo): cada texto en su lugar del dibujo.
         // Las medidas son fracciones del dibujo (x desde la izquierda, y desde arriba).
-        private static void CreateDrawnScoreboard(Transform board, Sprite art)
+        private static void CreateDrawnScoreboard(Transform board, Sprite art, int ground)
         {
             const float width = 4.4f;
             float height = width * art.bounds.size.y / art.bounds.size.x;
@@ -374,6 +374,38 @@ namespace Odisea.EditorTools
             // Las patas en el piso.
             drawing.transform.localPosition = new Vector3(0f, height / 2f - 0.05f, 0f);
             drawing.sortingOrder = FurnitureOrder;
+            // Con la luz de la plaza: un poco más cálido y apagado, para que no se vea pegado encima del dibujo.
+            drawing.color = new Color(0.88f, 0.8f, 0.72f);
+
+            // Sombra del tablero sobre lo de atrás (su misma silueta, oscura y corrida) y en el piso, bajo las patas.
+            var cast = new GameObject("Sombra del tablero").AddComponent<SpriteRenderer>();
+            cast.transform.SetParent(board, false);
+            cast.sprite = art;
+            cast.transform.localScale = drawing.transform.localScale;
+            cast.transform.localPosition = drawing.transform.localPosition + new Vector3(0.24f, -0.12f, 0f);
+            cast.color = new Color(0.08f, 0.04f, 0.06f, 0.55f);
+            cast.sortingOrder = FurnitureOrder - 2;
+            PlayerSandboxBuilder.AddGroundShadow(board.gameObject, ground, new Vector2(width * 0.95f, 0.55f), Vector2.zero, null, 3f,
+                FurnitureOrder - 1);
+
+            // Una sombra más oscura bajo cada pata (al 9 % y al 89 % del ancho).
+            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
+            foreach (float fx in new[] { 0.09f, 0.89f })
+                BakeryBuilder.Rect("Sombra de la pata", board, circle, new Vector2((fx - 0.5f) * width + 0.08f, 0.02f), new Vector2(0.9f, 0.22f),
+                    new Color(0.06f, 0.03f, 0.04f, 0.45f), FurnitureOrder - 1);
+
+            // Resplandor cálido detrás (como los lugares del mapa) y la luz del farolito de la izquierda.
+            var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } dot)
+            {
+                SpriteRenderer halo = BakeryBuilder.Rect("Resplandor", board, dot, new Vector2(0f, height * 0.55f),
+                    new Vector2(width * 1.5f, height * 1.4f), new Color(1f, 0.72f, 0.38f, 0.5f), FurnitureOrder - 3);
+                SpriteRenderer lamp = BakeryBuilder.Rect("Luz del farolito", board, dot,
+                    new Vector2((0.036f - 0.5f) * width, (1f - 0.42f) * height), new Vector2(1.3f, 1.3f),
+                    new Color(1f, 0.78f, 0.4f, 0.55f), FurnitureOrder + 1);
+                if (unlit != null)
+                    halo.sharedMaterial = lamp.sharedMaterial = unlit;
+            }
 
             Vector3 At(float fx, float fy) => new((fx - 0.5f) * width, (1f - fy) * height - 0.05f, 0f);
             TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
