@@ -149,6 +149,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(LeftEdge + 12.5f, 2.5f));
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(RightEdge - 12.5f, 12f));
 
+            // "¿Listo?" y la frase del nivel, al centro, al empezar.
+            LevelIntroBuilder.Add(LevelIntroBuilder.PhraseFor(ScenePath));
             PlayerSandboxBuilder.EndLevel(level);
             AddToBuildSettings();
             Debug.Log($"[Odisea] Tutorial creado en {ScenePath}");

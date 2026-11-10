@@ -1350,6 +1350,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8287d1e41e3ab441bf9af2ddf3fdd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SceneMusic
+  volume: 1
+  volumeBlendDuration: 4
   fadeInDuration: 1.2
   fadeOutDuration: 0.9
   fadeOnDeath: {fileID: 1961748261}
@@ -2270,6 +2272,7 @@ GameObject:
   - component: {fileID: 828248085}
   - component: {fileID: 828248083}
   - component: {fileID: 828248084}
+  - component: {fileID: 828248087}
   m_Layer: 0
   m_Name: Don Lupe
   m_TagString: Untagged
@@ -2339,6 +2342,13 @@ MonoBehaviour:
   - {fileID: 2466218326494166746, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   - {fileID: -1409725047963335249, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   talkFps: 8
+  talkSound:
+    clips:
+    - {fileID: 8300000, guid: 042e98cd787b502428645c678a20e475, type: 3}
+    volume: 0.8
+    pitchVariation: 0.06
+    clipVolumes:
+    - 1
 --- !u!114 &828248084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2426,6 +2436,19 @@ Transform:
   - {fileID: 1050479838}
   m_Father: {fileID: 962738066}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &828248087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 828248082}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fe57c257330c9749ae39b01fe697d4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Odisea::Odisea.Level.HideWhenDone
+  location: tovara
 --- !u!1 &829784613
 GameObject:
   m_ObjectHideFlags: 0

@@ -26,6 +26,8 @@ namespace Odisea.Player
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float controlLockTimer;
+        // Pausa para comer o tomar algo (solo en el piso): no se mueve y frena en seco.
+        private float holdTimer;
         private int extraJumpsLeft;
 
         private Ladder currentLadder;
@@ -45,7 +47,7 @@ namespace Odisea.Player
         public Vector2 Velocity => body.linearVelocity;
         /// <summary>Multiplicador externo de velocidad: lodo (&lt; 1), café de olla (&gt; 1).</summary>
         public float SpeedMultiplier { get; set; } = 1f;
-        public bool HasControl => controlLockTimer <= 0f && (health == null || !health.IsDead);
+        public bool HasControl => controlLockTimer <= 0f && holdTimer <= 0f && (health == null || !health.IsDead);
         private Vector2 FeetPosition => body.position + feetOffset;
 
         // Solo importa hacia dónde: -1, 0 o 1. Una diagonal (W+D, stick un poco arriba) se queda con menos de 1 en x
@@ -104,6 +106,7 @@ namespace Odisea.Player
             coyoteTimer -= dt;
             jumpBufferTimer -= dt;
             controlLockTimer -= dt;
+            holdTimer -= dt;
 
             // Se consume siempre para que un salto pulsado durante el aturdimiento no se dispare después.
             bool jumpPressed = input.ConsumeJumpPressed();
@@ -146,6 +149,12 @@ namespace Odisea.Player
 
             if (HasControl)
                 MoveHorizontally(Time.fixedDeltaTime);
+            else if (holdTimer > 0f && IsGrounded)
+            {
+                // Pausa de comer o tomar: se queda quieto, sin resbalar.
+                float x = Mathf.MoveTowards(body.linearVelocity.x, 0f, config.deceleration * Time.fixedDeltaTime);
+                body.linearVelocity = new Vector2(x, body.linearVelocity.y);
+            }
 
             ApplyGravity();
         }
@@ -166,12 +175,16 @@ namespace Odisea.Player
             Slipped?.Invoke();
         }
 
-        /// <summary>Se detiene un momento sin poder moverse (tomar café). En el aire o en la escalera no frena.</summary>
+        /// <summary>
+        /// Se detiene un momento sin poder moverse (tomar café, comer). Solo en el piso: en el aire o en la escalera no
+        /// pierde el control (si lo perdiera, caería sin poder hacer el doble salto, por ejemplo al agua).
+        /// </summary>
         public void HoldStill(float seconds)
         {
-            if (IsGrounded)
-                body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
-            controlLockTimer = Mathf.Max(controlLockTimer, seconds);
+            if (!IsGrounded || IsClimbing)
+                return;
+            body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
+            holdTimer = Mathf.Max(holdTimer, seconds);
         }
 
         // ---------- Escaleras ----------
@@ -272,7 +285,7 @@ namespace Odisea.Player
                 body.linearVelocity = Vector2.zero;
                 StopClimbing();
             }
-            else if (vy < 0f && HasSolidGroundBelow())
+            else if (vy < 0f && HasSolidGroundBelow(out _))
             {
                 // Llegó abajo (al suelo o a una plataforma que no atraviesa esta escalera).
                 StopClimbing();
@@ -304,8 +317,12 @@ namespace Odisea.Player
         private void UpdateGrounded()
         {
             bool wasGrounded = IsGrounded;
-            // Al despegar el sensor sigue tocando el suelo un instante; solo cuenta si no va subiendo.
-            IsGrounded = HasSolidGroundBelow() && body.linearVelocity.y <= 0.01f;
+            // Al despegar el sensor sigue tocando el suelo un instante; solo cuenta si no va subiendo. Se compara con
+            // la velocidad del suelo: sobre una plataforma que sube (las pangas) Ulises sube con ella y sigue parado.
+            // La física de Ulises va un paso atrás de la plataforma: sobre suelo que se mueve hay un margen chico (un
+            // salto sale a más de 10 u/s, así que no se confunde).
+            bool onGround = HasSolidGroundBelow(out float groundRise, out bool movingGround);
+            IsGrounded = onGround && body.linearVelocity.y - groundRise <= (movingGround ? 1f : 0.01f);
 
             if (IsGrounded)
             {
@@ -316,16 +333,29 @@ namespace Odisea.Player
             }
         }
 
-        private bool HasSolidGroundBelow()
+        // rise: lo más rápido que sube el suelo que pisa (0 si está quieto).
+        private bool HasSolidGroundBelow(out float rise) => HasSolidGroundBelow(out rise, out _);
+
+        private bool HasSolidGroundBelow(out float rise, out bool moving)
         {
+            rise = 0f;
+            moving = false;
+            bool found = false;
             Physics2D.OverlapBox(FeetPosition, config.groundCheckSize, 0f, groundFilter, groundHits);
             foreach (Collider2D hit in groundHits)
             {
                 // Una plataforma que se está atravesando no cuenta como suelo.
-                if (!ignoredPlatforms.Contains(hit))
-                    return true;
+                if (ignoredPlatforms.Contains(hit))
+                    continue;
+                if (hit.attachedRigidbody != null && hit.attachedRigidbody.bodyType != RigidbodyType2D.Static)
+                {
+                    rise = Mathf.Max(rise, hit.attachedRigidbody.linearVelocity.y);
+                    moving |= hit.attachedRigidbody.bodyType == RigidbodyType2D.Kinematic
+                        && hit.attachedRigidbody.linearVelocity.sqrMagnitude > 0.0001f;
+                }
+                found = true;
             }
-            return false;
+            return found;
         }
 
         private void TryJump()

@@ -25,6 +25,8 @@ namespace Odisea.EditorTools
         private const string CutoutsFolder = "Assets/_Project/Art/Map/Recortes";
         // Lo que este generador hace a partir del mapa y los recortes (grises y la base dorada).
         private const string GeneratedFolder = "Assets/_Project/Art/Map/Generados";
+        // La banderita de "terminado" (4 cuadros ondeando); sin ella, una de color.
+        private const string FlagFolder = "Assets/_Project/Art/Map/Bandera";
         private const string ReachedCutout = "Lugar_alcanzado";
         private const string MapMusicPath = "Assets/_Project/Audio/Music/musica_mapa";
         // Punto blanco difuso del ambiente (humo, polvo, destellos, sombras de nubes) y el aro del lugar elegido.
@@ -81,7 +83,10 @@ namespace Odisea.EditorTools
             new(GameProgress.Tovara, "La Tovara", "Acto III · Carrera por los manglares", "Tovara", "Tovara", GameProgress.Horno,
                 "El Horno", new Vector2(1380f, 565f), new Rect(1165f, 120f, 455f, 500f),
                 "Lugares_tovara", 0.865f, new Vector2(474.3f, -89.8f)),
-            new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", "Festival", "Festival",
+            // El festival no es un nivel: una historieta y la feria para caminar, platicar y ver los puntajes; de ahí,
+            // los créditos.
+            new(GameProgress.Festival, "El Festival", "Final · El Festival del Pan de Plátano", SceneFlow.Festival,
+                SceneFlow.FestivalStory,
                 GameProgress.Tovara, "La Tovara", new Vector2(1760f, 557f),
                 new Rect(1630f, 190f, 305f, 500f), "Lugares_festival", 0.63f, new Vector2(1167.5f, 100f)),
         };
@@ -239,9 +244,29 @@ namespace Odisea.EditorTools
             var flag = new GameObject("Terminado");
             flag.transform.SetParent(go.transform, false);
             flag.transform.localPosition = new Vector3(1.8f, 0f, 0f);
-            Rect("Asta", flag.transform, square, new Vector2(0f, 0.7f), new Vector2(0.14f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
-            Rect("Bandera", flag.transform, circle, new Vector2(0.4f, 1.2f), new Vector2(0.8f, 0.55f),
-                new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
+            Sprite[] waving = Enumerable.Range(0, 4).Select(i => $"{FlagFolder}/Bandera_{i}.png").Where(File.Exists)
+                .Select(path => MenuScenesBuilder.LoadUiSprite(path)).Where(sprite => sprite != null).ToArray();
+            if (waving.Length > 0)
+            {
+                // Su dibujo, ondeando: el asta (a 31.7 % del ancho del dibujo) junto a la base y el pie en el suelo.
+                const float flagHeight = 3.8f;
+                float flagWidth = flagHeight * waving[0].bounds.size.x / waving[0].bounds.size.y;
+                flag.transform.localPosition = new Vector3(2.3f, 0f, 0f);
+                SpriteRenderer drawing = Rect("Bandera (dibujo)", flag.transform, waving[0],
+                    new Vector2((0.5f - 0.317f) * flagWidth, flagHeight * 0.5f - 0.01f), new Vector2(flagWidth, flagHeight), Color.white,
+                    LabelOrder);
+                var flutter = drawing.gameObject.AddComponent<SpriteFlipbook>();
+                MenuScenesBuilder.SetField(flutter, "target", drawing);
+                PlayerSandboxBuilder.SetSerialized(flutter, "frames", waving.Cast<Object>().ToArray());
+                PlayerSandboxBuilder.SetSerialized(flutter, "framesPerSecond", 6f);
+                PlayerSandboxBuilder.SetSerialized(flutter, "loop", true);
+            }
+            else
+            {
+                Rect("Asta", flag.transform, square, new Vector2(0f, 0.7f), new Vector2(0.14f, 1.4f), PlayerSandboxBuilder.Cafe, LabelOrder);
+                Rect("Bandera", flag.transform, circle, new Vector2(0.4f, 1.2f), new Vector2(0.8f, 0.55f),
+                    new Color(0.96f, 0.72f, 0.19f), LabelOrder + 1);
+            }
 
             GameObject pad = null;
             if (reached != null)

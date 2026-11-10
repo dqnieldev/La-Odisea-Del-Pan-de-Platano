@@ -29,6 +29,8 @@ namespace Odisea.Enemies
         [Tooltip("El temblor del zumbido.")]
         [SerializeField, Min(0f)] private float buzz = 0.1f;
         [SerializeField, Min(1)] private int ovenDamage = 1;
+        [Tooltip("Sin horno en el nivel (La Tovara): a quién persigue. Vacío = Ulises.")]
+        [SerializeField] private Transform target;
 
         [Header("Al recibir un golpe (sin morir)")]
         [Tooltip("Tamaño que le queda (se deshace parte del enjambre).")]
@@ -71,6 +73,8 @@ namespace Odisea.Enemies
         {
             if (oven == null)
                 oven = FindAnyObjectByType<Oven>();
+            if (oven == null && target == null)
+                target = FindAnyObjectByType<Odisea.Player.PlayerController>()?.transform;
             position = transform.position;
             baseScale = Mathf.Abs(transform.localScale.x);
             seed = Random.value * 100f;
@@ -80,9 +84,10 @@ namespace Odisea.Enemies
 
         private void Update()
         {
-            if (dead || oven == null || oven.Burned)
+            if (dead || (oven != null ? oven.Burned : target == null))
                 return;
-            Vector2 mouth = oven.Mouth;
+            Vector2 mouth = Goal();
+            Vector2 limits = Limits();
             float dt = Time.deltaTime;
 
             if (scatterTimer > 0f)
@@ -90,7 +95,7 @@ namespace Odisea.Enemies
                 // Golpeado: se dispersa hacia arriba (y lejos de quien le pegó), frenándose.
                 scatterTimer -= dt;
                 position += scatterVelocity * (dt * Mathf.Clamp01(scatterTimer / scatterTime) * 2f);
-                position.y = Mathf.Clamp(position.y, heightLimits.x, heightLimits.y);
+                position.y = Mathf.Clamp(position.y, limits.x, limits.y);
                 if (scatterTimer <= 0f)
                     StartHover();
             }
@@ -118,6 +123,20 @@ namespace Odisea.Enemies
                 facing = Mathf.Sign(transform.localScale.x);
             transform.localScale = new Vector3(baseScale * size * facing, baseScale * size, 1f);
 
+            if (oven == null)
+            {
+                // Persiguiendo a Ulises: al alcanzarlo le pica (su Hazard) y se aparta un momento antes de volver.
+                if (scatterTimer <= 0f && (position - mouth).sqrMagnitude < 0.36f)
+                {
+                    float away = Mathf.Sign(position.x - mouth.x);
+                    if (Mathf.Approximately(away, 0f))
+                        away = 1f;
+                    scatterVelocity = new Vector2(away * 1.6f, scatterHeight) / scatterTime;
+                    scatterTimer = scatterTime;
+                    dashing = false;
+                }
+                return;
+            }
             if ((position - mouth).sqrMagnitude > 0.09f)
                 return;
             // Llegó: pica la masa y se dispersa.
@@ -137,7 +156,8 @@ namespace Odisea.Enemies
         private void StartDash()
         {
             dashing = true;
-            Vector2 mouth = oven != null ? oven.Mouth : position;
+            Vector2 mouth = Goal();
+            Vector2 limits = Limits();
             float remaining = Mathf.Abs(mouth.x - position.x);
             if (remaining <= finalDash)
                 dashTarget = mouth;
@@ -149,10 +169,23 @@ namespace Odisea.Enemies
                 if (Mathf.Abs(y - position.y) < dashRise * 0.4f)
                     y = position.y + Mathf.Sign(y - position.y + 0.001f) * dashRise * 0.6f;
                 dashTarget = new Vector2(position.x + Mathf.Sign(mouth.x - position.x) * step,
-                    Mathf.Clamp(y, heightLimits.x, heightLimits.y));
+                    Mathf.Clamp(y, limits.x, limits.y));
             }
             phaseTimer = Vector2.Distance(position, dashTarget) / Mathf.Max(0.01f, speed) + 0.1f;
         }
+
+        // A dónde va: la boca del horno o, sin horno, un poco arriba de Ulises.
+        private Vector2 Goal()
+        {
+            if (oven != null)
+                return oven.Mouth;
+            return target != null ? (Vector2)target.position + Vector2.up * 0.4f : position;
+        }
+
+        // Alturas entre las que vuela: fijas con horno; persiguiendo a Ulises, desde su altura hasta un poco arriba.
+        private Vector2 Limits() => oven != null || target == null
+            ? heightLimits
+            : new Vector2(target.position.y - 0.5f, target.position.y + 4.5f);
 
         private void OnDamaged(DamageInfo info)
         {

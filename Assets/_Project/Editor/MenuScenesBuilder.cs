@@ -507,7 +507,7 @@ namespace Odisea.EditorTools
         /// Hoja de papel viejo (el papel del fondo del tutorial) un poco chueca, con sombra, doble marco de tinta y
         /// rombos en las esquinas. Si falta el papel, queda crema.
         /// </summary>
-        private static RectTransform CreatePaperSheet(string name, RectTransform parent, Vector2 size)
+        internal static RectTransform CreatePaperSheet(string name, RectTransform parent, Vector2 size)
         {
             var sheet = new GameObject(name, typeof(RectTransform));
             var rect = (RectTransform)sheet.transform;
@@ -561,7 +561,7 @@ namespace Odisea.EditorTools
         }
 
         /// <summary>Raya de adorno bajo un título: dos líneas finas con un rombo en medio.</summary>
-        private static void CreateOrnamentRule(RectTransform parent, Vector2 position, float width)
+        internal static void CreateOrnamentRule(RectTransform parent, Vector2 position, float width)
         {
             var color = new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f);
             float half = width / 2f;
