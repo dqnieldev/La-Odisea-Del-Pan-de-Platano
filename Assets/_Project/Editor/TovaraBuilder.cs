@@ -143,7 +143,7 @@ namespace Odisea.EditorTools
         // El arte del nivel (Assets/_Project/Art/Environment/Tovara). Lo que falte se queda de color.
         private sealed class TovaraArt
         {
-            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam;
+            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist;
             public Sprite[] Stones = new Sprite[0];
         }
 
@@ -457,9 +457,10 @@ namespace Odisea.EditorTools
                     width, drawHeight, WaterOrder);
                 Flow(below, 0.25f, 0f);
                 const float overlayHeight = 4.8f;
-                SpriteRenderer above = Strip(root, "Agua (corriente)", art.Water,
+                SpriteRenderer above = Strip(root, "Agua (corriente)", art.WaterOverlay != null ? art.WaterOverlay : art.Water,
                     new Vector2(centerX, WaterTop + 0.06f - overlayHeight / 2f), width, overlayHeight, WaterOverlayOrder);
-                above.color = new Color(1f, 1f, 1f, 0.4f);
+                // Con su dibujo, la corriente ya es transparente arriba y opaca en lo hondo: lo sumergido se pierde al bajar.
+                above.color = new Color(1f, 1f, 1f, art.WaterOverlay != null ? 1f : 0.4f);
                 Flow(above, -0.4f, 1.6f);
             }
 
@@ -530,11 +531,19 @@ namespace Odisea.EditorTools
                 Picture(fair, "Feria (dibujo)", art.Festival, new Vector2(fairX, WaterTop + 0.05f + 0.15f * fairHeight), fairWidth, -25);
             }
             Transform near = Layer(root, "Manglar cercano", 0.55f, 1f);
-            // Más chico, con el pie bajo el agua y un poco transparente: así queda detrás de Ulises y no se confunde
-            // con él.
+            // Sólido y más chico, con el pie bajo el agua; apenas aclarado para que quede detrás.
             SpriteRenderer nearDrawing = Strip(near, "Manglar cercano (dibujo)", art.NearMangrove,
                 new Vector2(centerX, -1.6f + 2.75f), width, 5.5f, -20);
-            nearDrawing.color = new Color(0.86f, 0.92f, 0.9f, 0.82f);
+            nearDrawing.color = new Color(0.92f, 0.96f, 0.94f, 1f);
+            if (art.Mist != null)
+            {
+                // Bruma sobre el agua, delante de los manglares y detrás de la acción: los separa del frente sin
+                // volverlos transparentes. Va con la cámara.
+                Transform mist = Layer(root, "Bruma", 1f, 1f);
+                SpriteRenderer haze = Picture(mist, "Bruma (dibujo)", art.Mist, new Vector2(CameraMinX, WaterTop + 1.4f), 28f, -15);
+                haze.transform.localScale = new Vector3(haze.transform.localScale.x, 3.2f / art.Mist.bounds.size.y, 1f);
+                haze.color = new Color(0.93f, 0.95f, 0.92f, 0.6f);
+            }
         }
 
         private static Transform Layer(Transform parent, string name, float followX, float followY)
@@ -624,6 +633,8 @@ namespace Odisea.EditorTools
             loaded.Festival = Load("Festival");
             loaded.Gate = Load("Arco");
             loaded.Foam = Load("Espuma");
+            loaded.WaterOverlay = Load("AguaCorriente");
+            loaded.Mist = Load("Bruma");
             loaded.Stones = new[] { "Piedra1", "Piedra2", "Piedra3" }.Select(Load).Where(sprite => sprite != null).ToArray();
             return loaded;
         }
