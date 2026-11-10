@@ -1,3 +1,4 @@
+using Odisea.Core;
 using UnityEngine;
 
 namespace Odisea.Level
@@ -13,8 +14,15 @@ namespace Odisea.Level
         [SerializeField, Min(0.1f)] private float period = 2.4f;
         [Tooltip("Grados que se mece de lado a lado (0 = no se inclina).")]
         [SerializeField, Min(0f)] private float tilt = 1.5f;
+        [Tooltip("Quién la hace sonar al caer encima (Ulises).")]
+        [SerializeField] private LayerMask riders;
+        [Tooltip("Suena cuando alguien de riders cae sobre la panga (no al caminar en ella).")]
+        [SerializeField] private SoundEffect landSound = new();
+        [Tooltip("Qué tan rápido tiene que caer (u/s) para que suene.")]
+        [SerializeField, Min(0f)] private float landSpeed = 2f;
 
         private Rigidbody2D body;
+        private float lastLand = -1f;
         private Vector2 start;
         private float phase;
 
@@ -37,6 +45,18 @@ namespace Odisea.Level
             Vector2 target = start + Vector2.up * (Mathf.Sin(t) * height);
             body.linearVelocity = (target - body.position) / dt;
             body.angularVelocity = Mathf.DeltaAngle(body.rotation, Mathf.Sin(t * 0.5f) * tilt) / dt;
+        }
+
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            if ((riders.value & (1 << collision.gameObject.layer)) == 0 || Time.time - lastLand < 0.25f)
+                return;
+            // Solo si cae desde arriba con algo de fuerza.
+            Rigidbody2D rider = collision.rigidbody;
+            if (rider == null || rider.position.y < body.position.y || Mathf.Abs(collision.relativeVelocity.y) < landSpeed)
+                return;
+            lastLand = Time.time;
+            landSound.Play();
         }
     }
 }

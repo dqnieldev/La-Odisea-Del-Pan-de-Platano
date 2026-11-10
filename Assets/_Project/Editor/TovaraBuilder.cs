@@ -30,12 +30,20 @@ namespace Odisea.EditorTools
         private const string FallbackMusicPath = "Assets/_Project/Audio/Music/musica_tutorial";
         private const string GnatsPrefabPath = "Assets/_Project/Prefabs/Enemigos/Horno/Jejenes.prefab";
         private const string RatSoundFolder = "Assets/_Project/Audio/SFX/Raton";
+        private const string TovaraSoundFolder = "Assets/_Project/Audio/SFX/Tovara";
         private const string ArtFolder = "Assets/_Project/Art/Environment/Tovara";
         // Proporciones medidas en los dibujos (desde arriba): dónde se pisa en cada uno.
         private const float BoatDeck = 0.45f;
         private const float PlankBoards = 0.34f;
-        private const float BankGrass = 0.11f;
-        private const float BankHeight = 2.2f;
+        private const float BankGrass = 0.17f;
+        // La orilla va enfrente del agua y llega hasta abajo de la vista (se ven sus raíces); las puntas, igual.
+        private const float BankHeight = 5f;
+        private const float BankEndHeight = BankHeight;
+        private const float BankEndGrass = BankGrass;
+        // Orden de dibujo: lo que está en el agua (piedras y patas de los tablones) va detrás de ella; la tierra, enfrente.
+        private const int SunkenOrder = -2;
+        private const int WaterOrder = 1;
+        private const int BankOrder = 2;
         private const float PlankReferenceWidth = 5f;
 
         // El agua: su cara de arriba (lo que se ve) y dónde empieza a hundir a Ulises (un poco más abajo).
@@ -133,6 +141,8 @@ namespace Odisea.EditorTools
         }
 
         private static TovaraArt art = new();
+        // La capa de Ulises, para que las pangas sepan cuándo cae encima (su sonido).
+        private static int PlayerLayerForSounds;
 
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
@@ -140,6 +150,7 @@ namespace Odisea.EditorTools
             art = LoadArt();
             PlayerSandboxBuilder.LevelContext level = PlayerSandboxBuilder.BeginLevel(ScenePath);
             Transform root = level.Root;
+            PlayerLayerForSounds = level.PlayerLayer;
             Sprite square = level.Square;
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
             PlayerSandboxBuilder.LevelArt levelArt = PlayerSandboxBuilder.LevelArt.Load();
@@ -258,15 +269,14 @@ namespace Odisea.EditorTools
             {
                 // Con dibujo: la tira de orilla repetida y, en cada punta que se ve, su borde que se desmorona al agua.
                 shore.GetComponent<SpriteRenderer>().enabled = false;
-                float unit = BankHeight / art.Bank.bounds.size.y;
                 float stripFrom = from, stripTo = to;
                 if (art.BankEndLeft != null && from > LevelStart)
-                    stripFrom = from + BankEnd(root, art.BankEndLeft, from, top, unit, left: true) * 0.5f;
+                    stripFrom = from + BankEnd(root, art.BankEndLeft, from, top, left: true) * 0.5f;
                 if (art.BankEndRight != null && to < LevelEnd)
-                    stripTo = to - BankEnd(root, art.BankEndRight, to, top, unit, left: false) * 0.5f;
+                    stripTo = to - BankEnd(root, art.BankEndRight, to, top, left: false) * 0.5f;
                 Strip(root, "Orilla (dibujo)", art.Bank,
                     new Vector2((stripFrom + stripTo) / 2f, top + BankGrass * BankHeight - BankHeight / 2f), stripTo - stripFrom,
-                    BankHeight, 1);
+                    BankHeight, BankOrder);
                 return;
             }
             var grass = new GameObject("Pasto").AddComponent<SpriteRenderer>();
@@ -280,13 +290,13 @@ namespace Odisea.EditorTools
 
         // Punta de una orilla: el lado firme se encima a la tira y lo que se desmorona sale un poco del borde. Devuelve
         // su ancho.
-        private static float BankEnd(Transform parent, Sprite sprite, float edge, float top, float unit, bool left)
+        private static float BankEnd(Transform parent, Sprite sprite, float edge, float top, bool left)
         {
-            float width = sprite.bounds.size.x * unit;
-            float height = sprite.bounds.size.y * unit;
+            float height = BankEndHeight;
+            float width = height * sprite.bounds.size.x / sprite.bounds.size.y;
             float x = left ? edge + width * 0.2f : edge - width * 0.2f;
             Picture(parent, left ? "Orilla (punta izquierda)" : "Orilla (punta derecha)", sprite,
-                new Vector2(x, top + BankGrass * height - height / 2f), width, 2);
+                new Vector2(x, top + BankEndGrass * height - height / 2f), width, BankOrder + 1);
             return width;
         }
 
@@ -301,7 +311,9 @@ namespace Odisea.EditorTools
             var deck = boat.AddComponent<BoxCollider2D>();
             deck.size = new Vector2(width, 0.4f);
             PlayerSandboxBuilder.MakeOneWay(boat);
-            boat.AddComponent<BobbingPlatform>();
+            var bobbing = boat.AddComponent<BobbingPlatform>();
+            PlayerSandboxBuilder.SetSerialized(bobbing, "riders", 1 << PlayerLayerForSounds);
+            GameSoundsBuilder.SetSound(bobbing, "landSound", GameSoundsBuilder.Load(TovaraSoundFolder, "tovara_panga"), 0.8f);
             SpriteRenderer Part(string name, Vector2 position, Vector2 size, Color color, int order)
             {
                 var part = new GameObject(name) { layer = layer }.AddComponent<SpriteRenderer>();
@@ -344,7 +356,7 @@ namespace Odisea.EditorTools
             drawing.sprite = art.Plank;
             drawing.drawMode = SpriteDrawMode.Sliced;
             drawing.size = new Vector2((width + 0.4f) / scale, height / scale);
-            drawing.sortingOrder = 3;
+            drawing.sortingOrder = SunkenOrder + 1;
         }
 
         private static void CreateStone(Transform root, Sprite square, float x, float width, float top, int number, int layer)
@@ -361,7 +373,7 @@ namespace Odisea.EditorTools
             Sprite chosen = art.Stones.OrderBy(Height).FirstOrDefault(sprite => Height(sprite) >= top - WaterTop + 0.6f)
                 ?? art.Stones.OrderBy(Height).Last();
             stone.GetComponent<SpriteRenderer>().enabled = false;
-            Picture(root, "Piedra (dibujo)", chosen, new Vector2(x, top + 0.05f - Height(chosen) / 2f), drawWidth, 2);
+            Picture(root, "Piedra (dibujo)", chosen, new Vector2(x, top + 0.05f - Height(chosen) / 2f), drawWidth, SunkenOrder);
         }
 
         // El agua a lo largo de todo el nivel: se ve encima del pie de la orilla y las piedras; un poco más abajo de su
@@ -380,9 +392,9 @@ namespace Odisea.EditorTools
             if (art.Water != null)
             {
                 // El dibujo del agua en la franja que se ve; el color sigue abajo, fuera de la vista.
-                water.sortingOrder = 4;
+                water.sortingOrder = WaterOrder - 1;
                 const float drawHeight = 4f;
-                Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f), width, drawHeight, 5);
+                Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f), width, drawHeight, WaterOrder);
             }
 
             var zone = new GameObject("Agua (hunde)");
