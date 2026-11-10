@@ -48,10 +48,10 @@ namespace Odisea.EditorTools
         // Bien separados (cada uno con su espacio para platicar, lejos de las puertas). La puerta del escenario cae en el
         // escenario del dibujo (a la derecha).
         private const float MapDoorX = -8.3f;
-        private const float DonLupeX = -4.3f;
-        private const float BoardX = -1.2f;
-        private const float PolifemoX = 1.7f;
-        private const float CirceX = 4.9f;
+        private const float DonLupeX = -4.0f;
+        private const float BoardX = 6.3f;
+        private const float PolifemoX = 0.6f;
+        private const float CirceX = 3.6f;
         private const float StageDoorX = 8.3f;
 
         private const int BackOrder = BakeryBuilder.BackOrder;
@@ -369,7 +369,8 @@ namespace Odisea.EditorTools
         // con los puntajes encima). Así el tablero no tapa la plaza todo el tiempo.
         private static void CreateScoreboardTotem(Transform board, Sprite small, Sprite big, int ground, int playerLayer)
         {
-            const float width = 2.8f;
+            // Chiquito, para que no estorbe a los personajes.
+            const float width = 1.8f;
             float height = width * small.bounds.size.y / small.bounds.size.x;
             var drawing = new GameObject("Tablerito (dibujo)").AddComponent<SpriteRenderer>();
             drawing.transform.SetParent(board, false);
@@ -388,7 +389,7 @@ namespace Odisea.EditorTools
             title.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
             title.text = "TABLERO DE HONOR";
             // Tamaño fijo: cabe en el listón (el ajuste automático no lo calcula al armar la escena).
-            title.fontSize = 0.95f;
+            title.fontSize = 0.95f * width / 2.8f;
             title.alignment = TextAlignmentOptions.Center;
             title.color = new Color(0.30f, 0.17f, 0.08f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
@@ -397,12 +398,13 @@ namespace Odisea.EditorTools
                 FurnitureOrder - 1);
 
             var area = board.gameObject.AddComponent<BoxCollider2D>();
-            area.size = new Vector2(width, 3f);
+            area.size = new Vector2(width + 0.4f, 3f);
             area.offset = new Vector2(0f, 1.5f);
             var totem = board.gameObject.AddComponent<ScoreboardTotem>();
             PlayerSandboxBuilder.SetSerialized(totem, "playerLayers", 1 << playerLayer);
             MenuScenesBuilder.SetField(totem, "modal", CreateScoreboardModal(big));
-            BakeryBuilder.AddBubble(board, totem, new Vector2(0f, height + 0.5f), "Ver puntajes");
+            // Arriba de Ulises (es más alto que el tablerito).
+            BakeryBuilder.AddBubble(board, totem, new Vector2(0f, 2.9f), "Ver puntajes");
         }
 
         // El Tablero de Honor en grande, encima de todo: cada texto en su lugar del dibujo y el botón "Cerrar" abajo. Las

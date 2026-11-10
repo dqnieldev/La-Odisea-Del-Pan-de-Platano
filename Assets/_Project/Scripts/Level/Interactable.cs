@@ -1,6 +1,7 @@
 using Odisea.Core;
 using Odisea.Player;
 using Odisea.UI;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Odisea.Level
@@ -9,7 +10,8 @@ namespace Odisea.Level
     /// Algo con lo que Ulises interactúa al pararse enfrente (Don Lupe, una puerta): arriba sale un globito con el
     /// botón de interactuar (E / ↑, B o Círculo, según el control) y lo que hace ("Ir a la playa"); al presionarlo se
     /// llama <see cref="Interact"/>.
-    /// Su collider (trigger) es el área donde se puede interactuar.
+    /// Su collider (trigger) es el área donde se puede interactuar. Si Ulises está en el área de varios, solo el más
+    /// cercano muestra su globito y responde.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public abstract class Interactable : MonoBehaviour
@@ -27,6 +29,9 @@ namespace Odisea.Level
         private PlayerInputReader player;
         private Vector3 bubbleScale = Vector3.one, iconHome;
         private float bubbleShown;
+
+        // Los que tienen a Ulises en su área (para que solo el más cercano muestre el globito).
+        private static readonly List<Interactable> Near = new();
 
         /// <summary>Ulises, mientras está en el área.</summary>
         protected PlayerInputReader Player => player;
@@ -59,6 +64,8 @@ namespace Odisea.Level
             if (reader == null)
                 return;
             player = reader;
+            if (!Near.Contains(this))
+                Near.Add(this);
             // Lo que se presionó lejos de aquí no cuenta.
             player.ConsumeInteractPressed();
         }
@@ -66,12 +73,34 @@ namespace Odisea.Level
         private void OnTriggerExit2D(Collider2D other)
         {
             if (player != null && other.GetComponentInParent<PlayerInputReader>() == player)
+            {
                 player = null;
+                Near.Remove(this);
+            }
+        }
+
+        private void OnDestroy() => Near.Remove(this);
+
+        // El más cercano a Ulises (en horizontal) de los que lo tienen en su área.
+        private bool IsClosest()
+        {
+            float mine = Mathf.Abs(transform.position.x - player.transform.position.x);
+            foreach (Interactable other in Near)
+            {
+                if (other == this || other == null || other.player == null || !other.isActiveAndEnabled)
+                    continue;
+                float theirs = Mathf.Abs(other.transform.position.x - player.transform.position.x);
+                // Justo a la mitad entre dos: gana el de la izquierda.
+                if (theirs < mine - 0.001f || (theirs <= mine + 0.001f && other.transform.position.x < transform.position.x))
+                    return false;
+            }
+            return true;
         }
 
         private void Update()
         {
-            bool canInteract = player != null && !DialogueBox.IsOpen && !SceneFlow.IsLoading && Time.timeScale > 0f;
+            bool canInteract = player != null && !DialogueBox.IsOpen && !SceneFlow.IsLoading && Time.timeScale > 0f &&
+                               IsClosest();
             if (canInteract && player.ConsumeInteractPressed())
                 Interact(player);
 
