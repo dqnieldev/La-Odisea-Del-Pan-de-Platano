@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d861ae34b8ef2f4d94d93743315c6de, type: 3}
+  m_Name: FestivalEntrada
+  m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
+  title: El Festival
+  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
+  musicContinues: 0
+  panels:
+  - title: La Plaza en Fiesta
+    art: {fileID: 0}
+    caption: "Ya pas\xF3 la tormenta. La plaza de San Blas huele a pan de pl\xE1tano y suena a banda: el festival por fin empez\xF3."
+    placeholderNote: "Plaza de San Blas de noche despu\xE9s de la lluvia: carpas de colores, papel picado, luces, charcos que brillan; Ulises entra con la canasta vac\xEDa y una sonrisa enorme."
+  - title: Viejos Conocidos
+    art: {fileID: 0}
+    caption: "Entre la gente lo esperan caras conocidas: Don Lupe, orgulloso; Polifemo, con un plato en cada mano\u2026 y Madame Circe, que finge no estar interesada."
+    placeholderNote: Don Lupe saluda desde un puesto de pan; Polifemo come junto a una carpa; Circe, de brazos cruzados junto a otra carpa, mira de reojo.
+  - title: El Tablero de Honor
+    art: {fileID: 0}
+    caption: "Y en medio de la plaza, el Tablero de Honor del festival guarda cada haza\xF1a de su odisea."
+    placeholderNote: Un gran tablero de madera adornado con flores y papel picado, con listones de colores; Ulises lo mira con los ojos brillando.

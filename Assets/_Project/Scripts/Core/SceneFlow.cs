@@ -40,6 +40,10 @@ namespace Odisea.Core
         /// <summary>Historietas del Acto III: al entrar a La Tovara (desde el mapa) y al llegar al festival.</summary>
         public const string TovaraStory = "Tovara";
         public const string TovaraOutroStory = "TovaraSalida";
+        /// <summary>El festival: escena para caminar y platicar, con los puntajes y la puerta a los créditos.</summary>
+        public const string Festival = "Festival";
+        /// <summary>Historieta al entrar al festival desde el mapa.</summary>
+        public const string FestivalStory = "FestivalEntrada";
 
         /// <summary>Historieta pendiente de mostrar y la escena que sigue después de ella.</summary>
         public static string PendingStory { get; private set; }

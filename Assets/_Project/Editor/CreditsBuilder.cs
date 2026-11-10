@@ -16,7 +16,9 @@ namespace Odisea.EditorTools
     {
         public const string ScenePath = "Assets/_Project/Scenes/Menus/Creditos.unity";
         private const string TextPath = "Assets/_Project/Text/Creditos.txt";
-        private const string BackgroundPath = "Assets/_Project/Art/UI/FondoMenu.jpg";
+        // Su propio fondo (Ulises contra Polifemo); si no está, el del menú.
+        private const string BackgroundPath = "Assets/_Project/Art/UI/FondoCreditos.jpeg";
+        private const string MenuBackgroundPath = "Assets/_Project/Art/UI/FondoMenu.jpg";
 
         [MenuItem("Odisea/Menús/Crear créditos")]
         public static void Build()
@@ -33,10 +35,13 @@ namespace Odisea.EditorTools
                 MenuScenesBuilder.CreateMenuMusic();
             var canvasRect = (RectTransform)canvas;
 
-            var background = AssetDatabase.LoadAssetAtPath<Sprite>(BackgroundPath);
+            Sprite background = MenuScenesBuilder.LoadUiSprite(BackgroundPath);
+            bool own = background != null;
+            background ??= AssetDatabase.LoadAssetAtPath<Sprite>(MenuBackgroundPath);
             if (background != null)
                 MenuScenesBuilder.CreateImage("Fondo", canvasRect, background, Color.white, Vector2.zero, Vector2.zero, stretch: true);
-            MenuScenesBuilder.CreateImage("Oscurecer", canvasRect, null, new Color(0.11f, 0.075f, 0.055f, 0.85f), Vector2.zero,
+            // Con su fondo propio, un velo más ligero para que se vea el dibujo (el texto sigue leyéndose).
+            MenuScenesBuilder.CreateImage("Oscurecer", canvasRect, null, new Color(0.11f, 0.075f, 0.055f, own ? 0.72f : 0.85f), Vector2.zero,
                 Vector2.zero, stretch: true);
 
             // El texto empieza justo abajo de la pantalla (pivote arriba, anclado abajo) y sube.

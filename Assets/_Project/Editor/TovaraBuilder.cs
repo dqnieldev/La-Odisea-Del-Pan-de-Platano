@@ -1041,9 +1041,9 @@ namespace Odisea.EditorTools
             }
             var component = gate.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
-            PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Credits);
+            // Después de la historieta de salida, de vuelta al mapa: ahí se estrena el Festival.
+            PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Map);
             PlayerSandboxBuilder.SetSerialized(component, "completesLocation", GameProgress.Tovara);
-            PlayerSandboxBuilder.SetSerialized(component, "alsoCompletes", GameProgress.Festival);
             PlayerSandboxBuilder.SetSerialized(component, "outroStory", SceneFlow.TovaraOutroStory);
             PlayerSandboxBuilder.SetSerialized(component, "completeScreen", MenuScenesBuilder.CreateLevelCompleteScreen(
                 "¡Llegaste al festival!", "Ulises cruzó los manglares y el pan llegó a tiempo."));

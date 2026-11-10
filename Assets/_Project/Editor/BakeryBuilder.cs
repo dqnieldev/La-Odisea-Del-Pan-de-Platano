@@ -44,7 +44,7 @@ namespace Odisea.EditorTools
         private static readonly Vector2 OvenMouthSize = new(160f, 120f);
         private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
 
-        private const int BackOrder = -20, FurnitureOrder = -10, NpcOrder = 8, FrontOrder = 30;
+        internal const int BackOrder = -20, FurnitureOrder = -10, NpcOrder = 8, FrontOrder = 30;
 
         // Colores de boceto del interior, mientras no esté el dibujo.
         private static readonly Color Plaster = new(0.929f, 0.827f, 0.643f);
@@ -193,13 +193,18 @@ namespace Odisea.EditorTools
 
         // ---------- Don Lupe ----------
 
-        private static NpcDialogue CreateDonLupe(Transform root, Sprite square, Sprite circle, int playerLayer)
+        // Don Lupe en x, con sus diálogos (por omisión, los de la panadería). faceLeft: mira a la izquierda.
+        internal static NpcDialogue CreateDonLupe(Transform root, Sprite square, Sprite circle, int playerLayer, float x = DonLupeX,
+            (string requires, string[] lines)[] script = null, bool faceLeft = false)
         {
+            script ??= DonLupeLines;
             var npc = new GameObject("Don Lupe");
             npc.transform.SetParent(root, false);
-            npc.transform.position = new Vector3(DonLupeX, 0f, 0f);
+            npc.transform.position = new Vector3(x, 0f, 0f);
             var visual = new GameObject("Visual").transform;
             visual.SetParent(npc.transform, false);
+            if (faceLeft)
+                visual.localScale = new Vector3(-1f, 1f, 1f);
 
             Sprite[] frames = File.Exists(ArtImportBuilder.DonLupeIdlePath)
                 ? ArtImportBuilder.LoadStrip(ArtImportBuilder.DonLupeIdlePath) : new Sprite[0];
@@ -256,15 +261,15 @@ namespace Odisea.EditorTools
 
             var serialized = new SerializedObject(dialogue);
             SerializedProperty conversations = serialized.FindProperty("conversations");
-            conversations.arraySize = DonLupeLines.Length;
-            for (int i = 0; i < DonLupeLines.Length; i++)
+            conversations.arraySize = script.Length;
+            for (int i = 0; i < script.Length; i++)
             {
                 SerializedProperty conversation = conversations.GetArrayElementAtIndex(i);
-                conversation.FindPropertyRelative("requiresDone").stringValue = DonLupeLines[i].requires;
+                conversation.FindPropertyRelative("requiresDone").stringValue = script[i].requires;
                 SerializedProperty lines = conversation.FindPropertyRelative("lines");
-                lines.arraySize = DonLupeLines[i].lines.Length;
-                for (int l = 0; l < DonLupeLines[i].lines.Length; l++)
-                    lines.GetArrayElementAtIndex(l).stringValue = DonLupeLines[i].lines[l];
+                lines.arraySize = script[i].lines.Length;
+                for (int l = 0; l < script[i].lines.Length; l++)
+                    lines.GetArrayElementAtIndex(l).stringValue = script[i].lines[l];
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
             return dialogue;
@@ -311,7 +316,7 @@ namespace Odisea.EditorTools
             AddBubble(door.transform, component, new Vector2(-0.8f, DoorTop - 0.5f), "Ir a la playa");
         }
 
-        private static GameObject DoorFrame(string name, Transform root, Sprite square, float x, bool drawn)
+        internal static GameObject DoorFrame(string name, Transform root, Sprite square, float x, bool drawn)
         {
             var door = new GameObject(name);
             door.transform.SetParent(root, false);
@@ -327,7 +332,7 @@ namespace Odisea.EditorTools
         // ---------- Globito de "interactuar" ----------
 
         // Tarjetita crema con borde café: el botón (cambia según el control) y lo que hace, p. ej. "[E] Ir a la playa".
-        private static void AddBubble(Transform parent, Interactable target, Vector2 position, string action)
+        internal static void AddBubble(Transform parent, Interactable target, Vector2 position, string action)
         {
             var bubble = new GameObject("Globito").transform;
             bubble.SetParent(parent, false);
@@ -390,7 +395,7 @@ namespace Odisea.EditorTools
         // ---------- Cuadro de diálogo ----------
 
         // Abajo al centro: tarjeta crema, cinta amarilla con el nombre y el texto; la flechita café de "sigue".
-        private static void CreateDialogueBox()
+        internal static void CreateDialogueBox()
         {
             Transform canvas = MenuScenesBuilder.CreateCanvas("Diálogo");
             canvas.GetComponent<Canvas>().sortingOrder = 20;
@@ -433,7 +438,7 @@ namespace Odisea.EditorTools
 
         private static Color Darker(Color color, float factor) => new(color.r * factor, color.g * factor, color.b * factor, color.a);
 
-        private static void SetStrings(Object target, string field, params string[] values)
+        internal static void SetStrings(Object target, string field, params string[] values)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(field);
@@ -443,7 +448,7 @@ namespace Odisea.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static SpriteRenderer Rect(string name, Transform parent, Sprite sprite, Vector2 localPosition, Vector2 size,
+        internal static SpriteRenderer Rect(string name, Transform parent, Sprite sprite, Vector2 localPosition, Vector2 size,
             Color color, int order)
         {
             var renderer = new GameObject(name).AddComponent<SpriteRenderer>();

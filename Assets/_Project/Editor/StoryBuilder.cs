@@ -196,6 +196,25 @@ namespace Odisea.EditorTools
              "unos niños; el pan al centro."),
         };
 
+        // ---------- El Festival (desde el mapa, después de La Tovara) ----------
+        // Ulises vuelve a la plaza ya de fiesta; adentro (la escena Festival) platica con todos y ve sus puntajes.
+
+        private static readonly string[] FestivalTitles = { "La Plaza en Fiesta", "Viejos Conocidos", "El Tablero de Honor" };
+
+        private static readonly (string caption, string note)[] FestivalIntro =
+        {
+            ("Ya pasó la tormenta. La plaza de San Blas huele a pan de plátano y suena a banda: el festival por fin empezó.",
+             "Plaza de San Blas de noche después de la lluvia: carpas de colores, papel picado, luces, charcos que brillan; " +
+             "Ulises entra con la canasta vacía y una sonrisa enorme."),
+            ("Entre la gente lo esperan caras conocidas: Don Lupe, orgulloso; Polifemo, con un plato en cada mano… y Madame " +
+             "Circe, que finge no estar interesada.",
+             "Don Lupe saluda desde un puesto de pan; Polifemo come junto a una carpa; Circe, de brazos cruzados junto a " +
+             "otra carpa, mira de reojo."),
+            ("Y en medio de la plaza, el Tablero de Honor del festival guarda cada hazaña de su odisea.",
+             "Un gran tablero de madera adornado con flores y papel picado, con listones de colores; Ulises lo mira con los " +
+             "ojos brillando."),
+        };
+
         [MenuItem("Odisea/Menús/Crear escena de historietas")]
         public static void Build()
         {
@@ -243,6 +262,7 @@ namespace Odisea.EditorTools
                      {
                          EnsureStory(SceneFlow.TovaraStory, "Acto III · Carrera por los manglares", TovaraIntro, TovaraTitles),
                          EnsureStory(SceneFlow.TovaraOutroStory, "Final · El Festival del Pan de Plátano", TovaraOutro, TovaraOutroTitles),
+                         EnsureStory(SceneFlow.FestivalStory, "El Festival", FestivalIntro, FestivalTitles),
                      })
             {
                 if (actThreeMusic != null && (act.music == null || act.music == actTwoMusic))
