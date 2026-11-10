@@ -25,6 +25,81 @@ namespace Odisea.EditorTools
             (TovaraBuilder.ScenePath, "¡No caigas al agua!"),
         };
 
+        // Objetivo de cada nivel (el Horno ya trae el suyo, con el horno que parpadea): título y una línea de ayuda.
+        private static readonly (string scene, string title, string hint)[] Objectives =
+        {
+            (MercadoBuilder.ScenePath, "¡LLEGA A LA CIMA!", "Recolecta los ingredientes del pan de plátano en el camino"),
+            (TovaraBuilder.ScenePath, "¡LLEGA AL FESTIVAL!", "Cruza los manglares de panga en panga sin caer al agua"),
+        };
+
+        private const string ObjectiveName = "Letrero de objetivo";
+        private static readonly Color ObjectiveYellow = new(1f, 0.84f, 0.25f);
+
+        /// <summary>
+        /// Pone el letrero del objetivo en la escena abierta, igual al del Horno: arriba, sobre una franja café, el título
+        /// en amarillo y la ayuda debajo; entra con un rebote y se va subiendo (<see cref="LevelIntroBanner"/>). Sale al
+        /// arrancar el juego, después del "¿Listo?". Sin objetivo para esa escena, no pone nada.
+        /// </summary>
+        public static void AddObjective(string scenePath)
+        {
+            if (GameObject.Find(ObjectiveName) is { } old)
+                Object.DestroyImmediate(old);
+            foreach ((string scene, string title, string hint) in Objectives)
+            {
+                if (scene != scenePath)
+                    continue;
+                Transform canvas = MenuScenesBuilder.CreateCanvas(ObjectiveName);
+                canvas.GetComponent<Canvas>().sortingOrder = 5;
+                canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>().enabled = false;
+                var group = canvas.gameObject.AddComponent<CanvasGroup>();
+                group.interactable = group.blocksRaycasts = false;
+                group.alpha = 0f;
+
+                var content = (RectTransform)new GameObject("Letrero", typeof(RectTransform)).transform;
+                content.SetParent(canvas, false);
+                content.anchorMin = content.anchorMax = content.pivot = new Vector2(0.5f, 0.5f);
+                content.anchoredPosition = new Vector2(0f, 330f);
+                content.sizeDelta = new Vector2(1160f, 200f);
+                var band = content.gameObject.AddComponent<UnityEngine.UI.Image>();
+                band.sprite = UiAssetsBuilder.EnsureRoundedSprite();
+                band.type = UnityEngine.UI.Image.Type.Sliced;
+                band.color = new Color(PlayerSandboxBuilder.Cafe.r, PlayerSandboxBuilder.Cafe.g, PlayerSandboxBuilder.Cafe.b, 0.82f);
+                band.raycastTarget = false;
+
+                TMP_Text Label(string name, string text, Vector2 position, Vector2 size, float fontSize)
+                {
+                    var rect = (RectTransform)new GameObject(name, typeof(RectTransform)).transform;
+                    rect.SetParent(content, false);
+                    rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+                    rect.anchoredPosition = position;
+                    rect.sizeDelta = size;
+                    var label = rect.gameObject.AddComponent<TextMeshProUGUI>();
+                    label.text = text;
+                    label.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+                    label.fontSize = fontSize;
+                    label.characterSpacing = 4f;
+                    label.alignment = TextAlignmentOptions.Center;
+                    label.color = PlayerSandboxBuilder.Crema;
+                    label.outlineWidth = 0.25f;
+                    label.outlineColor = PlayerSandboxBuilder.Cafe;
+                    label.raycastTarget = false;
+                    label.enableAutoSizing = true;
+                    label.fontSizeMin = fontSize * 0.6f;
+                    label.fontSizeMax = fontSize;
+                    return label;
+                }
+                TMP_Text heading = Label("Título", title, new Vector2(0f, 28f), new Vector2(1120f, 124f), 88f);
+                heading.color = ObjectiveYellow;
+                heading.outlineWidth = 0.3f;
+                TMP_Text help = Label("Ayuda", hint, new Vector2(0f, -58f), new Vector2(1120f, 54f), 40f);
+                help.characterSpacing = 1f;
+
+                var banner = canvas.gameObject.AddComponent<LevelIntroBanner>();
+                PlayerSandboxBuilder.SetSerialized(banner, "group", group);
+                PlayerSandboxBuilder.SetSerialized(banner, "content", content);
+            }
+        }
+
         public static string PhraseFor(string scenePath)
         {
             foreach ((string scene, string phrase) in Levels)

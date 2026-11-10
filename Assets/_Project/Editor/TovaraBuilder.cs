@@ -250,6 +250,7 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.AddToBuild(ScenePath);
             // "¿Listo?" y la frase del nivel, al centro, al empezar.
             LevelIntroBuilder.Add(LevelIntroBuilder.PhraseFor(ScenePath));
+            LevelIntroBuilder.AddObjective(ScenePath);
             PlayerSandboxBuilder.EndLevel(level);
             Debug.Log("[Odisea] La Tovara creada.");
         }
