@@ -1,20 +1,18 @@
 using Odisea.Core;
-using Odisea.Level;
 using Odisea.Player;
 using UnityEngine;
 
 namespace Odisea.Enemies
 {
     /// <summary>
-    /// Garza de La Tovara: entra por la orilla de la pantalla volando a media altura hacia Ulises. Cuando queda casi
-    /// encima de donde él va a estar, se detiene en el aire un instante (aviso: sacude las alas) y suelta un pescado
-    /// podrido (<see cref="HeronDrop"/>). Al salir de la vista da la vuelta para otra pasada; después de
-    /// <see cref="passes"/> se va volando hacia arriba (si se escapa, no cuenta en el puntaje). Se le pega con la masa
-    /// saltando; tocarla hace daño (Hazard).
+    /// La garza de La Tovara: acompaña a Ulises por todo el nivel volando alto (fuera del alcance de sus saltos), como
+    /// Madame Circe en el Mercado: no se le puede vencer. Entra a los pocos segundos y, cada tanto, vuela hacia donde
+    /// Ulises va a estar, se detiene sacudiendo las alas (aviso) y suelta un pescado podrido (<see cref="HeronDrop"/>),
+    /// cuya sombra en el piso avisa dónde cae. Entre tirada y tirada se pasea por la pantalla. Deja de tirar si Ulises
+    /// muere y se va volando al llegar al final del nivel.
     /// </summary>
     public class HeronBomber : MonoBehaviour
     {
-        [SerializeField] private Health health;
         [Tooltip("El dibujo: se voltea hacia donde vuela y aletea.")]
         [SerializeField] private Transform visual;
         [Tooltip("Opcional: alas del dibujo de relleno (se estiran al aletear).")]
@@ -23,152 +21,173 @@ namespace Odisea.Enemies
         [SerializeField] private HeronDrop dropTemplate;
 
         [Header("Vuelo")]
-        [Tooltip("Altura del vuelo (y del mundo).")]
-        [SerializeField] private float flyHeight = 5f;
-        [SerializeField, Min(0.1f)] private float speed = 4.5f;
-        [SerializeField, Min(0f)] private float bob = 0.25f;
-        [SerializeField, Min(1)] private int passes = 2;
+        [Tooltip("Qué tan arriba del centro de la cámara vuela.")]
+        [SerializeField] private float heightAboveView = 4.2f;
+        [Tooltip("Velocidad (respecto a la pantalla) al ir hacia Ulises o al pasearse.")]
+        [SerializeField, Min(0.1f)] private float speed = 7f;
+        [SerializeField, Min(0f)] private float bob = 0.3f;
+        [Tooltip("Segundos antes de entrar al empezar el nivel.")]
+        [SerializeField, Min(0f)] private float startDelay = 3f;
+        [Tooltip("Al pasar Ulises de esta x (cerca del festival) se va.")]
+        [SerializeField] private float leaveX = 1000f;
 
         [Header("Tirar")]
-        [Tooltip("Cuánto adelanta a Ulises (segundos de su carrera) para apuntar.")]
-        [SerializeField, Min(0f)] private float lead = 0.35f;
+        [Tooltip("Segundos entre tiradas (al azar entre los dos).")]
+        [SerializeField] private Vector2 interval = new(3f, 5f);
         [Tooltip("Lo que se detiene en el aire antes de soltar el pescado (aviso).")]
-        [SerializeField, Min(0f)] private float warnTime = 0.45f;
+        [SerializeField, Min(0f)] private float warnTime = 0.5f;
+        [Tooltip("Lo que tarda el pescado en llegar al piso (para adelantarse a Ulises).")]
+        [SerializeField, Min(0f)] private float fallTime = 1f;
         [SerializeField] private SoundEffect squawk = new();
         [SerializeField] private SoundEffect dropSound = new();
 
-        private enum State { Flying, Warning, Leaving }
+        private enum State { Waiting, Wander, Hunt, Warning, Leaving }
 
         private PlayerController player;
+        private Health playerHealth;
         private Camera view;
-        private State state;
-        private int direction = -1;
-        private int passesDone;
-        private bool droppedThisPass;
-        private float stateTime;
+        private State state = State.Waiting;
+        private float timer;
+        private float nextDrop;
+        private float lastViewX;
+        private float wanderX;
+        private float huntX;
+        private int facing = -1;
         private float flap;
         private Vector3 visualScale;
-
-        private float homeX;
 
         private void Awake()
         {
             if (visual != null)
                 visualScale = visual.localScale;
-            homeX = transform.position.x;
         }
 
-        // Al encenderse (cuando la cámara llega a su lugar) aparece en la orilla derecha de la pantalla. Al cargar la
-        // escena se enciende un instante antes de que ActivateOnView la apague: ahí no se mueve.
-        private void OnEnable()
+        private void Start()
         {
             player = FindAnyObjectByType<PlayerController>();
+            playerHealth = player != null ? player.GetComponent<Health>() : null;
             view = Camera.main;
-            if (view == null)
-                return;
-            float half = view.orthographicSize * view.aspect;
-            float rightEdge = view.transform.position.x + half;
-            if (rightEdge < homeX - 4f)
-                return;
-            transform.position = new Vector3(rightEdge + 1f, flyHeight, 0f);
-            direction = -1;
-            state = State.Flying;
-            passesDone = 0;
-            droppedThisPass = false;
+            if (view != null)
+                lastViewX = view.transform.position.x;
+            // Fuera de la vista, por la derecha, hasta que entra.
+            SetVisible(false);
         }
+
+        private float HalfWidth => view.orthographicSize * view.aspect;
 
         private void Update()
         {
-            if (health != null && health.IsDead)
+            if (view == null)
                 return;
             float dt = Time.deltaTime;
-            stateTime += dt;
-            flap += dt * (state == State.Warning ? 22f : 11f);
+            timer += dt;
+            flap += dt * (state == State.Warning ? 24f : 11f);
+
+            // Acompaña a la cámara: su x es relativa a la pantalla.
+            float viewX = view.transform.position.x;
+            Vector3 position = transform.position;
+            position.x += viewX - lastViewX;
+            lastViewX = viewX;
+            float height = view.transform.position.y + heightAboveView + Mathf.Sin(Time.time * 2f) * bob;
+
+            bool playerGone = playerHealth != null && playerHealth.IsDead;
+            if (state != State.Leaving && state != State.Waiting && player != null && player.transform.position.x > leaveX)
+                state = State.Leaving;
 
             switch (state)
             {
-                case State.Flying:
-                    Fly(dt);
+                case State.Waiting:
+                    if (timer >= startDelay)
+                    {
+                        position = new Vector3(viewX + HalfWidth + 2f, height, 0f);
+                        SetVisible(true);
+                        Wander(viewX);
+                    }
+                    break;
+                case State.Wander:
+                    position.x = Approach(position.x, wanderX + viewX, dt);
+                    position.y = height;
+                    if (Mathf.Abs(position.x - (wanderX + viewX)) < 0.3f)
+                        wanderX = Random.Range(-HalfWidth + 2f, HalfWidth - 2f);
+                    if (Time.time >= nextDrop && !playerGone)
+                        state = State.Hunt;
+                    break;
+                case State.Hunt:
+                    if (player == null || playerGone)
+                    {
+                        Wander(viewX);
+                        break;
+                    }
+                    // Hacia donde va a estar Ulises cuando el pescado llegue al piso (sin salirse de la pantalla).
+                    huntX = player.transform.position.x + player.Velocity.x * (warnTime + fallTime);
+                    huntX = Mathf.Clamp(huntX, viewX - HalfWidth + 1f, viewX + HalfWidth - 1f);
+                    position.x = Approach(position.x, huntX, dt * 1.3f);
+                    position.y = height;
+                    if (Mathf.Abs(position.x - huntX) < 0.4f)
+                    {
+                        state = State.Warning;
+                        timer = 0f;
+                        squawk.Play();
+                    }
                     break;
                 case State.Warning:
-                    // Se queda en el aire sacudiendo las alas y suelta el pescado.
-                    if (stateTime >= warnTime)
+                    position.y = height;
+                    if (timer >= warnTime)
                     {
-                        Drop();
-                        state = State.Flying;
-                        stateTime = 0f;
+                        Drop(position);
+                        Wander(viewX);
                     }
                     break;
                 case State.Leaving:
-                    transform.position += new Vector3(direction * speed * 0.6f, speed * 0.8f, 0f) * dt;
-                    if (view == null || transform.position.y > view.transform.position.y + view.orthographicSize + 2f)
-                    {
-                        // Se escapó: no cuenta como derrotada ni para el máximo.
-                        if (LevelScore.Current != null && health != null)
-                            LevelScore.Current.Discount(health);
+                    position += new Vector3(-speed * 0.5f, speed * 0.7f, 0f) * dt;
+                    facing = -1;
+                    if (position.y > view.transform.position.y + view.orthographicSize + 3f)
                         gameObject.SetActive(false);
-                    }
                     break;
             }
+            transform.position = position;
             Animate();
         }
 
-        private void Fly(float dt)
+        private void Wander(float viewX)
         {
-            Vector3 position = transform.position;
-            position.x += direction * speed * dt;
-            position.y = flyHeight + Mathf.Sin(Time.time * 2.2f) * bob;
-            transform.position = position;
-
-            if (player != null && !droppedThisPass)
-            {
-                float target = player.transform.position.x + player.Velocity.x * (lead + warnTime);
-                // Cuando el punto donde va a estar Ulises le queda debajo (o un poquito adelante), avisa.
-                if (Mathf.Abs(position.x - target) < 0.6f || (position.x - target) * direction > 0f &&
-                    Mathf.Abs(position.x - target) < 2f)
-                {
-                    droppedThisPass = true;
-                    state = State.Warning;
-                    stateTime = 0f;
-                    squawk.Play();
-                    return;
-                }
-            }
-
-            // Fuera de la vista (por el lado hacia donde va): da la vuelta o se va.
-            if (view == null)
-                return;
-            float half = view.orthographicSize * view.aspect;
-            float edge = view.transform.position.x + direction * (half + 1.5f);
-            if ((position.x - edge) * direction > 0f)
-            {
-                passesDone++;
-                if (passesDone >= passes)
-                {
-                    state = State.Leaving;
-                    return;
-                }
-                direction = -direction;
-                droppedThisPass = false;
-            }
+            state = State.Wander;
+            wanderX = Random.Range(-HalfWidth + 2f, HalfWidth - 2f);
+            nextDrop = Time.time + Random.Range(interval.x, interval.y);
         }
 
-        private void Drop()
+        // Se acerca a la x deseada sin pasar de su velocidad, y voltea hacia donde va.
+        private float Approach(float x, float target, float dt)
+        {
+            float step = Mathf.Clamp(target - x, -speed * dt, speed * dt);
+            if (Mathf.Abs(step) > 0.001f)
+                facing = step < 0f ? -1 : 1;
+            return x + step;
+        }
+
+        private void Drop(Vector3 position)
         {
             if (dropTemplate == null)
                 return;
-            HeronDrop drop = Instantiate(dropTemplate, transform.position + Vector3.down * 0.4f, Quaternion.identity);
+            HeronDrop drop = Instantiate(dropTemplate, position + Vector3.down * 0.4f, Quaternion.identity);
             drop.gameObject.SetActive(true);
-            drop.Launch(new Vector2(direction * speed * 0.25f, 0f));
+            drop.Launch(Vector2.zero);
             dropSound.Play();
+        }
+
+        private void SetVisible(bool visible)
+        {
+            if (visual != null)
+                visual.gameObject.SetActive(visible);
         }
 
         private void Animate()
         {
             if (visual == null)
                 return;
+            // El dibujo mira a la izquierda: se voltea al volar a la derecha.
             float wobble = state == State.Warning ? Mathf.Sin(flap * 1.3f) * 0.06f : 0f;
-            visual.localScale = new Vector3(Mathf.Abs(visualScale.x) * -direction, visualScale.y, visualScale.z);
+            visual.localScale = new Vector3(Mathf.Abs(visualScale.x) * -facing, visualScale.y, visualScale.z);
             visual.localPosition = new Vector3(wobble, 0f, 0f);
             float wing = Mathf.Sin(flap);
             foreach (Transform w in wings)

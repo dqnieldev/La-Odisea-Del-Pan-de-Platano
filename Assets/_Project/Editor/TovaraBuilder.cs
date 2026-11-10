@@ -123,8 +123,6 @@ namespace Odisea.EditorTools
         {
             (63f, 1.4f), (102f, 2.0f), (179f, 2.0f), (217f, 0.2f),
         };
-        // Garzas: x donde entran a la vista (vuelan a esa altura y sueltan pescados sobre Ulises).
-        private static readonly (float x, float height)[] Herons = { (74f, 5f), (170f, 5.5f), (238f, 5f) };
         private static readonly (float x, float y)[] Gnats =
         {
             (40f, 4.5f), (90f, 4.5f), (186f, 5.5f), (200f, 4.5f),
@@ -213,8 +211,6 @@ namespace Odisea.EditorTools
                     swarm.name = $"Jejenes {i + 1}";
                     swarm.transform.position = new Vector3(Gnats[i].x, Gnats[i].y, 0f);
                 }
-            for (int i = 0; i < Herons.Length; i++)
-                CreateHeron(enemies, square, circle, Herons[i].x, Herons[i].height, i + 1, level);
             // Los enemigos ordenados de izquierda a derecha (así se van encendiendo).
             foreach (Transform child in enemies.Cast<Transform>().OrderBy(t => t.position.x).ToArray())
                 child.SetAsLastSibling();
@@ -231,6 +227,9 @@ namespace Odisea.EditorTools
                 PlayerSandboxBuilder.SetSerialized(spawner, "candidates", helpers.ToArray());
                 PlayerSandboxBuilder.SetSerialized(spawner, "keep", 1);
             }
+
+            // ----- La garza: acompaña a Ulises todo el nivel tirándole pescados -----
+            CreateHeron(root, square, circle, level);
 
             // ----- La meta: la entrada del festival -----
             CreateFestivalGate(root, square, circle, level.PlayerLayer);
@@ -313,8 +312,8 @@ namespace Odisea.EditorTools
             Transform view = Object.FindAnyObjectByType<CameraFollow2D>().transform;
             var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
             // Dos capas: la de enfrente, sobre todo; la de atrás, más fina y tenue, detrás de la acción.
-            CreateRain(view, unlit, "Lluvia (enfrente)", 30, 170f, 0.35f, 0.08f, 1f);
-            CreateRain(view, unlit, "Lluvia (atrás)", -12, 260f, 0.3f, 0.06f, 0.8f);
+            CreateRain(view, unlit, "Lluvia (enfrente)", 30, 110f, 0.2f, 0.05f, 1f);
+            CreateRain(view, unlit, "Lluvia (atrás)", -12, 170f, 0.16f, 0.04f, 0.8f);
         }
 
         private static void CreateRain(Transform view, Material material, string name, int order, float rate, float alpha, float size,
@@ -353,7 +352,7 @@ namespace Odisea.EditorTools
             sheet.AddSprite(art.RainDrop);
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 5f;
+            renderer.lengthScale = 3.5f;
             renderer.velocityScale = 0.02f;
             if (material != null)
                 renderer.sharedMaterial = material;
@@ -765,27 +764,19 @@ namespace Odisea.EditorTools
             return shape;
         }
 
-        // Garza (HeronBomber): sin su dibujo, de relleno: cuerpo blanco, cuello, pico naranja y alas grises que aletean.
-        // Mira a la izquierda (se voltea al volar a la derecha). Aguanta dos golpes; tocarla hace daño.
-        private static void CreateHeron(Transform parent, Sprite square, Sprite circle, float x, float height, int number,
-            PlayerSandboxBuilder.LevelContext level)
+        // La garza (HeronBomber): vuela alto todo el nivel y no se le puede vencer (sin vida ni collider, como Circe).
+        // Sin su dibujo, de relleno: cuerpo blanco, cuello, pico naranja y un ala gris que aletea. Mira a la izquierda.
+        private static void CreateHeron(Transform parent, Sprite square, Sprite circle, PlayerSandboxBuilder.LevelContext level)
         {
-            var heron = new GameObject($"Garza {number}") { layer = level.EnemyLayer };
+            var heron = new GameObject("Garza");
             heron.transform.SetParent(parent, false);
-            heron.transform.position = new Vector3(x, height, 0f);
-            heron.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
-            var body = heron.AddComponent<CapsuleCollider2D>();
-            body.isTrigger = true;
-            body.direction = CapsuleDirection2D.Horizontal;
-            body.size = new Vector2(1.6f, 0.7f);
+            heron.transform.position = new Vector3(CameraMinX + 20f, CameraY + 4.2f, 0f);
 
-            var visual = new GameObject("Visual") { layer = level.EnemyLayer }.transform;
+            var visual = new GameObject("Visual").transform;
             visual.SetParent(heron.transform, false);
-            var flash = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
-            var parts = new System.Collections.Generic.List<Object>();
             SpriteRenderer Part(string name, Sprite sprite, Vector2 position, Vector2 size, Color color, int order, float angle = 0f)
             {
-                var part = new GameObject(name) { layer = level.EnemyLayer }.AddComponent<SpriteRenderer>();
+                var part = new GameObject(name).AddComponent<SpriteRenderer>();
                 part.transform.SetParent(visual, false);
                 part.transform.localPosition = position;
                 part.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
@@ -793,8 +784,6 @@ namespace Odisea.EditorTools
                 part.sprite = sprite;
                 part.color = color;
                 part.sortingOrder = order;
-                part.sharedMaterial = flash;
-                parts.Add(part);
                 return part;
             }
             var white = new Color(0.96f, 0.96f, 0.93f);
@@ -806,21 +795,9 @@ namespace Odisea.EditorTools
             Part("Ojo", circle, new Vector2(-0.9f, 0.37f), new Vector2(0.06f, 0.06f), Color.black, 10);
             SpriteRenderer wing = Part("Ala", circle, new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.4f), new Color(0.72f, 0.74f, 0.78f), 9);
 
-            var health = heron.AddComponent<Health>();
-            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
-            PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.2f);
-            PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
-            PlayerSandboxBuilder.SetSerialized(heron.AddComponent<Hazard>(), "targetLayers", 1 << level.PlayerLayer);
-            var feedback = heron.AddComponent<DamageFeedback>();
-            PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
-            PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual);
-            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", parts.ToArray());
-            PlayerSandboxBuilder.SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
-            PlayerSandboxBuilder.SetSerialized(feedback, "flashColor", Color.white);
-            PlayerSandboxBuilder.SetSerialized(feedback, "flashDuration", 0.15f);
 
             // El pescado podrido que suelta (molde apagado) con su sombra de aviso.
-            var drop = new GameObject("Pescado (molde)") { layer = level.EnemyLayer };
+            var drop = new GameObject("Pescado (molde)");
             drop.transform.SetParent(heron.transform, false);
             drop.SetActive(false);
             drop.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
@@ -858,11 +835,11 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(falling, "visual", dropVisual);
 
             var bomber = heron.AddComponent<HeronBomber>();
-            PlayerSandboxBuilder.SetSerialized(bomber, "health", health);
             PlayerSandboxBuilder.SetSerialized(bomber, "visual", visual);
             PlayerSandboxBuilder.SetSerialized(bomber, "wings", new Object[] { wing.transform });
             PlayerSandboxBuilder.SetSerialized(bomber, "dropTemplate", falling);
-            PlayerSandboxBuilder.SetSerialized(bomber, "flyHeight", height);
+            // Se va al acercarse Ulises al festival.
+            PlayerSandboxBuilder.SetSerialized(bomber, "leaveX", GoalX - 14f);
         }
 
         // Rata de La Tovara: corre por su tramo de orilla (PatrolEnemy, como el cocodrilo), persigue a Ulises al verlo y
