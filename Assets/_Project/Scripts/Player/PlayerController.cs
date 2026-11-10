@@ -26,6 +26,8 @@ namespace Odisea.Player
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float controlLockTimer;
+        // Pausa para comer o tomar algo (solo en el piso): no se mueve y frena en seco.
+        private float holdTimer;
         private int extraJumpsLeft;
 
         private Ladder currentLadder;
@@ -45,7 +47,7 @@ namespace Odisea.Player
         public Vector2 Velocity => body.linearVelocity;
         /// <summary>Multiplicador externo de velocidad: lodo (&lt; 1), café de olla (&gt; 1).</summary>
         public float SpeedMultiplier { get; set; } = 1f;
-        public bool HasControl => controlLockTimer <= 0f && (health == null || !health.IsDead);
+        public bool HasControl => controlLockTimer <= 0f && holdTimer <= 0f && (health == null || !health.IsDead);
         private Vector2 FeetPosition => body.position + feetOffset;
 
         // Solo importa hacia dónde: -1, 0 o 1. Una diagonal (W+D, stick un poco arriba) se queda con menos de 1 en x
@@ -104,6 +106,7 @@ namespace Odisea.Player
             coyoteTimer -= dt;
             jumpBufferTimer -= dt;
             controlLockTimer -= dt;
+            holdTimer -= dt;
 
             // Se consume siempre para que un salto pulsado durante el aturdimiento no se dispare después.
             bool jumpPressed = input.ConsumeJumpPressed();
@@ -146,6 +149,12 @@ namespace Odisea.Player
 
             if (HasControl)
                 MoveHorizontally(Time.fixedDeltaTime);
+            else if (holdTimer > 0f && IsGrounded)
+            {
+                // Pausa de comer o tomar: se queda quieto, sin resbalar.
+                float x = Mathf.MoveTowards(body.linearVelocity.x, 0f, config.deceleration * Time.fixedDeltaTime);
+                body.linearVelocity = new Vector2(x, body.linearVelocity.y);
+            }
 
             ApplyGravity();
         }
@@ -166,12 +175,16 @@ namespace Odisea.Player
             Slipped?.Invoke();
         }
 
-        /// <summary>Se detiene un momento sin poder moverse (tomar café). En el aire o en la escalera no frena.</summary>
+        /// <summary>
+        /// Se detiene un momento sin poder moverse (tomar café, comer). Solo en el piso: en el aire o en la escalera no
+        /// pierde el control (si lo perdiera, caería sin poder hacer el doble salto, por ejemplo al agua).
+        /// </summary>
         public void HoldStill(float seconds)
         {
-            if (IsGrounded)
-                body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
-            controlLockTimer = Mathf.Max(controlLockTimer, seconds);
+            if (!IsGrounded || IsClimbing)
+                return;
+            body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
+            holdTimer = Mathf.Max(holdTimer, seconds);
         }
 
         // ---------- Escaleras ----------
