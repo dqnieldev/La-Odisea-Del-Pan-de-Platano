@@ -27,7 +27,10 @@ namespace Odisea.Level
             (GameProgress.Tovara, "La Tovara"),
         };
 
-        private void Start()
+        private void Start() => Refresh();
+
+        /// <summary>Pone los puntajes de la partida (al empezar y cada vez que se abre el tablero en grande).</summary>
+        public void Refresh()
         {
             string nameText = "", pointText = "", rankText = "";
             int sum = 0;

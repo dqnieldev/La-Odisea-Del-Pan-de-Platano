@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 26fb4c8995ad98d43b379e103496747b
+guid: 284d001ed1107d64bafe63cf3d1e3c90
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7181439551238750132
-    second: Tablero_Sombra_0
+      213: -6174834359671200983
+    second: Tablero_Poste_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -102,13 +102,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Tablero_Sombra_0
+      name: Tablero_Poste_0
       rect:
         serializedVersion: 2
-        x: 7
-        y: 9
-        width: 1232
-        height: 678
+        x: 0
+        y: 0
+        width: 700
+        height: 442
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -117,8 +117,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c40497ce6c6665c90800000000000000
-      internalID: -7181439551238750132
+      spriteID: 923ebe49dd49e4aa0800000000000000
+      internalID: -6174834359671200983
       vertices: []
       indices: 
       edges: []
@@ -137,7 +137,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Tablero_Sombra_0: -7181439551238750132
+      Tablero_Poste_0: -6174834359671200983
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -6,6 +6,7 @@ using Odisea.UI;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Odisea.EditorTools
 {
@@ -21,7 +22,8 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
         private const string BoardArtPath = "Assets/_Project/Art/Environment/Festival/Tablero.png";
-        private const string BoardShadowPath = "Assets/_Project/Art/Environment/Festival/Tablero_Sombra.png";
+        // El tablerito con patas que está en el piso (el tótem que abre el Tablero de Honor en grande).
+        private const string BoardTotemPath = "Assets/_Project/Art/Environment/Festival/Tablero_Poste.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
         // En la plaza la música baja (poco a poco, si viene de la historieta) para que se oigan los personajes.
         public const float MusicVolume = 0.45f;
@@ -46,8 +48,8 @@ namespace Odisea.EditorTools
         // Bien separados (cada uno con su espacio para platicar, lejos de las puertas). La puerta del escenario cae en el
         // escenario del dibujo (a la derecha).
         private const float MapDoorX = -8.3f;
-        private const float DonLupeX = -4.6f;
-        private const float BoardX = -1.7f;
+        private const float DonLupeX = -4.3f;
+        private const float BoardX = -1.2f;
         private const float PolifemoX = 1.7f;
         private const float CirceX = 4.9f;
         private const float StageDoorX = 8.3f;
@@ -149,7 +151,7 @@ namespace Odisea.EditorTools
                 ground);
             // Se ríe al empezar a platicar.
             GameSoundsBuilder.SetSound(circe, "talkSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "circe_risa"), 0.7f);
-            CreateScoreboard(root, square, ground);
+            CreateScoreboard(root, square, ground, level.PlayerLayer);
             CreateMapDoor(root, square, level.PlayerLayer, drawn: art == null);
             CreateStageDoor(root, square, circle, level.PlayerLayer, drawn: art == null);
 
@@ -304,15 +306,16 @@ namespace Odisea.EditorTools
         // ---------- Tablero de Honor ----------
 
         // Un tablero de madera sobre dos postes con el mejor puntaje y rango de cada nivel (FestivalScoreboard).
-        private static void CreateScoreboard(Transform root, Sprite square, int ground)
+        private static void CreateScoreboard(Transform root, Sprite square, int ground, int playerLayer)
         {
             var board = new GameObject("Tablero de Honor").transform;
             board.SetParent(root, false);
             board.position = new Vector3(BoardX, 0f, 0f);
             Sprite art = File.Exists(BoardArtPath) ? MenuScenesBuilder.LoadUiSprite(BoardArtPath) : null;
-            if (art != null)
+            Sprite small = File.Exists(BoardTotemPath) ? MenuScenesBuilder.LoadUiSprite(BoardTotemPath) : null;
+            if (art != null && small != null)
             {
-                CreateDrawnScoreboard(board, art, ground);
+                CreateScoreboardTotem(board, small, art, ground, playerLayer);
                 return;
             }
             const float width = 3.8f, height = 2.5f, centerY = 3.55f;
@@ -362,99 +365,121 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(scoreboard, "total", total);
         }
 
-        // El tablero dibujado (listón arriba, tres tiras de papel y una placa abajo), sin patas: flota arriba, entre Don
-        // Lupe y Polifemo, sobre el paisaje y sin tapar a nadie. Cada texto va en su lugar del dibujo; las medidas son
-        // fracciones del dibujo original con patas (x desde la izquierda, y desde arriba): el recorte llega a CutLine.
-        private static void CreateDrawnScoreboard(Transform board, Sprite art, int ground)
+        // En el piso, el tablerito con patas (el tótem): al interactuar abre el Tablero de Honor en grande (el dibujo sin patas,
+        // con los puntajes encima). Así el tablero no tapa la plaza todo el tiempo.
+        private static void CreateScoreboardTotem(Transform board, Sprite small, Sprite big, int ground, int playerLayer)
         {
-            const float width = 5f, centerY = 4.55f, CutLine = 0.824f;
-            board.position = new Vector3(BoardX, centerY, 0f);
-            float height = width * art.bounds.size.y / art.bounds.size.x;
-            var drawing = new GameObject("Tablero (dibujo)").AddComponent<SpriteRenderer>();
+            const float width = 2.8f;
+            float height = width * small.bounds.size.y / small.bounds.size.x;
+            var drawing = new GameObject("Tablerito (dibujo)").AddComponent<SpriteRenderer>();
             drawing.transform.SetParent(board, false);
-            drawing.sprite = art;
-            drawing.transform.localScale = Vector3.one * (width / art.bounds.size.x);
+            drawing.sprite = small;
+            drawing.transform.localScale = Vector3.one * (width / small.bounds.size.x);
+            // Las patas en el piso.
+            drawing.transform.localPosition = new Vector3(0f, height / 2f - 0.04f, 0f);
             drawing.sortingOrder = FurnitureOrder;
-            // Con la luz de la plaza: un poco más cálido y apagado, para que no se vea pegado encima del dibujo.
-            drawing.color = new Color(0.88f, 0.8f, 0.72f);
-            // Se mece apenas, como colgado.
-            var sway = drawing.gameObject.AddComponent<FloatingSign>();
-            PlayerSandboxBuilder.SetSerialized(sway, "amplitude", 0.06f);
+            // Con la luz de la plaza: un poco más cálido y apagado.
+            drawing.color = new Color(0.9f, 0.83f, 0.76f);
+            // El título en su listón (al 50 % del ancho y 9.5 % del alto, desde arriba).
+            var title = new GameObject("Título").AddComponent<TextMeshPro>();
+            title.transform.SetParent(board, false);
+            title.transform.localPosition = new Vector3(0f, height * (1f - 0.095f) - 0.04f, 0f);
+            title.rectTransform.sizeDelta = new Vector2(width * 0.42f, height * 0.08f);
+            title.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
+            title.text = "TABLERO DE HONOR";
+            // Tamaño fijo: cabe en el listón (el ajuste automático no lo calcula al armar la escena).
+            title.fontSize = 0.95f;
+            title.alignment = TextAlignmentOptions.Center;
+            title.color = new Color(0.30f, 0.17f, 0.08f);
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.sortingOrder = FurnitureOrder + 1;
+            PlayerSandboxBuilder.AddGroundShadow(board.gameObject, ground, new Vector2(width * 1.05f, 0.45f), Vector2.zero, null, 3f,
+                FurnitureOrder - 1);
 
-            // Sombra difuminada del tablero sobre lo de atrás (su silueta borrosa, con el mismo tamaño de pixel), un poco
-            // corrida hacia abajo.
-            if (File.Exists(BoardShadowPath) && MenuScenesBuilder.LoadUiSprite(BoardShadowPath) is { } blur)
-            {
-                var cast = new GameObject("Sombra del tablero").AddComponent<SpriteRenderer>();
-                cast.transform.SetParent(drawing.transform, false);
-                cast.sprite = blur;
-                cast.transform.localScale = Vector3.one * (art.pixelsPerUnit / blur.pixelsPerUnit);
-                cast.transform.localPosition = new Vector3(0.1f, -0.18f, 0f) / drawing.transform.localScale.x;
-                cast.color = new Color(1f, 1f, 1f, 0.7f);
-                cast.sortingOrder = FurnitureOrder - 2;
-            }
+            var area = board.gameObject.AddComponent<BoxCollider2D>();
+            area.size = new Vector2(width, 3f);
+            area.offset = new Vector2(0f, 1.5f);
+            var totem = board.gameObject.AddComponent<ScoreboardTotem>();
+            PlayerSandboxBuilder.SetSerialized(totem, "playerLayers", 1 << playerLayer);
+            MenuScenesBuilder.SetField(totem, "modal", CreateScoreboardModal(big));
+            BakeryBuilder.AddBubble(board, totem, new Vector2(0f, height + 0.5f), "Ver puntajes");
+        }
 
-            // Resplandor cálido detrás (como los lugares del mapa) y la luz del farolito de la izquierda.
-            var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } dot)
-            {
-                SpriteRenderer halo = BakeryBuilder.Rect("Resplandor", board, dot, Vector2.zero,
-                    new Vector2(width * 1.45f, height * 1.6f), new Color(1f, 0.72f, 0.38f, 0.45f), FurnitureOrder - 3);
-                SpriteRenderer lamp = BakeryBuilder.Rect("Luz del farolito", drawing.transform, dot,
-                    new Vector2((0.036f - 0.5f) * width, (0.5f - 0.42f / CutLine) * height) / drawing.transform.localScale.x,
-                    new Vector2(1.3f, 1.3f) / drawing.transform.localScale.x, new Color(1f, 0.78f, 0.4f, 0.55f), FurnitureOrder + 1);
-                if (unlit != null)
-                    halo.sharedMaterial = lamp.sharedMaterial = unlit;
-            }
+        // El Tablero de Honor en grande, encima de todo: cada texto en su lugar del dibujo y el botón "Cerrar" abajo. Las
+        // medidas son fracciones del dibujo original con patas (x desde la izquierda, y desde arriba); el dibujo sin patas
+        // llega hasta CutLine de ese alto.
+        private static ScoreboardModal CreateScoreboardModal(Sprite art)
+        {
+            const float CutLine = 0.824f, width = 1400f;
+            float height = width * art.bounds.size.y / art.bounds.size.x;
 
-            Vector3 At(float fx, float fy) => new((fx - 0.5f) * width, (0.5f - fy / CutLine) * height, 0f);
+            var root = new GameObject("Tablero de Honor (en grande)", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
+                typeof(GraphicRaycaster), typeof(CanvasGroup));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            // Encima de los diálogos y del HUD; debajo del iris de transición.
+            canvas.sortingOrder = 550;
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            var rootRect = (RectTransform)root.transform;
+            MenuScenesBuilder.CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.8f), Vector2.zero,
+                Vector2.zero, stretch: true).raycastTarget = true;
+
+            var card = (RectTransform)new GameObject("Tablero", typeof(RectTransform)).transform;
+            card.SetParent(rootRect, false);
+            card.anchoredPosition = new Vector2(0f, 50f);
+            card.sizeDelta = new Vector2(width, height);
+            MenuScenesBuilder.CreateImage("Dibujo", card, art, Color.white, Vector2.zero, Vector2.zero, stretch: true).preserveAspect = true;
+
             TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
             TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
             TMP_FontAsset body = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
             Color ink = new(0.30f, 0.17f, 0.08f);
             Color gold = new(0.80f, 0.42f, 0.05f);
-            TextMeshPro Text(string name, string text, TMP_FontAsset font, Vector3 position, float w, float h,
-                TextAlignmentOptions alignment, Color color)
+            TMP_Text Text(string name, TMP_FontAsset font, float fx, float fy, float w, float h, TextAlignmentOptions alignment,
+                Color color, string content = "")
             {
-                var label = new GameObject(name).AddComponent<TextMeshPro>();
-                // En el dibujo, para que se mezan juntos.
-                label.transform.SetParent(drawing.transform, false);
-                label.transform.localPosition = position / drawing.transform.localScale.x;
-                label.transform.localScale = Vector3.one / drawing.transform.localScale.x;
-                label.rectTransform.sizeDelta = new Vector2(w * width, h / CutLine * height);
-                label.font = font;
-                label.text = text;
+                TMP_Text label = MenuScenesBuilder.CreateText(name, card, content, font, 90f, color,
+                    position: new Vector2((fx - 0.5f) * width, (0.5f - fy / CutLine) * height),
+                    rectSize: new Vector2(w * width, h / CutLine * height), alignment: alignment);
                 label.enableAutoSizing = true;
-                label.fontSizeMin = 0.5f;
-                label.fontSizeMax = 10f;
-                label.alignment = alignment;
-                label.color = color;
+                label.fontSizeMin = 10f;
+                label.fontSizeMax = 90f;
                 label.textWrappingMode = TextWrappingModes.NoWrap;
-                label.margin = Vector4.zero;
-                label.sortingOrder = FurnitureOrder + 1;
                 return label;
             }
 
-            // El título en el listón (la parte de enfrente, del 30 % al 70 % del ancho).
-            Text("Título", "TABLERO DE HONOR", titleFont, At(0.5f, 0.095f), 0.38f, 0.075f, TextAlignmentOptions.Center, ink);
-            // Las tres tiras: nombre a la izquierda, puntos y rango a la derecha.
+            // El título en el listón; las tres tiras: nombre a la izquierda, puntos y rango a la derecha; el total en la placa.
+            Text("Título", titleFont, 0.5f, 0.095f, 0.38f, 0.075f, TextAlignmentOptions.Center, ink, "TABLERO DE HONOR");
             float[] rows = { 0.335f, 0.46f, 0.585f };
-            var names = new TMP_Text[rows.Length];
-            var points = new TMP_Text[rows.Length];
-            var ranks = new TMP_Text[rows.Length];
+            var names = new Object[rows.Length];
+            var points = new Object[rows.Length];
+            var ranks = new Object[rows.Length];
             for (int i = 0; i < rows.Length; i++)
             {
-                names[i] = Text($"Nivel {i + 1}", "", bold, At(0.37f, rows[i]), 0.3f, 0.058f, TextAlignmentOptions.Left, ink);
-                points[i] = Text($"Puntos {i + 1}", "", body, At(0.63f, rows[i]), 0.18f, 0.058f, TextAlignmentOptions.Right, ink);
-                ranks[i] = Text($"Rango {i + 1}", "", titleFont, At(0.765f, rows[i]), 0.06f, 0.085f, TextAlignmentOptions.Center, gold);
+                names[i] = Text($"Nivel {i + 1}", bold, 0.37f, rows[i], 0.3f, 0.058f, TextAlignmentOptions.Left, ink);
+                points[i] = Text($"Puntos {i + 1}", body, 0.63f, rows[i], 0.18f, 0.058f, TextAlignmentOptions.Right, ink);
+                ranks[i] = Text($"Rango {i + 1}", titleFont, 0.765f, rows[i], 0.06f, 0.085f, TextAlignmentOptions.Center, gold);
             }
-            TextMeshPro total = Text("Total", "", bold, At(0.5f, 0.7f), 0.22f, 0.05f, TextAlignmentOptions.Center, ink);
+            TMP_Text total = Text("Total", bold, 0.5f, 0.7f, 0.22f, 0.05f, TextAlignmentOptions.Center, ink);
 
-            var scoreboard = board.gameObject.AddComponent<FestivalScoreboard>();
+            Button close = MenuScenesBuilder.CreateMenuButton("Cerrar", card, UiAssetsBuilder.EnsureRoundedSprite(), bold,
+                new Vector2(300f, 90f), 46f);
+            ((RectTransform)close.transform).anchoredPosition = new Vector2(0f, -height / 2f - 70f);
+
+            var scoreboard = root.AddComponent<FestivalScoreboard>();
             MenuScenesBuilder.SetField(scoreboard, "total", total);
-            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowNames", names.Cast<Object>().ToArray());
-            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowPoints", points.Cast<Object>().ToArray());
-            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowRanks", ranks.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowNames", names);
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowPoints", points);
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowRanks", ranks);
+            var modal = root.AddComponent<ScoreboardModal>();
+            MenuScenesBuilder.SetField(modal, "group", root.GetComponent<CanvasGroup>());
+            MenuScenesBuilder.SetField(modal, "card", card);
+            MenuScenesBuilder.SetField(modal, "scoreboard", scoreboard);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(close.onClick, modal.Close);
+            return modal;
         }
 
         // ---------- Puertas ----------
