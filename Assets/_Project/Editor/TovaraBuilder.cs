@@ -123,6 +123,8 @@ namespace Odisea.EditorTools
         {
             (63f, 1.4f), (102f, 2.0f), (179f, 2.0f), (217f, 0.2f),
         };
+        // Garzas: x donde entran a la vista (vuelan a esa altura y sueltan pescados sobre Ulises).
+        private static readonly (float x, float height)[] Herons = { (74f, 5f), (170f, 5.5f), (238f, 5f) };
         private static readonly (float x, float y)[] Gnats =
         {
             (40f, 4.5f), (90f, 4.5f), (186f, 5.5f), (200f, 4.5f),
@@ -211,6 +213,8 @@ namespace Odisea.EditorTools
                     swarm.name = $"Jejenes {i + 1}";
                     swarm.transform.position = new Vector3(Gnats[i].x, Gnats[i].y, 0f);
                 }
+            for (int i = 0; i < Herons.Length; i++)
+                CreateHeron(enemies, square, circle, Herons[i].x, Herons[i].height, i + 1, level);
             // Los enemigos ordenados de izquierda a derecha (así se van encendiendo).
             foreach (Transform child in enemies.Cast<Transform>().OrderBy(t => t.position.x).ToArray())
                 child.SetAsLastSibling();
@@ -759,6 +763,106 @@ namespace Odisea.EditorTools
             shape.color = color;
             shape.sortingOrder = order;
             return shape;
+        }
+
+        // Garza (HeronBomber): sin su dibujo, de relleno: cuerpo blanco, cuello, pico naranja y alas grises que aletean.
+        // Mira a la izquierda (se voltea al volar a la derecha). Aguanta dos golpes; tocarla hace daño.
+        private static void CreateHeron(Transform parent, Sprite square, Sprite circle, float x, float height, int number,
+            PlayerSandboxBuilder.LevelContext level)
+        {
+            var heron = new GameObject($"Garza {number}") { layer = level.EnemyLayer };
+            heron.transform.SetParent(parent, false);
+            heron.transform.position = new Vector3(x, height, 0f);
+            heron.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var body = heron.AddComponent<CapsuleCollider2D>();
+            body.isTrigger = true;
+            body.direction = CapsuleDirection2D.Horizontal;
+            body.size = new Vector2(1.6f, 0.7f);
+
+            var visual = new GameObject("Visual") { layer = level.EnemyLayer }.transform;
+            visual.SetParent(heron.transform, false);
+            var flash = PlayerSandboxBuilder.LoadRequired<Material>(PlayerSandboxBuilder.FlashMaterialPath);
+            var parts = new System.Collections.Generic.List<Object>();
+            SpriteRenderer Part(string name, Sprite sprite, Vector2 position, Vector2 size, Color color, int order, float angle = 0f)
+            {
+                var part = new GameObject(name) { layer = level.EnemyLayer }.AddComponent<SpriteRenderer>();
+                part.transform.SetParent(visual, false);
+                part.transform.localPosition = position;
+                part.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+                part.transform.localScale = new Vector3(size.x, size.y, 1f);
+                part.sprite = sprite;
+                part.color = color;
+                part.sortingOrder = order;
+                part.sharedMaterial = flash;
+                parts.Add(part);
+                return part;
+            }
+            var white = new Color(0.96f, 0.96f, 0.93f);
+            Part("Patas", square, new Vector2(0.95f, -0.08f), new Vector2(0.7f, 0.06f), new Color(0.35f, 0.3f, 0.25f), 7);
+            Part("Cuerpo", circle, Vector2.zero, new Vector2(1.5f, 0.6f), white, 8);
+            Part("Cuello", square, new Vector2(-0.6f, 0.22f), new Vector2(0.45f, 0.14f), white, 8, 25f);
+            Part("Cabeza", circle, new Vector2(-0.85f, 0.33f), new Vector2(0.32f, 0.28f), white, 9);
+            Part("Pico", square, new Vector2(-1.12f, 0.3f), new Vector2(0.38f, 0.08f), new Color(0.95f, 0.65f, 0.2f), 9, 6f);
+            Part("Ojo", circle, new Vector2(-0.9f, 0.37f), new Vector2(0.06f, 0.06f), Color.black, 10);
+            SpriteRenderer wing = Part("Ala", circle, new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.4f), new Color(0.72f, 0.74f, 0.78f), 9);
+
+            var health = heron.AddComponent<Health>();
+            PlayerSandboxBuilder.SetSerialized(health, "maxHealth", 2);
+            PlayerSandboxBuilder.SetSerialized(health, "invulnerabilityTime", 0.2f);
+            PlayerSandboxBuilder.SetSerialized(health, "destroyOnDeath", false);
+            PlayerSandboxBuilder.SetSerialized(heron.AddComponent<Hazard>(), "targetLayers", 1 << level.PlayerLayer);
+            var feedback = heron.AddComponent<DamageFeedback>();
+            PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
+            PlayerSandboxBuilder.SetSerialized(feedback, "visual", visual);
+            PlayerSandboxBuilder.SetSerialized(feedback, "renderers", parts.ToArray());
+            PlayerSandboxBuilder.SetSerialized(feedback, "shrinkAndDestroyOnDeath", true);
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashColor", Color.white);
+            PlayerSandboxBuilder.SetSerialized(feedback, "flashDuration", 0.15f);
+
+            // El pescado podrido que suelta (molde apagado) con su sombra de aviso.
+            var drop = new GameObject("Pescado (molde)") { layer = level.EnemyLayer };
+            drop.transform.SetParent(heron.transform, false);
+            drop.SetActive(false);
+            drop.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var dropCollider = drop.AddComponent<CircleCollider2D>();
+            dropCollider.isTrigger = true;
+            dropCollider.radius = 0.3f;
+            var dropHazard = drop.AddComponent<Hazard>();
+            PlayerSandboxBuilder.SetSerialized(dropHazard, "targetLayers", 1 << level.PlayerLayer);
+            PlayerSandboxBuilder.SetSerialized(dropHazard, "destroyOnHit", true);
+            var dropVisual = new GameObject("Dibujo").transform;
+            dropVisual.SetParent(drop.transform, false);
+            var fish = new GameObject("Pescado").AddComponent<SpriteRenderer>();
+            fish.transform.SetParent(dropVisual, false);
+            fish.transform.localScale = new Vector3(0.6f, 0.3f, 1f);
+            fish.sprite = circle;
+            fish.color = new Color(0.55f, 0.62f, 0.48f);
+            fish.sortingOrder = 9;
+            var tail = new GameObject("Cola").AddComponent<SpriteRenderer>();
+            tail.transform.SetParent(dropVisual, false);
+            tail.transform.localPosition = new Vector3(0.36f, 0f, 0f);
+            tail.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            tail.transform.localScale = new Vector3(0.2f, 0.2f, 1f);
+            tail.sprite = square;
+            tail.color = new Color(0.45f, 0.52f, 0.4f);
+            tail.sortingOrder = 9;
+            var shadow = new GameObject("Sombra de aviso").AddComponent<SpriteRenderer>();
+            shadow.transform.SetParent(drop.transform, false);
+            shadow.sprite = circle;
+            shadow.color = new Color(0f, 0f, 0f, 0.3f);
+            shadow.sortingOrder = ShadowOrder;
+            var falling = drop.AddComponent<HeronDrop>();
+            PlayerSandboxBuilder.SetSerialized(falling, "groundLayers", 1 << level.GroundLayer);
+            PlayerSandboxBuilder.SetSerialized(falling, "waterHeight", WaterTop);
+            PlayerSandboxBuilder.SetSerialized(falling, "shadow", shadow);
+            PlayerSandboxBuilder.SetSerialized(falling, "visual", dropVisual);
+
+            var bomber = heron.AddComponent<HeronBomber>();
+            PlayerSandboxBuilder.SetSerialized(bomber, "health", health);
+            PlayerSandboxBuilder.SetSerialized(bomber, "visual", visual);
+            PlayerSandboxBuilder.SetSerialized(bomber, "wings", new Object[] { wing.transform });
+            PlayerSandboxBuilder.SetSerialized(bomber, "dropTemplate", falling);
+            PlayerSandboxBuilder.SetSerialized(bomber, "flyHeight", height);
         }
 
         // Rata de La Tovara: corre por su tramo de orilla (PatrolEnemy, como el cocodrilo), persigue a Ulises al verlo y
