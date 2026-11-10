@@ -6,7 +6,8 @@ namespace Odisea.Level
 {
     /// <summary>
     /// El Tablero de Honor del festival: el mejor puntaje y rango de cada nivel de la partida (lo que guarda
-    /// <see cref="GameProgress"/>) y el total. Los niveles sin jugar salen con guiones.
+    /// <see cref="GameProgress"/>) y el total. Los niveles sin jugar salen con guiones. Con el tablero dibujado, cada
+    /// nivel va en su propia tira (rowNames, rowPoints, rowRanks); si no, en tres listas.
     /// </summary>
     public class FestivalScoreboard : MonoBehaviour
     {
@@ -14,6 +15,10 @@ namespace Odisea.Level
         [SerializeField] private TMP_Text points;
         [SerializeField] private TMP_Text ranks;
         [SerializeField] private TMP_Text total;
+        [Header("Una tira por nivel (el tablero dibujado)")]
+        [SerializeField] private TMP_Text[] rowNames = new TMP_Text[0];
+        [SerializeField] private TMP_Text[] rowPoints = new TMP_Text[0];
+        [SerializeField] private TMP_Text[] rowRanks = new TMP_Text[0];
 
         private static readonly (string id, string name)[] Levels =
         {
@@ -26,14 +31,20 @@ namespace Odisea.Level
         {
             string nameText = "", pointText = "", rankText = "";
             int sum = 0;
-            foreach ((string id, string name) in Levels)
+            for (int i = 0; i < Levels.Length; i++)
             {
+                (string id, string name) = Levels[i];
                 int best = GameProgress.BestScore(id);
                 int rank = GameProgress.BestRank(id);
                 sum += best;
+                string point = best > 0 ? best.ToString("N0") : "—";
+                string rankName = rank >= 0 ? ((ScoreRank)rank).ToString() : "—";
                 nameText += name + "\n";
-                pointText += (best > 0 ? best.ToString("N0") : "—") + "\n";
-                rankText += (rank >= 0 ? ((ScoreRank)rank).ToString() : "—") + "\n";
+                pointText += point + "\n";
+                rankText += rankName + "\n";
+                SetRow(rowNames, i, name);
+                SetRow(rowPoints, i, point);
+                SetRow(rowRanks, i, rankName);
             }
             if (names != null)
                 names.text = nameText.TrimEnd();
@@ -43,6 +54,12 @@ namespace Odisea.Level
                 ranks.text = rankText.TrimEnd();
             if (total != null)
                 total.text = $"Total: {sum:N0}";
+        }
+
+        private static void SetRow(TMP_Text[] row, int index, string text)
+        {
+            if (index < row.Length && row[index] != null)
+                row[index].text = text;
         }
     }
 }

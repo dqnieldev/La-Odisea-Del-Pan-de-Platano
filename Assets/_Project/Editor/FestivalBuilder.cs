@@ -20,6 +20,7 @@ namespace Odisea.EditorTools
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
+        private const string BoardArtPath = "Assets/_Project/Art/Environment/Festival/Tablero.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
         // En la plaza la música baja (poco a poco, si viene de la historieta) para que se oigan los personajes.
         public const float MusicVolume = 0.45f;
@@ -45,8 +46,8 @@ namespace Odisea.EditorTools
         // escenario del dibujo (a la derecha).
         private const float MapDoorX = -8.3f;
         private const float DonLupeX = -4.3f;
-        private const float BoardX = -1.1f;
-        private const float PolifemoX = 1.7f;
+        private const float BoardX = -1.3f;
+        private const float PolifemoX = 2.2f;
         private const float CirceX = 4.9f;
         private const float StageDoorX = 8.3f;
 
@@ -307,6 +308,12 @@ namespace Odisea.EditorTools
             var board = new GameObject("Tablero de Honor").transform;
             board.SetParent(root, false);
             board.position = new Vector3(BoardX, 0f, 0f);
+            Sprite art = File.Exists(BoardArtPath) ? MenuScenesBuilder.LoadUiSprite(BoardArtPath) : null;
+            if (art != null)
+            {
+                CreateDrawnScoreboard(board, art);
+                return;
+            }
             const float width = 3.8f, height = 2.5f, centerY = 3.55f;
             foreach (float side in new[] { -1f, 1f })
                 BakeryBuilder.Rect("Poste", board, square, new Vector2(side * (width / 2f - 0.3f), centerY / 2f), new Vector2(0.22f, centerY),
@@ -352,6 +359,68 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(scoreboard, "points", points);
             MenuScenesBuilder.SetField(scoreboard, "ranks", ranks);
             MenuScenesBuilder.SetField(scoreboard, "total", total);
+        }
+
+        // El tablero dibujado (listón arriba, tres tiras de papel y una placa abajo): cada texto en su lugar del dibujo.
+        // Las medidas son fracciones del dibujo (x desde la izquierda, y desde arriba).
+        private static void CreateDrawnScoreboard(Transform board, Sprite art)
+        {
+            const float width = 4.4f;
+            float height = width * art.bounds.size.y / art.bounds.size.x;
+            var drawing = new GameObject("Tablero (dibujo)").AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(board, false);
+            drawing.sprite = art;
+            drawing.transform.localScale = Vector3.one * (width / art.bounds.size.x);
+            // Las patas en el piso.
+            drawing.transform.localPosition = new Vector3(0f, height / 2f - 0.05f, 0f);
+            drawing.sortingOrder = FurnitureOrder;
+
+            Vector3 At(float fx, float fy) => new((fx - 0.5f) * width, (1f - fy) * height - 0.05f, 0f);
+            TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
+            TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            TMP_FontAsset body = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
+            Color ink = new(0.30f, 0.17f, 0.08f);
+            Color gold = new(0.80f, 0.42f, 0.05f);
+            TextMeshPro Text(string name, string text, TMP_FontAsset font, Vector3 position, float w, float h,
+                TextAlignmentOptions alignment, Color color)
+            {
+                var label = new GameObject(name).AddComponent<TextMeshPro>();
+                label.transform.SetParent(board, false);
+                label.transform.localPosition = position;
+                label.rectTransform.sizeDelta = new Vector2(w * width, h * height);
+                label.font = font;
+                label.text = text;
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 0.5f;
+                label.fontSizeMax = 10f;
+                label.alignment = alignment;
+                label.color = color;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                label.margin = Vector4.zero;
+                label.sortingOrder = FurnitureOrder + 1;
+                return label;
+            }
+
+            // El título en el listón (la parte de enfrente, del 30 % al 70 % del ancho).
+            Text("Título", "TABLERO DE HONOR", titleFont, At(0.5f, 0.095f), 0.38f, 0.075f, TextAlignmentOptions.Center, ink);
+            // Las tres tiras: nombre a la izquierda, puntos y rango a la derecha.
+            float[] rows = { 0.335f, 0.46f, 0.585f };
+            var names = new TMP_Text[rows.Length];
+            var points = new TMP_Text[rows.Length];
+            var ranks = new TMP_Text[rows.Length];
+            for (int i = 0; i < rows.Length; i++)
+            {
+                names[i] = Text($"Nivel {i + 1}", "", bold, At(0.37f, rows[i]), 0.3f, 0.058f, TextAlignmentOptions.Left, ink);
+                points[i] = Text($"Puntos {i + 1}", "", body, At(0.63f, rows[i]), 0.18f, 0.058f, TextAlignmentOptions.Right, ink);
+                ranks[i] = Text($"Rango {i + 1}", "", titleFont, At(0.765f, rows[i]), 0.06f, 0.085f, TextAlignmentOptions.Center, gold);
+            }
+            TextMeshPro total = Text("Total", "", bold, At(0.5f, 0.7f), 0.22f, 0.05f, TextAlignmentOptions.Center, ink);
+
+            var scoreboard = board.gameObject.AddComponent<FestivalScoreboard>();
+            MenuScenesBuilder.SetField(scoreboard, "total", total);
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowNames", names.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowPoints", points.Cast<Object>().ToArray());
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "rowRanks", ranks.Cast<Object>().ToArray());
         }
 
         // ---------- Puertas ----------
