@@ -25,7 +25,3 @@ MonoBehaviour:
     art: {fileID: 21300000, guid: 7e09926952bee8a438a6856a5410c86e, type: 3}
     caption: "Entre la gente lo esperan caras conocidas: Don Lupe, orgulloso; Polifemo, con un plato en cada mano\u2026 y Madame Circe, que finge no estar interesada."
     placeholderNote: Don Lupe saluda desde un puesto de pan; Polifemo come junto a una carpa; Circe, de brazos cruzados junto a otra carpa, mira de reojo.
-  - title: El Tablero de Honor
-    art: {fileID: 21300000, guid: c79ab5a0e0ae1854d91572bb559fdf27, type: 3}
-    caption: "Y en medio de la plaza, el Tablero de Honor del festival guarda cada haza\xF1a de su odisea."
-    placeholderNote: Un gran tablero de madera adornado con flores y papel picado, con listones de colores; Ulises lo mira con los ojos brillando.

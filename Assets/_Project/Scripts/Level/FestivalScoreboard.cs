@@ -15,6 +15,8 @@ namespace Odisea.Level
         [SerializeField] private TMP_Text points;
         [SerializeField] private TMP_Text ranks;
         [SerializeField] private TMP_Text total;
+        [Tooltip("Cómo se escribe el total ({0} es el número).")]
+        [SerializeField] private string totalFormat = "Total: {0}";
         [Header("Una tira por nivel (el tablero dibujado)")]
         [SerializeField] private TMP_Text[] rowNames = new TMP_Text[0];
         [SerializeField] private TMP_Text[] rowPoints = new TMP_Text[0];
@@ -56,7 +58,7 @@ namespace Odisea.Level
             if (ranks != null)
                 ranks.text = rankText.TrimEnd();
             if (total != null)
-                total.text = $"Total: {sum:N0}";
+                total.text = string.Format(totalFormat, sum.ToString("N0"));
         }
 
         private static void SetRow(TMP_Text[] row, int index, string text)

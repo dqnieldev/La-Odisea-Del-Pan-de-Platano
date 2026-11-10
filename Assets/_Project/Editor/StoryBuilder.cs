@@ -200,7 +200,7 @@ namespace Odisea.EditorTools
         // ---------- El Festival (desde el mapa, después de La Tovara) ----------
         // Ulises vuelve a la plaza ya de fiesta; adentro (la escena Festival) platica con todos y ve sus puntajes.
 
-        private static readonly string[] FestivalTitles = { "La Plaza en Fiesta", "Viejos Conocidos", "El Tablero de Honor" };
+        private static readonly string[] FestivalTitles = { "La Plaza en Fiesta", "Viejos Conocidos" };
 
         private static readonly (string caption, string note)[] FestivalIntro =
         {
@@ -211,9 +211,6 @@ namespace Odisea.EditorTools
              "Circe, que finge no estar interesada.",
              "Don Lupe saluda desde un puesto de pan; Polifemo come junto a una carpa; Circe, de brazos cruzados junto a " +
              "otra carpa, mira de reojo."),
-            ("Y en medio de la plaza, el Tablero de Honor del festival guarda cada hazaña de su odisea.",
-             "Un gran tablero de madera adornado con flores y papel picado, con listones de colores; Ulises lo mira con los " +
-             "ojos brillando."),
         };
 
         [MenuItem("Odisea/Menús/Crear escena de historietas")]

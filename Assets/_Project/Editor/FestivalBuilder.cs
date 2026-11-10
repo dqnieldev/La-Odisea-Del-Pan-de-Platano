@@ -21,8 +21,7 @@ namespace Odisea.EditorTools
     {
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
-        private const string BoardArtPath = "Assets/_Project/Art/Environment/Festival/Tablero.png";
-        // El tablerito con patas que está en el piso (el tótem que abre el Tablero de Honor en grande).
+        // El atril con el pergamino que está en el piso (abre la hoja del Tablero de Honor).
         private const string BoardTotemPath = "Assets/_Project/Art/Environment/Festival/Tablero_Poste.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
         // En la plaza la música baja (poco a poco, si viene de la historieta) para que se oigan los personajes.
@@ -311,11 +310,10 @@ namespace Odisea.EditorTools
             var board = new GameObject("Tablero de Honor").transform;
             board.SetParent(root, false);
             board.position = new Vector3(BoardX, 0f, 0f);
-            Sprite art = File.Exists(BoardArtPath) ? MenuScenesBuilder.LoadUiSprite(BoardArtPath) : null;
-            Sprite small = File.Exists(BoardTotemPath) ? MenuScenesBuilder.LoadUiSprite(BoardTotemPath) : null;
-            if (art != null && small != null)
+            Sprite lectern = File.Exists(BoardTotemPath) ? MenuScenesBuilder.LoadUiSprite(BoardTotemPath) : null;
+            if (lectern != null)
             {
-                CreateScoreboardTotem(board, small, art, ground, playerLayer);
+                CreateScoreboardTotem(board, lectern, ground, playerLayer);
                 return;
             }
             const float width = 3.8f, height = 2.5f, centerY = 3.55f;
@@ -365,36 +363,23 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(scoreboard, "total", total);
         }
 
-        // En el piso, el tablerito con patas (el tótem): al interactuar abre el Tablero de Honor en grande (el dibujo sin patas,
-        // con los puntajes encima). Así el tablero no tapa la plaza todo el tiempo.
-        private static void CreateScoreboardTotem(Transform board, Sprite small, Sprite big, int ground, int playerLayer)
+        // En el piso, el atril con el pergamino: al interactuar abre el Tablero de Honor (la hoja de papel con los puntajes).
+        // Así no tapa la plaza todo el tiempo.
+        private static void CreateScoreboardTotem(Transform board, Sprite lectern, int ground, int playerLayer)
         {
-            // Chiquito, para que no estorbe a los personajes.
-            const float width = 1.8f;
-            float height = width * small.bounds.size.y / small.bounds.size.x;
-            var drawing = new GameObject("Tablerito (dibujo)").AddComponent<SpriteRenderer>();
+            // Chiquito, más o menos de la altura de Ulises, para que no estorbe a los personajes.
+            const float width = 1.5f;
+            float height = width * lectern.bounds.size.y / lectern.bounds.size.x;
+            var drawing = new GameObject("Atril (dibujo)").AddComponent<SpriteRenderer>();
             drawing.transform.SetParent(board, false);
-            drawing.sprite = small;
-            drawing.transform.localScale = Vector3.one * (width / small.bounds.size.x);
-            // Las patas en el piso.
+            drawing.sprite = lectern;
+            drawing.transform.localScale = Vector3.one * (width / lectern.bounds.size.x);
+            // La base en el piso.
             drawing.transform.localPosition = new Vector3(0f, height / 2f - 0.04f, 0f);
             drawing.sortingOrder = FurnitureOrder;
             // Con la luz de la plaza: un poco más cálido y apagado.
             drawing.color = new Color(0.9f, 0.83f, 0.76f);
-            // El título en su listón (al 50 % del ancho y 9.5 % del alto, desde arriba).
-            var title = new GameObject("Título").AddComponent<TextMeshPro>();
-            title.transform.SetParent(board, false);
-            title.transform.localPosition = new Vector3(0f, height * (1f - 0.095f) - 0.04f, 0f);
-            title.rectTransform.sizeDelta = new Vector2(width * 0.42f, height * 0.08f);
-            title.font = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
-            title.text = "TABLERO DE HONOR";
-            // Tamaño fijo: cabe en el listón (el ajuste automático no lo calcula al armar la escena).
-            title.fontSize = 0.95f * width / 2.8f;
-            title.alignment = TextAlignmentOptions.Center;
-            title.color = new Color(0.30f, 0.17f, 0.08f);
-            title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.sortingOrder = FurnitureOrder + 1;
-            PlayerSandboxBuilder.AddGroundShadow(board.gameObject, ground, new Vector2(width * 1.05f, 0.45f), Vector2.zero, null, 3f,
+            PlayerSandboxBuilder.AddGroundShadow(board.gameObject, ground, new Vector2(width * 0.85f, 0.4f), Vector2.zero, null, 3f,
                 FurnitureOrder - 1);
 
             var area = board.gameObject.AddComponent<BoxCollider2D>();
@@ -402,20 +387,16 @@ namespace Odisea.EditorTools
             area.offset = new Vector2(0f, 1.5f);
             var totem = board.gameObject.AddComponent<ScoreboardTotem>();
             PlayerSandboxBuilder.SetSerialized(totem, "playerLayers", 1 << playerLayer);
-            MenuScenesBuilder.SetField(totem, "modal", CreateScoreboardModal(big));
-            // Arriba de Ulises (es más alto que el tablerito).
-            BakeryBuilder.AddBubble(board, totem, new Vector2(0f, 2.9f), "Ver puntajes");
+            MenuScenesBuilder.SetField(totem, "modal", CreateScoreboardModal());
+            // Arriba de Ulises (es más alto que el atril).
+            BakeryBuilder.AddBubble(board, totem, new Vector2(0f, Mathf.Max(2.9f, height + 0.5f)), "Ver puntajes");
         }
 
-        // El Tablero de Honor en grande, encima de todo: cada texto en su lugar del dibujo y el botón "Cerrar" abajo. Las
-        // medidas son fracciones del dibujo original con patas (x desde la izquierda, y desde arriba); el dibujo sin patas
-        // llega hasta CutLine de ese alto.
-        private static ScoreboardModal CreateScoreboardModal(Sprite art)
+        // El Tablero de Honor: la misma hoja de papel que la tarjeta de nivel completado, con el título, un renglón por
+        // nivel (nombre, puntos y la letra del rango en tinta roja) y el total. Abajo, el botón "Cerrar".
+        private static ScoreboardModal CreateScoreboardModal()
         {
-            const float CutLine = 0.824f, width = 1400f;
-            float height = width * art.bounds.size.y / art.bounds.size.x;
-
-            var root = new GameObject("Tablero de Honor (en grande)", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
+            var root = new GameObject("Tablero de Honor (hoja)", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
                 typeof(GraphicRaycaster), typeof(CanvasGroup));
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -426,53 +407,58 @@ namespace Odisea.EditorTools
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
             var rootRect = (RectTransform)root.transform;
-            MenuScenesBuilder.CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.8f), Vector2.zero,
+            MenuScenesBuilder.CreateImage("Oscurecer", rootRect, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.75f), Vector2.zero,
                 Vector2.zero, stretch: true).raycastTarget = true;
 
+            // La hoja con el botón debajo (los dos crecen juntos al abrir).
             var card = (RectTransform)new GameObject("Tablero", typeof(RectTransform)).transform;
             card.SetParent(rootRect, false);
             card.anchoredPosition = new Vector2(0f, 50f);
-            card.sizeDelta = new Vector2(width, height);
-            MenuScenesBuilder.CreateImage("Dibujo", card, art, Color.white, Vector2.zero, Vector2.zero, stretch: true).preserveAspect = true;
+            card.sizeDelta = new Vector2(1000f, 760f);
+            RectTransform sheet = MenuScenesBuilder.CreatePaperSheet("Hoja", card, new Vector2(1000f, 760f));
 
-            TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
-            TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
-            TMP_FontAsset body = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
-            Color ink = new(0.30f, 0.17f, 0.08f);
-            Color gold = new(0.80f, 0.42f, 0.05f);
-            TMP_Text Text(string name, TMP_FontAsset font, float fx, float fy, float w, float h, TextAlignmentOptions alignment,
-                Color color, string content = "")
-            {
-                TMP_Text label = MenuScenesBuilder.CreateText(name, card, content, font, 90f, color,
-                    position: new Vector2((fx - 0.5f) * width, (0.5f - fy / CutLine) * height),
-                    rectSize: new Vector2(w * width, h / CutLine * height), alignment: alignment);
-                label.enableAutoSizing = true;
-                label.fontSizeMin = 10f;
-                label.fontSizeMax = 90f;
-                label.textWrappingMode = TextWrappingModes.NoWrap;
-                return label;
-            }
+            TMP_FontAsset rye = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
+            TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            TMP_FontAsset extraBold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
+            TMP_FontAsset inkFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.ImFellEnglish);
+            Color red = new(0.784f, 0.263f, 0.169f);
 
-            // El título en el listón; las tres tiras: nombre a la izquierda, puntos y rango a la derecha; el total en la placa.
-            Text("Título", titleFont, 0.5f, 0.095f, 0.38f, 0.075f, TextAlignmentOptions.Center, ink, "TABLERO DE HONOR");
-            float[] rows = { 0.335f, 0.46f, 0.585f };
+            MenuScenesBuilder.CreateText("Título", sheet, "TABLERO DE HONOR", rye, 70, Cafe, position: new Vector2(0f, 275f),
+                rectSize: new Vector2(860f, 100f)).textWrappingMode = TextWrappingModes.NoWrap;
+            MenuScenesBuilder.CreateOrnamentRule(sheet, new Vector2(0f, 215f), 420f);
+            MenuScenesBuilder.CreateText("Subtítulo", sheet, "Las hazañas de Ulises", inkFont, 40, MenuScenesBuilder.TintaClara,
+                position: new Vector2(0f, 165f), rectSize: new Vector2(860f, 60f));
+
+            float[] rows = { 80f, -5f, -90f };
             var names = new Object[rows.Length];
             var points = new Object[rows.Length];
             var ranks = new Object[rows.Length];
             for (int i = 0; i < rows.Length; i++)
             {
-                names[i] = Text($"Nivel {i + 1}", bold, 0.37f, rows[i], 0.3f, 0.058f, TextAlignmentOptions.Left, ink);
-                points[i] = Text($"Puntos {i + 1}", body, 0.63f, rows[i], 0.18f, 0.058f, TextAlignmentOptions.Right, ink);
-                ranks[i] = Text($"Rango {i + 1}", titleFont, 0.765f, rows[i], 0.06f, 0.085f, TextAlignmentOptions.Center, gold);
+                names[i] = MenuScenesBuilder.CreateText($"Nivel {i + 1}", sheet, "", bold, 46, Cafe,
+                    position: new Vector2(-170f, rows[i]), rectSize: new Vector2(420f, 70f), alignment: TextAlignmentOptions.MidlineLeft);
+                points[i] = MenuScenesBuilder.CreateText($"Puntos {i + 1}", sheet, "", extraBold, 46, Cafe,
+                    position: new Vector2(150f, rows[i]), rectSize: new Vector2(220f, 70f), alignment: TextAlignmentOptions.MidlineRight);
+                TMP_Text rank = MenuScenesBuilder.CreateText($"Rango {i + 1}", sheet, "", rye, 62, red,
+                    position: new Vector2(320f, rows[i] + 4f), rectSize: new Vector2(100f, 80f));
+                rank.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -8f);
+                ranks[i] = rank;
             }
-            TMP_Text total = Text("Total", bold, 0.5f, 0.7f, 0.22f, 0.05f, TextAlignmentOptions.Center, ink);
 
-            Button close = MenuScenesBuilder.CreateMenuButton("Cerrar", card, UiAssetsBuilder.EnsureRoundedSprite(), bold,
+            MenuScenesBuilder.CreateImage("Raya", sheet, null, new Color(Cafe.r, Cafe.g, Cafe.b, 0.7f), new Vector2(0f, -155f),
+                new Vector2(760f, 3f), stretch: false);
+            MenuScenesBuilder.CreateText("Total (nombre)", sheet, "TOTAL", rye, 50, Cafe, position: new Vector2(-170f, -215f),
+                rectSize: new Vector2(420f, 80f), alignment: TextAlignmentOptions.MidlineLeft);
+            TMP_Text total = MenuScenesBuilder.CreateText("Total", sheet, "0", extraBold, 58, Cafe, position: new Vector2(150f, -215f),
+                rectSize: new Vector2(220f, 80f), alignment: TextAlignmentOptions.MidlineRight);
+
+            Button close = MenuScenesBuilder.CreateMenuButton("Cerrar", card, UiAssetsBuilder.EnsureRoundedSprite(), extraBold,
                 new Vector2(300f, 90f), 46f);
-            ((RectTransform)close.transform).anchoredPosition = new Vector2(0f, -height / 2f - 70f);
+            ((RectTransform)close.transform).anchoredPosition = new Vector2(0f, -380f - 75f);
 
             var scoreboard = root.AddComponent<FestivalScoreboard>();
             MenuScenesBuilder.SetField(scoreboard, "total", total);
+            PlayerSandboxBuilder.SetSerialized(scoreboard, "totalFormat", "{0}");
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowNames", names);
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowPoints", points);
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowRanks", ranks);
