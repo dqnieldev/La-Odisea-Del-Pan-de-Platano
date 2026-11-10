@@ -1350,6 +1350,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8287d1e41e3ab441bf9af2ddf3fdd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SceneMusic
+  volume: 1
+  volumeBlendDuration: 4
   fadeInDuration: 1.2
   fadeOutDuration: 0.9
   fadeOnDeath: {fileID: 1961748261}
@@ -2339,6 +2341,13 @@ MonoBehaviour:
   - {fileID: 2466218326494166746, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   - {fileID: -1409725047963335249, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   talkFps: 8
+  talkSound:
+    clips:
+    - {fileID: 8300000, guid: 042e98cd787b502428645c678a20e475, type: 3}
+    volume: 0.8
+    pitchVariation: 0.06
+    clipVolumes:
+    - 1
 --- !u!114 &828248084
 MonoBehaviour:
   m_ObjectHideFlags: 0

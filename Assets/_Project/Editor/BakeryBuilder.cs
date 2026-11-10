@@ -272,6 +272,8 @@ namespace Odisea.EditorTools
                     lines.GetArrayElementAtIndex(l).stringValue = script[i].lines[l];
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            // Se ríe al empezar a platicar.
+            GameSoundsBuilder.SetSound(dialogue, "talkSound", GameSoundsBuilder.Load(GameSoundsBuilder.DonLupeFolder, "donlupe_risa"), 0.8f);
             return dialogue;
         }
 

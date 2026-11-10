@@ -145,7 +145,7 @@ namespace Odisea.EditorTools
             Sprite[] circeLaugh = ArtImportBuilder.LoadStrip($"{ArtImportBuilder.CirceFolder}/Circe_Reir.png");
             NpcDialogue circe = CreateNpc(root, "Madame Circe", CirceX, circeIdle, -1, circeLaugh, 2.7f, CirceLines, level.PlayerLayer,
                 ground);
-            // Se ríe cada vez que dice algo.
+            // Se ríe al empezar a platicar.
             GameSoundsBuilder.SetSound(circe, "talkSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "circe_risa"), 0.7f);
             CreateScoreboard(root, square);
             CreateMapDoor(root, square, level.PlayerLayer, drawn: art == null);

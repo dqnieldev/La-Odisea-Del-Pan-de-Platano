@@ -3250,10 +3250,12 @@ MonoBehaviour:
   - {fileID: -1409725047963335249, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   talkFps: 8
   talkSound:
-    clips: []
-    volume: 1
+    clips:
+    - {fileID: 8300000, guid: 042e98cd787b502428645c678a20e475, type: 3}
+    volume: 0.8
     pitchVariation: 0.06
-    clipVolumes: []
+    clipVolumes:
+    - 1
 --- !u!61 &686573069
 BoxCollider2D:
   m_ObjectHideFlags: 0
