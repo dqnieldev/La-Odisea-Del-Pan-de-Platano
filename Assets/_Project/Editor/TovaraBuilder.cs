@@ -143,13 +143,16 @@ namespace Odisea.EditorTools
         // El arte del nivel (Assets/_Project/Art/Environment/Tovara). Lo que falte se queda de color.
         private sealed class TovaraArt
         {
-            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist;
+            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist, RainDrop;
             public Sprite[] Stones = new Sprite[0];
         }
 
         private static TovaraArt art = new();
         // La capa de Ulises, para que las pangas sepan cuándo cae encima (su sonido).
         private static int PlayerLayerForSounds;
+        // El velo blanco del cielo para los relámpagos (lo crea el fondo pintado).
+        private static SpriteRenderer skyFlash;
+        private const string UnlitMaterialPath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
 
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
@@ -187,6 +190,7 @@ namespace Odisea.EditorTools
             if (Object.FindAnyObjectByType<LevelScore>() is { } score)
                 PlayerSandboxBuilder.SetSerialized(score, "parTime", 140f);
             SetUpCamera(level);
+            CreateStorm(root, level.Square);
 
             // ----- Enemigos: se encienden al acercarse la cámara -----
             var enemies = new GameObject("Enemigos").transform;
@@ -226,6 +230,15 @@ namespace Odisea.EditorTools
 
             // ----- La meta: la entrada del festival -----
             CreateFestivalGate(root, square, circle, level.PlayerLayer);
+            // Las luces de la feria: un resplandor cálido alrededor del arco entre la lluvia.
+            var fairLight = new GameObject("Luz de la feria").AddComponent<UnityEngine.Rendering.Universal.Light2D>();
+            fairLight.transform.SetParent(root, false);
+            fairLight.transform.position = new Vector3(GoalX, 2.5f, 0f);
+            fairLight.lightType = UnityEngine.Rendering.Universal.Light2D.LightType.Point;
+            fairLight.color = new Color(1f, 0.72f, 0.38f);
+            fairLight.intensity = 1.2f;
+            fairLight.pointLightInnerRadius = 1.5f;
+            fairLight.pointLightOuterRadius = 10f;
 
             MenuScenesBuilder.AddToBuild(ScenePath);
             PlayerSandboxBuilder.EndLevel(level);
@@ -263,6 +276,75 @@ namespace Odisea.EditorTools
             wall.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             wall.AddComponent<BoxCollider2D>().size = new Vector2(1f, 40f);
             PlayerSandboxBuilder.SetSerialized(wall.AddComponent<ScreenEdgeWall>(), "follow", follow);
+        }
+
+        // ----- Tormenta: noche, relámpagos y lluvia -----
+        private static void CreateStorm(Transform root, Sprite square)
+        {
+            var global = Object.FindObjectsByType<UnityEngine.Rendering.Universal.Light2D>(FindObjectsSortMode.None)
+                .FirstOrDefault(light => light.lightType == UnityEngine.Rendering.Universal.Light2D.LightType.Global);
+            var storm = new GameObject("Tormenta").AddComponent<StormLightning>();
+            storm.transform.SetParent(root, false);
+            if (global != null)
+            {
+                // Ya de noche desde que se abre la escena (StormLightning la mantiene y la hace destellar).
+                global.color = new Color(0.6f, 0.68f, 1f);
+                global.intensity = 0.72f;
+                PlayerSandboxBuilder.SetSerialized(storm, "globalLight", global);
+            }
+            if (skyFlash != null)
+                PlayerSandboxBuilder.SetSerialized(storm, "skyFlash", skyFlash);
+
+            if (art.RainDrop == null)
+                return;
+            Transform view = Object.FindAnyObjectByType<CameraFollow2D>().transform;
+            var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
+            // Dos capas: la de enfrente, sobre todo; la de atrás, más fina y tenue, detrás de la acción.
+            CreateRain(view, unlit, "Lluvia (enfrente)", 30, 170f, 0.35f, 0.08f, 1f);
+            CreateRain(view, unlit, "Lluvia (atrás)", -12, 260f, 0.3f, 0.06f, 0.8f);
+        }
+
+        private static void CreateRain(Transform view, Material material, string name, int order, float rate, float alpha, float size,
+            float speed)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(view, false);
+            // Arriba de la vista, a la altura del nivel (la cámara está en z -10).
+            go.transform.localPosition = new Vector3(3f, 8.5f, 10f);
+            var rain = go.AddComponent<ParticleSystem>();
+            rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ParticleSystem.MainModule main = rain.main;
+            main.loop = true;
+            main.prewarm = true;
+            main.playOnAwake = true;
+            main.startLifetime = 1.2f;
+            main.startSpeed = 0f;
+            main.startSize = size;
+            main.startColor = new Color(0.8f, 0.87f, 1f, alpha);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 1500;
+            ParticleSystem.EmissionModule emission = rain.emission;
+            emission.rateOverTime = rate;
+            ParticleSystem.ShapeModule shape = rain.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(38f, 0.1f, 0.1f);
+            ParticleSystem.VelocityOverLifetimeModule velocity = rain.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(-4f * speed);
+            velocity.y = new ParticleSystem.MinMaxCurve(-17f * speed);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f);
+            ParticleSystem.TextureSheetAnimationModule sheet = rain.textureSheetAnimation;
+            sheet.enabled = true;
+            sheet.mode = ParticleSystemAnimationMode.Sprites;
+            sheet.AddSprite(art.RainDrop);
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.lengthScale = 5f;
+            renderer.velocityScale = 0.02f;
+            if (material != null)
+                renderer.sharedMaterial = material;
+            renderer.sortingOrder = order;
         }
 
         // Orilla de tierra: lodo hasta el fondo del agua con pasto arriba.
@@ -514,13 +596,31 @@ namespace Odisea.EditorTools
         {
             const float viewWidth = 26f;
             Transform sky = Layer(root, "Cielo", 1f, 1f);
-            Picture(sky, "Cielo (dibujo)", art.Sky, new Vector2(CameraMinX, CameraY), viewWidth, -40);
+            // El cielo ya viene pintado de noche: sin luz (la luz de noche no lo oscurece más). Encima, un velo blanco
+            // para los relámpagos.
+            var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
+            SpriteRenderer skyDrawing = Picture(sky, "Cielo (dibujo)", art.Sky, new Vector2(CameraMinX, CameraY), viewWidth, -40);
+            skyFlash = null;
+            if (unlit != null)
+            {
+                skyDrawing.sharedMaterial = unlit;
+                skyFlash = new GameObject("Relámpago (cielo)").AddComponent<SpriteRenderer>();
+                skyFlash.transform.SetParent(sky, false);
+                skyFlash.transform.position = new Vector3(CameraMinX, CameraY, 0f);
+                skyFlash.transform.localScale = new Vector3(viewWidth + 4f, 18f, 1f);
+                skyFlash.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlayerSandboxBuilder.SpritePath);
+                skyFlash.sharedMaterial = unlit;
+                skyFlash.color = new Color(0.85f, 0.9f, 1f, 0f);
+                skyFlash.sortingOrder = -39;
+            }
 
             float width = LevelEnd - LevelStart + 80f;
             float centerX = (LevelStart + LevelEnd) / 2f;
             const float feet = -0.9f;
             Transform far = Layer(root, "Manglar lejano", 0.85f, 1f);
-            Strip(far, "Manglar lejano (dibujo)", art.FarMangrove, new Vector2(centerX, feet + 3f), width, 6f, -30);
+            SpriteRenderer farDrawing = Strip(far, "Manglar lejano (dibujo)", art.FarMangrove, new Vector2(centerX, feet + 3f), width, 6f, -30);
+            // De noche: las copas lejanas no se ven blancas como de día.
+            farDrawing.color = new Color(0.55f, 0.6f, 0.76f);
             if (art.Festival != null)
             {
                 Transform fair = Layer(root, "Feria", FairFollow, 1f);
@@ -635,6 +735,7 @@ namespace Odisea.EditorTools
             loaded.Foam = Load("Espuma");
             loaded.WaterOverlay = Load("AguaCorriente");
             loaded.Mist = Load("Bruma");
+            loaded.RainDrop = Load("GotaLluvia");
             loaded.Stones = new[] { "Piedra1", "Piedra2", "Piedra3" }.Select(Load).Where(sprite => sprite != null).ToArray();
             return loaded;
         }
