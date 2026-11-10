@@ -129,8 +129,16 @@ namespace Odisea.EditorTools
             // ----- Personajes, tablero y puertas -----
             NpcDialogue donLupe = BakeryBuilder.CreateDonLupe(root, square, circle, level.PlayerLayer, DonLupeX, DonLupeLines);
             PlayerSandboxBuilder.AddGroundShadow(donLupe.gameObject, ground, new Vector2(1.6f, 0.4f), Vector2.zero, null, 3f, FurnitureOrder + 2);
-            CreateNpc(root, "Polifemo", PolifemoX, ArtImportBuilder.LoadStrip($"{ArtImportBuilder.PolifemoFolder}/Polifemo_HD_Caminar.png"),
-                1, new Sprite[0], 3.4f, PolifemoLines, level.PlayerLayer, ground);
+            // Polifemo contento (respira con su plato y se ríe al hablar); sin ese dibujo, un cuadro de su caminata.
+            Sprite[] happy = Enumerable.Range(0, 8)
+                .Select(i => $"{ArtImportBuilder.PolifemoFolder}/Feliz/Polifemo_Feliz_{i}.png")
+                .Where(File.Exists).Select(path => MenuScenesBuilder.LoadUiSprite(path)).Where(sprite => sprite != null).ToArray();
+            if (happy.Length == 8)
+                CreateNpc(root, "Polifemo", PolifemoX, happy.Take(4).ToArray(), -1, happy.Skip(4).ToArray(), 3.4f, PolifemoLines,
+                    level.PlayerLayer, ground);
+            else
+                CreateNpc(root, "Polifemo", PolifemoX, ArtImportBuilder.LoadStrip($"{ArtImportBuilder.PolifemoFolder}/Polifemo_HD_Caminar.png"),
+                    1, new Sprite[0], 3.4f, PolifemoLines, level.PlayerLayer, ground);
             Sprite[] circeIdle = ArtImportBuilder.LoadStrip(ArtImportBuilder.CirceIdlePath);
             Sprite[] circeLaugh = ArtImportBuilder.LoadStrip($"{ArtImportBuilder.CirceFolder}/Circe_Reir.png");
             CreateNpc(root, "Madame Circe", CirceX, circeIdle, -1, circeLaugh, 2.7f, CirceLines, level.PlayerLayer, ground);
