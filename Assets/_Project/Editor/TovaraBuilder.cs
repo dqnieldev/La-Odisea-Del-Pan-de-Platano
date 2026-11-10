@@ -294,6 +294,15 @@ namespace Odisea.EditorTools
             }
             if (skyFlash != null)
                 PlayerSandboxBuilder.SetSerialized(storm, "skyFlash", skyFlash);
+            // El trueno suena justo con el destello; la lluvia, de fondo todo el nivel.
+            GameSoundsBuilder.SetSound(storm, "thunder", GameSoundsBuilder.Load(TovaraSoundFolder, "tovara_trueno"), 0.9f);
+            AudioClip[] rainSound = GameSoundsBuilder.Load(TovaraSoundFolder, "tovara_lluvia");
+            if (rainSound.Length > 0)
+            {
+                var ambience = storm.gameObject.AddComponent<AmbientLoop>();
+                PlayerSandboxBuilder.SetSerialized(ambience, "clip", rainSound[0]);
+                PlayerSandboxBuilder.SetSerialized(ambience, "volume", 0.45f);
+            }
 
             if (art.RainDrop == null)
                 return;
@@ -814,6 +823,15 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(sounds, "health", health);
             GameSoundsBuilder.SetSound(sounds, "biteSnap", GameSoundsBuilder.Load(RatSoundFolder, "raton_golpe"));
             GameSoundsBuilder.SetSound(sounds, "death", GameSoundsBuilder.Load(RatSoundFolder, "raton_muerte"));
+            // Sus pasitos mientras corre (se apagan al morir), como en el Horno.
+            AudioClip[] steps = GameSoundsBuilder.Load(RatSoundFolder, "raton");
+            if (steps.Length > 0)
+            {
+                var loop = rat.AddComponent<LoopingSound>();
+                PlayerSandboxBuilder.SetSerialized(loop, "clip", steps[0]);
+                PlayerSandboxBuilder.SetSerialized(loop, "volume", 0.35f);
+                PlayerSandboxBuilder.SetSerialized(loop, "health", health);
+            }
 
             var feedback = rat.AddComponent<DamageFeedback>();
             PlayerSandboxBuilder.SetSerialized(feedback, "health", health);
