@@ -27,20 +27,26 @@ namespace Odisea.EditorTools
         private const string TownPath = "Assets/_Project/Art/Environment/Tovara/Festival.png";
         private const string UnlitMaterialPath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
 
-        // Mismo cuarto que la panadería: RoomHeight de alto en pantalla, el piso en y = 0 a FloorLine del dibujo.
-        private const float RoomHeight = 8f;
-        private const float FloorLine = 0.853f;
-        private const float RoomWidth = RoomHeight * 2752f / 1536f;
+        // La plaza es más ancha que la pantalla: el dibujo mide ArtHeight de alto (y RoomWidth de ancho) y la cámara, de
+        // ViewHeight, sigue a Ulises de lado a lado. El piso (y = 0) está a FloorLine del alto del dibujo, desde arriba;
+        // la orilla de abajo de la vista coincide con la del dibujo.
+        private const float ArtHeight = 10.5f;
+        private const float ViewHeight = 8f;
+        private const float FloorLine = 0.9f;
+        private const float RoomWidth = ArtHeight * 5504f / 3072f;
         private const float LeftEdge = -RoomWidth / 2f + 0.5f;
         private const float RightEdge = RoomWidth / 2f - 0.5f;
-        private static float CameraY => (FloorLine - 0.5f) * RoomHeight;
+        private static float ArtCenterY => (FloorLine - 0.5f) * ArtHeight;
+        private static float CameraY => ViewHeight / 2f - (1f - FloorLine) * ArtHeight;
 
-        private const float MapDoorX = -6.2f;
-        private const float DonLupeX = -3.3f;
-        private const float BoardX = -0.5f;
-        private const float PolifemoX = 2.1f;
-        private const float CirceX = 4.0f;
-        private const float StageDoorX = 6.2f;
+        // Bien separados (cada uno con su espacio para platicar, lejos de las puertas). La puerta del escenario cae en el
+        // escenario del dibujo (a la derecha).
+        private const float MapDoorX = -8.3f;
+        private const float DonLupeX = -4.3f;
+        private const float BoardX = -1.1f;
+        private const float PolifemoX = 1.7f;
+        private const float CirceX = 4.9f;
+        private const float StageDoorX = 8.3f;
 
         private const int BackOrder = BakeryBuilder.BackOrder;
         private const int FurnitureOrder = BakeryBuilder.FurnitureOrder;
@@ -99,8 +105,8 @@ namespace Odisea.EditorTools
                 var drawing = new GameObject("Fondo (dibujo)").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(root, false);
                 drawing.sprite = art;
-                drawing.transform.localScale = Vector3.one * (RoomHeight / art.bounds.size.y);
-                drawing.transform.localPosition = new Vector3(0f, CameraY, 0f);
+                drawing.transform.localScale = Vector3.one * (ArtHeight / art.bounds.size.y);
+                drawing.transform.localPosition = new Vector3(0f, ArtCenterY, 0f);
                 drawing.sortingOrder = BackOrder;
             }
             else
@@ -140,7 +146,7 @@ namespace Odisea.EditorTools
             // ----- Ulises, música, pausa y cámara (sin peligro: sin corazones ni golpes) -----
             string music = new[] { FestivalMusicPath, BakeryMusicPath, MenuScenesBuilder.MenuMusicPath }
                 .First(path => new[] { ".ogg", ".mp3", ".wav" }.Any(ext => File.Exists(path + ext)));
-            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(MapDoorX + 1.6f, 1f), "El Festival",
+            GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(MapDoorX + 1.9f, 1f), "El Festival",
                 music, showControls: false, background: Color.black, scored: false);
             PlayerSandboxBuilder.AddPlayerShadow(player, level, FurnitureOrder + 2);
             Object.DestroyImmediate(GameObject.Find("HUD"));
@@ -150,9 +156,14 @@ namespace Odisea.EditorTools
             if (pause != null)
                 PlayerSandboxBuilder.SetSerialized(pause, "allowRestart", false);
 
-            Camera.main.orthographicSize = RoomHeight / 2f;
-            Camera.main.transform.position = new Vector3(0f, CameraY, -10f);
-            Object.DestroyImmediate(Camera.main.GetComponent<CameraFollow2D>());
+            // La cámara sigue a Ulises de lado a lado sin salirse del dibujo (a una altura fija).
+            Camera.main.orthographicSize = ViewHeight / 2f;
+            float halfView = ViewHeight / 2f * 16f / 9f;
+            var follow = Camera.main.GetComponent<CameraFollow2D>();
+            PlayerSandboxBuilder.SetSerialized(follow, "useBounds", true);
+            PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-RoomWidth / 2f + halfView, CameraY));
+            PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(RoomWidth / 2f - halfView, CameraY));
+            Camera.main.transform.position = new Vector3(-RoomWidth / 2f + halfView, CameraY, -10f);
 
             BakeryBuilder.CreateDialogueBox();
 
@@ -171,9 +182,9 @@ namespace Odisea.EditorTools
                 var drawing = new GameObject("Cielo").AddComponent<SpriteRenderer>();
                 drawing.transform.SetParent(root, false);
                 drawing.sprite = sky;
-                float scale = Mathf.Max(RoomWidth / sky.bounds.size.x, RoomHeight / sky.bounds.size.y);
+                float scale = Mathf.Max(RoomWidth / sky.bounds.size.x, ArtHeight / sky.bounds.size.y);
                 drawing.transform.localScale = Vector3.one * scale;
-                drawing.transform.localPosition = new Vector3(0f, CameraY, 0f);
+                drawing.transform.localPosition = new Vector3(0f, ArtCenterY, 0f);
                 drawing.sortingOrder = BackOrder;
                 if (unlit != null)
                     drawing.sharedMaterial = unlit;
