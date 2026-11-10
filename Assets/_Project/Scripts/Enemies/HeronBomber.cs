@@ -17,6 +17,12 @@ namespace Odisea.Enemies
         [SerializeField] private Transform visual;
         [Tooltip("Opcional: alas del dibujo de relleno (se estiran al aletear).")]
         [SerializeField] private Transform[] wings = new Transform[0];
+        [Tooltip("Con su dibujo: el SpriteRenderer y los cuadros del aleteo.")]
+        [SerializeField] private SpriteRenderer drawing;
+        [SerializeField] private Sprite[] frames = new Sprite[0];
+        [SerializeField, Min(1f)] private float framesPerSecond = 10f;
+        [Tooltip("Hacia dónde mira el dibujo sin voltear (el de relleno mira a la izquierda).")]
+        [SerializeField] private bool drawingFacesRight;
         [Tooltip("Molde del pescado (apagado); se copia en cada tirada.")]
         [SerializeField] private HeronDrop dropTemplate;
 
@@ -185,9 +191,16 @@ namespace Odisea.Enemies
         {
             if (visual == null)
                 return;
-            // El dibujo mira a la izquierda: se voltea al volar a la derecha.
+            // Se voltea según hacia dónde vuela (y hacia dónde mira el dibujo).
             float wobble = state == State.Warning ? Mathf.Sin(flap * 1.3f) * 0.06f : 0f;
-            visual.localScale = new Vector3(Mathf.Abs(visualScale.x) * -facing, visualScale.y, visualScale.z);
+            int flip = drawingFacesRight ? facing : -facing;
+            visual.localScale = new Vector3(Mathf.Abs(visualScale.x) * flip, visualScale.y, visualScale.z);
+            if (drawing != null && frames.Length > 0)
+            {
+                // Aletea con sus cuadros; al avisar, más rápido.
+                float rate = framesPerSecond * (state == State.Warning ? 1.8f : 1f);
+                drawing.sprite = frames[(int)(Time.time * rate) % frames.Length];
+            }
             visual.localPosition = new Vector3(wobble, 0f, 0f);
             float wing = Mathf.Sin(flap);
             foreach (Transform w in wings)

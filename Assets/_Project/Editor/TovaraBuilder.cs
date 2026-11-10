@@ -33,6 +33,7 @@ namespace Odisea.EditorTools
         private const string TovaraSoundFolder = "Assets/_Project/Audio/SFX/Tovara";
         private const string HeronSoundFolder = "Assets/_Project/Audio/SFX/Garza";
         private const string ArtFolder = "Assets/_Project/Art/Environment/Tovara";
+        private const string HeronArtFolder = "Assets/_Project/Art/Characters/Garza";
         // Proporciones medidas en los dibujos (desde arriba): dónde se pisa en cada uno.
         private const float BoatDeck = 0.45f;
         private const float PlankBoards = 0.34f;
@@ -146,6 +147,8 @@ namespace Odisea.EditorTools
         {
             public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam, WaterOverlay, Mist, RainDrop;
             public Sprite[] Stones = new Sprite[0];
+            public Sprite[] Heron = new Sprite[0];
+            public Sprite RottenFish;
         }
 
         private static TovaraArt art = new();
@@ -705,7 +708,8 @@ namespace Odisea.EditorTools
             var loaded = new TovaraArt();
             if (!AssetDatabase.IsValidFolder(ArtFolder))
                 return loaded;
-            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { ArtFolder }))
+            string[] folders = new[] { ArtFolder, HeronArtFolder }.Where(AssetDatabase.IsValidFolder).ToArray();
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", folders))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
@@ -750,6 +754,9 @@ namespace Odisea.EditorTools
             loaded.Mist = Load("Bruma");
             loaded.RainDrop = Load("GotaLluvia");
             loaded.Stones = new[] { "Piedra1", "Piedra2", "Piedra3" }.Select(Load).Where(sprite => sprite != null).ToArray();
+            loaded.Heron = Enumerable.Range(0, 4).Select(i => AssetDatabase.LoadAssetAtPath<Sprite>($"{HeronArtFolder}/Garza_{i}.png"))
+                .Where(sprite => sprite != null).ToArray();
+            loaded.RottenFish = AssetDatabase.LoadAssetAtPath<Sprite>($"{HeronArtFolder}/PescadoPodrido.png");
             return loaded;
         }
 
@@ -787,6 +794,17 @@ namespace Odisea.EditorTools
                 part.sortingOrder = order;
                 return part;
             }
+            SpriteRenderer drawing = null;
+            SpriteRenderer wing = null;
+            if (art.Heron.Length > 0)
+            {
+                // Su dibujo (mira a la derecha), del tamaño de Ulises a lo ancho de las alas.
+                drawing = Part("Garza (dibujo)", art.Heron[0], Vector2.zero, Vector2.one, Color.white, 9);
+                float scale = 2.6f / art.Heron[0].bounds.size.x;
+                drawing.transform.localScale = new Vector3(scale, scale, 1f);
+            }
+            else
+            {
             var white = new Color(0.96f, 0.96f, 0.93f);
             Part("Patas", square, new Vector2(0.95f, -0.08f), new Vector2(0.7f, 0.06f), new Color(0.35f, 0.3f, 0.25f), 7);
             Part("Cuerpo", circle, Vector2.zero, new Vector2(1.5f, 0.6f), white, 8);
@@ -794,7 +812,8 @@ namespace Odisea.EditorTools
             Part("Cabeza", circle, new Vector2(-0.85f, 0.33f), new Vector2(0.32f, 0.28f), white, 9);
             Part("Pico", square, new Vector2(-1.12f, 0.3f), new Vector2(0.38f, 0.08f), new Color(0.95f, 0.65f, 0.2f), 9, 6f);
             Part("Ojo", circle, new Vector2(-0.9f, 0.37f), new Vector2(0.06f, 0.06f), Color.black, 10);
-            SpriteRenderer wing = Part("Ala", circle, new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.4f), new Color(0.72f, 0.74f, 0.78f), 9);
+            wing = Part("Ala", circle, new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.4f), new Color(0.72f, 0.74f, 0.78f), 9);
+            }
 
 
             // El pescado podrido que suelta (molde apagado) con su sombra de aviso.
@@ -810,6 +829,17 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(dropHazard, "destroyOnHit", true);
             var dropVisual = new GameObject("Dibujo").transform;
             dropVisual.SetParent(drop.transform, false);
+            if (art.RottenFish != null)
+            {
+                var fishDrawing = new GameObject("Pescado (dibujo)").AddComponent<SpriteRenderer>();
+                fishDrawing.transform.SetParent(dropVisual, false);
+                float fishScale = 1f / art.RottenFish.bounds.size.x;
+                fishDrawing.transform.localScale = new Vector3(fishScale, fishScale, 1f);
+                fishDrawing.sprite = art.RottenFish;
+                fishDrawing.sortingOrder = 9;
+            }
+            else
+            {
             var fish = new GameObject("Pescado").AddComponent<SpriteRenderer>();
             fish.transform.SetParent(dropVisual, false);
             fish.transform.localScale = new Vector3(0.6f, 0.3f, 1f);
@@ -824,6 +854,7 @@ namespace Odisea.EditorTools
             tail.sprite = square;
             tail.color = new Color(0.45f, 0.52f, 0.4f);
             tail.sortingOrder = 9;
+            }
             var shadow = new GameObject("Sombra de aviso").AddComponent<SpriteRenderer>();
             shadow.transform.SetParent(drop.transform, false);
             shadow.sprite = circle;
@@ -837,7 +868,14 @@ namespace Odisea.EditorTools
 
             var bomber = heron.AddComponent<HeronBomber>();
             PlayerSandboxBuilder.SetSerialized(bomber, "visual", visual);
-            PlayerSandboxBuilder.SetSerialized(bomber, "wings", new Object[] { wing.transform });
+            if (wing != null)
+                PlayerSandboxBuilder.SetSerialized(bomber, "wings", new Object[] { wing.transform });
+            if (drawing != null)
+            {
+                PlayerSandboxBuilder.SetSerialized(bomber, "drawing", drawing);
+                PlayerSandboxBuilder.SetSerialized(bomber, "frames", art.Heron.Cast<Object>().ToArray());
+                PlayerSandboxBuilder.SetSerialized(bomber, "drawingFacesRight", true);
+            }
             PlayerSandboxBuilder.SetSerialized(bomber, "dropTemplate", falling);
             // Se va al acercarse Ulises al festival.
             PlayerSandboxBuilder.SetSerialized(bomber, "leaveX", GoalX - 14f);
