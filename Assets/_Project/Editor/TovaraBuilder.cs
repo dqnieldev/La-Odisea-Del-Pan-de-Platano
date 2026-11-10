@@ -41,9 +41,12 @@ namespace Odisea.EditorTools
         private const float BankEndHeight = BankHeight;
         private const float BankEndGrass = BankGrass;
         // Orden de dibujo: lo que está en el agua (piedras y patas de los tablones) va detrás de ella; la tierra, enfrente.
+        // Los tablones van entre las dos capas del agua: sus raíces se ven, con la corriente semitransparente encima.
         private const int SunkenOrder = -2;
-        private const int WaterOrder = 1;
-        private const int BankOrder = 2;
+        private const int WaterOrder = 0;
+        private const int PlankOrder = WaterOrder + 1;
+        private const int WaterOverlayOrder = WaterOrder + 2;
+        private const int BankOrder = 3;
         private const float PlankReferenceWidth = 5f;
 
         // El agua: su cara de arriba (lo que se ve) y dónde empieza a hundir a Ulises (un poco más abajo).
@@ -57,7 +60,7 @@ namespace Odisea.EditorTools
         private const float CameraY = 3.4f;
         private const float CameraMinX = -2f;
         private const float CameraMaxX = GoalX - 4f;
-        private const int ShadowOrder = 4;
+        private const int ShadowOrder = 5;
         private const float FairFollow = 0.5f;
 
         private static readonly Color Sky = new(0.98f, 0.80f, 0.58f);
@@ -392,7 +395,7 @@ namespace Odisea.EditorTools
                 old.enabled = false;
             float scale = PlankReferenceWidth / art.Plank.bounds.size.x;
             float natural = art.Plank.bounds.size.y * scale;
-            float height = Mathf.Max(natural * (width + 0.4f) / PlankReferenceWidth, top - WaterTop + 0.8f);
+            float height = Mathf.Max(natural * (width + 0.4f) / PlankReferenceWidth, top - WaterTop + 2.2f);
             var drawing = new GameObject("Tablón (dibujo)").AddComponent<SpriteRenderer>();
             drawing.transform.SetParent(platform.parent, false);
             drawing.transform.position = new Vector3(x, top + 0.05f - height / 2f, 0f);
@@ -400,7 +403,7 @@ namespace Odisea.EditorTools
             drawing.sprite = art.Plank;
             drawing.drawMode = SpriteDrawMode.Sliced;
             drawing.size = new Vector2((width + 0.4f) / scale, height / scale);
-            drawing.sortingOrder = SunkenOrder + 1;
+            drawing.sortingOrder = PlankOrder;
         }
 
         private static void CreateStone(Transform root, Sprite square, float x, float width, float top, int number, int layer)
@@ -438,14 +441,14 @@ namespace Odisea.EditorTools
                 // El dibujo del agua en la franja que se ve; el color sigue abajo, fuera de la vista.
                 // Dos capas que corren en sentidos contrarios (la de encima, más grande y semitransparente): donde se
                 // cruzan, los brillos cambian todo el tiempo y el agua se ve viva.
-                water.sortingOrder = WaterOrder - 2;
+                water.sortingOrder = WaterOrder - 1;
                 const float drawHeight = 4f;
                 SpriteRenderer below = Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f),
-                    width, drawHeight, WaterOrder - 1);
+                    width, drawHeight, WaterOrder);
                 Flow(below, 0.25f, 0f);
                 const float overlayHeight = 4.8f;
                 SpriteRenderer above = Strip(root, "Agua (corriente)", art.Water,
-                    new Vector2(centerX, WaterTop + 0.06f - overlayHeight / 2f), width, overlayHeight, WaterOrder);
+                    new Vector2(centerX, WaterTop + 0.06f - overlayHeight / 2f), width, overlayHeight, WaterOverlayOrder);
                 above.color = new Color(1f, 1f, 1f, 0.4f);
                 Flow(above, -0.4f, 1.6f);
             }
