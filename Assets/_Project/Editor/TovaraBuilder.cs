@@ -31,6 +31,7 @@ namespace Odisea.EditorTools
         private const string GnatsPrefabPath = "Assets/_Project/Prefabs/Enemigos/Horno/Jejenes.prefab";
         private const string RatSoundFolder = "Assets/_Project/Audio/SFX/Raton";
         private const string TovaraSoundFolder = "Assets/_Project/Audio/SFX/Tovara";
+        private const string HeronSoundFolder = "Assets/_Project/Audio/SFX/Garza";
         private const string ArtFolder = "Assets/_Project/Art/Environment/Tovara";
         // Proporciones medidas en los dibujos (desde arriba): dónde se pisa en cada uno.
         private const float BoatDeck = 0.45f;
@@ -840,6 +841,9 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(bomber, "dropTemplate", falling);
             // Se va al acercarse Ulises al festival.
             PlayerSandboxBuilder.SetSerialized(bomber, "leaveX", GoalX - 14f);
+            // Su graznido de aviso y el "fiuu" al soltar el pescado.
+            GameSoundsBuilder.SetSound(bomber, "squawk", GameSoundsBuilder.Load(HeronSoundFolder, "garza_grito"), 0.8f);
+            GameSoundsBuilder.SetSound(bomber, "dropSound", GameSoundsBuilder.Load(HeronSoundFolder, "garza_suelta"), 0.7f);
         }
 
         // Rata de La Tovara: corre por su tramo de orilla (PatrolEnemy, como el cocodrilo), persigue a Ulises al verlo y
