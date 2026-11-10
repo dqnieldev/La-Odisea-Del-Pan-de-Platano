@@ -187,6 +187,8 @@ namespace Odisea.EditorTools
             CreateBossBar(boss.Health, square);
             CreateIntroBanner(oven);
 
+            // "¿Listo?" y la frase del nivel, al centro, al empezar.
+            LevelIntroBuilder.Add(LevelIntroBuilder.PhraseFor(ScenePath));
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Horno creado en {ScenePath}");

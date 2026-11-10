@@ -173,6 +173,8 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(follow, "minPosition", new Vector2(-1f, CameraMinY(stalls)));
             PlayerSandboxBuilder.SetSerialized(follow, "maxPosition", new Vector2(1f, top - 2f));
 
+            // "¿Listo?" y la frase del nivel, al centro, al empezar.
+            LevelIntroBuilder.Add(LevelIntroBuilder.PhraseFor(ScenePath));
             PlayerSandboxBuilder.EndLevel(level);
             MenuScenesBuilder.AddToBuild(ScenePath);
             Debug.Log($"[Odisea] Mercado creado en {ScenePath}");
