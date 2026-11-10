@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FestivalEntrada
   m_EditorClassIdentifier: Odisea::Odisea.UI.ComicSequence
   title: El Festival
-  music: {fileID: 8300000, guid: 9b906951d09df7843861cae21004aa54, type: 3}
+  music: {fileID: 8300000, guid: 7bda826c9fbc0c6499bcd84e2a390804, type: 3}
   musicContinues: 0
   panels:
   - title: La Plaza en Fiesta

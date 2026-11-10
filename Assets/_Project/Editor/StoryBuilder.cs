@@ -33,6 +33,7 @@ namespace Odisea.EditorTools
         private const string ActTwoMusicPath = "Assets/_Project/Audio/Music/musica_acto2";
         // Canción de las del Acto III (opcional; sin ella usan la del Acto II).
         private const string ActThreeMusicPath = "Assets/_Project/Audio/Music/musica_acto3";
+        private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
         private static readonly Vector2 PanelSize = new(1440f, 810f);
         private const float PanelOffsetY = 75f;
         private static readonly Vector2 BookPanelCenter = new(125f, 62f);
@@ -262,7 +263,6 @@ namespace Odisea.EditorTools
                      {
                          EnsureStory(SceneFlow.TovaraStory, "Acto III · Carrera por los manglares", TovaraIntro, TovaraTitles),
                          EnsureStory(SceneFlow.TovaraOutroStory, "Final · El Festival del Pan de Plátano", TovaraOutro, TovaraOutroTitles),
-                         EnsureStory(SceneFlow.FestivalStory, "El Festival", FestivalIntro, FestivalTitles),
                      })
             {
                 if (actThreeMusic != null && (act.music == null || act.music == actTwoMusic))
@@ -270,6 +270,14 @@ namespace Odisea.EditorTools
                 act.musicContinues = false;
                 EditorUtility.SetDirty(act);
             }
+            // La entrada al festival ya suena a fiesta: con musica_festival (la misma de la plaza) si existe; si no, la del
+            // Acto III.
+            ComicSequence festival = EnsureStory(SceneFlow.FestivalStory, "El Festival", FestivalIntro, FestivalTitles);
+            AudioClip festivalMusic = GameSoundsBuilder.LoadMusic(FestivalMusicPath) ?? actThreeMusic;
+            if (festivalMusic != null && (festival.music == null || festival.music == actTwoMusic || festival.music == actThreeMusic))
+                festival.music = festivalMusic;
+            festival.musicContinues = false;
+            EditorUtility.SetDirty(festival);
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })
                 .Select(guid => AssetDatabase.LoadAssetAtPath<ComicSequence>(AssetDatabase.GUIDToAssetPath(guid)))
