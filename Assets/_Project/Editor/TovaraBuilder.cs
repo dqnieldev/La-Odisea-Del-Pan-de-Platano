@@ -30,6 +30,13 @@ namespace Odisea.EditorTools
         private const string FallbackMusicPath = "Assets/_Project/Audio/Music/musica_tutorial";
         private const string GnatsPrefabPath = "Assets/_Project/Prefabs/Enemigos/Horno/Jejenes.prefab";
         private const string RatSoundFolder = "Assets/_Project/Audio/SFX/Raton";
+        private const string ArtFolder = "Assets/_Project/Art/Environment/Tovara";
+        // Proporciones medidas en los dibujos (desde arriba): dónde se pisa en cada uno.
+        private const float BoatDeck = 0.45f;
+        private const float PlankBoards = 0.34f;
+        private const float BankGrass = 0.11f;
+        private const float BankHeight = 2.2f;
+        private const float PlankReferenceWidth = 5f;
 
         // El agua: su cara de arriba (lo que se ve) y dónde empieza a hundir a Ulises (un poco más abajo).
         private const float WaterTop = -0.45f;
@@ -118,14 +125,24 @@ namespace Odisea.EditorTools
         };
         private static readonly PickupKind[] HelperKinds = { PickupKind.Heal, PickupKind.Shield, PickupKind.Speed };
 
+        // El arte del nivel (Assets/_Project/Art/Environment/Tovara). Lo que falte se queda de color.
+        private sealed class TovaraArt
+        {
+            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate;
+            public Sprite[] Stones = new Sprite[0];
+        }
+
+        private static TovaraArt art = new();
+
         [MenuItem("Odisea/Niveles/Crear La Tovara")]
         public static void Build()
         {
+            art = LoadArt();
             PlayerSandboxBuilder.LevelContext level = PlayerSandboxBuilder.BeginLevel(ScenePath);
             Transform root = level.Root;
             Sprite square = level.Square;
             Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            PlayerSandboxBuilder.LevelArt art = PlayerSandboxBuilder.LevelArt.Load();
+            PlayerSandboxBuilder.LevelArt levelArt = PlayerSandboxBuilder.LevelArt.Load();
 
             // ----- El camino -----
             foreach ((float from, float to, float top) in Shores)
@@ -133,8 +150,12 @@ namespace Odisea.EditorTools
             for (int i = 0; i < Boats.Length; i++)
                 CreateBoat(root, square, Boats[i].x, Boats[i].width, i + 1, level.GroundLayer);
             for (int i = 0; i < Planks.Length; i++)
-                PlayerSandboxBuilder.CreatePlatform($"Tablón {i + 1}", root, square, art, new Vector2(Planks[i].x, Planks[i].y - 0.2f),
-                    Planks[i].width, level.GroundLayer);
+            {
+                GameObject plank = PlayerSandboxBuilder.CreatePlatform($"Tablón {i + 1}", root, square, levelArt,
+                    new Vector2(Planks[i].x, Planks[i].y - 0.2f), Planks[i].width, level.GroundLayer, posts: art.Plank == null);
+                if (art.Plank != null)
+                    DrawPlank(plank.transform, Planks[i].x, Planks[i].width, Planks[i].y);
+            }
             for (int i = 0; i < Stones.Length; i++)
                 CreateStone(root, square, Stones[i].x, Stones[i].width, Stones[i].top, i + 1, level.GroundLayer);
             CreateWater(root, square, level);
@@ -233,6 +254,21 @@ namespace Odisea.EditorTools
             GameObject shore = PlayerSandboxBuilder.CreateBlock($"Orilla {from:0}-{to:0}", root, square,
                 new Vector2((from + to) / 2f, top - height / 2f), new Vector2(to - from, height), Mud, layer);
             shore.GetComponent<SpriteRenderer>().sortingOrder = 0;
+            if (art.Bank != null)
+            {
+                // Con dibujo: la tira de orilla repetida y, en cada punta que se ve, su borde que se desmorona al agua.
+                shore.GetComponent<SpriteRenderer>().enabled = false;
+                float unit = BankHeight / art.Bank.bounds.size.y;
+                float stripFrom = from, stripTo = to;
+                if (art.BankEndLeft != null && from > LevelStart)
+                    stripFrom = from + BankEnd(root, art.BankEndLeft, from, top, unit, left: true) * 0.5f;
+                if (art.BankEndRight != null && to < LevelEnd)
+                    stripTo = to - BankEnd(root, art.BankEndRight, to, top, unit, left: false) * 0.5f;
+                Strip(root, "Orilla (dibujo)", art.Bank,
+                    new Vector2((stripFrom + stripTo) / 2f, top + BankGrass * BankHeight - BankHeight / 2f), stripTo - stripFrom,
+                    BankHeight, 1);
+                return;
+            }
             var grass = new GameObject("Pasto").AddComponent<SpriteRenderer>();
             grass.transform.SetParent(root, false);
             grass.transform.position = new Vector3((from + to) / 2f, top - 0.15f, 0f);
@@ -240,6 +276,18 @@ namespace Odisea.EditorTools
             grass.sprite = square;
             grass.color = Grass;
             grass.sortingOrder = 1;
+        }
+
+        // Punta de una orilla: el lado firme se encima a la tira y lo que se desmorona sale un poco del borde. Devuelve
+        // su ancho.
+        private static float BankEnd(Transform parent, Sprite sprite, float edge, float top, float unit, bool left)
+        {
+            float width = sprite.bounds.size.x * unit;
+            float height = sprite.bounds.size.y * unit;
+            float x = left ? edge + width * 0.2f : edge - width * 0.2f;
+            Picture(parent, left ? "Orilla (punta izquierda)" : "Orilla (punta derecha)", sprite,
+                new Vector2(x, top + BankGrass * height - height / 2f), width, 2);
+            return width;
         }
 
         // Panga: lancha que flota y se mece; se pisa su cubierta (de un sentido, para subir saltando desde el agua no,
@@ -265,9 +313,38 @@ namespace Odisea.EditorTools
                 part.sortingOrder = order;
                 return part;
             }
+            if (art.Boat != null)
+            {
+                // La cubierta del dibujo donde se pisa (la cara de arriba del collider).
+                float drawWidth = width + 1.1f;
+                float drawHeight = drawWidth * art.Boat.bounds.size.y / art.Boat.bounds.size.x;
+                SpriteRenderer drawing = Picture(boat.transform, "Panga (dibujo)", art.Boat, Vector2.zero, drawWidth, 6);
+                drawing.transform.localPosition = new Vector3(0f, 0.2f + BoatDeck * drawHeight - drawHeight / 2f, 0f);
+                drawing.gameObject.layer = layer;
+                return;
+            }
             // Encima del agua: la panga flota, no está hundida.
             Part("Casco", new Vector2(0f, -0.35f), new Vector2(width, 0.7f), BoatHull, 6);
             Part("Borda", new Vector2(0f, 0.12f), new Vector2(width + 0.1f, 0.16f), BoatTrim, 7);
+        }
+
+        // Tablón de La Tovara: las tablas arriba (donde se pisa) y las raíces que bajan hasta el agua. Se estira (9-slice)
+        // a lo ancho del tablón y a lo alto hasta abajo del agua, sin engrosar las tablas.
+        private static void DrawPlank(Transform platform, float x, float width, float top)
+        {
+            foreach (SpriteRenderer old in platform.GetComponentsInChildren<SpriteRenderer>())
+                old.enabled = false;
+            float scale = PlankReferenceWidth / art.Plank.bounds.size.x;
+            float natural = art.Plank.bounds.size.y * scale;
+            float height = Mathf.Max(natural * (width + 0.4f) / PlankReferenceWidth, top - WaterTop + 0.8f);
+            var drawing = new GameObject("Tablón (dibujo)").AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(platform.parent, false);
+            drawing.transform.position = new Vector3(x, top + 0.05f - height / 2f, 0f);
+            drawing.transform.localScale = new Vector3(scale, scale, 1f);
+            drawing.sprite = art.Plank;
+            drawing.drawMode = SpriteDrawMode.Sliced;
+            drawing.size = new Vector2((width + 0.4f) / scale, height / scale);
+            drawing.sortingOrder = 3;
         }
 
         private static void CreateStone(Transform root, Sprite square, float x, float width, float top, int number, int layer)
@@ -276,6 +353,15 @@ namespace Odisea.EditorTools
             GameObject stone = PlayerSandboxBuilder.CreateBlock($"Piedra {number}", root, square,
                 new Vector2(x, top - height / 2f), new Vector2(width, height), Stone, layer);
             stone.GetComponent<SpriteRenderer>().sortingOrder = 0;
+            if (art.Stones.Length == 0)
+                return;
+            // La piedra más baja que todavía llega abajo del agua.
+            const float drawWidth = 2.5f;
+            float Height(Sprite sprite) => drawWidth * sprite.bounds.size.y / sprite.bounds.size.x;
+            Sprite chosen = art.Stones.OrderBy(Height).FirstOrDefault(sprite => Height(sprite) >= top - WaterTop + 0.6f)
+                ?? art.Stones.OrderBy(Height).Last();
+            stone.GetComponent<SpriteRenderer>().enabled = false;
+            Picture(root, "Piedra (dibujo)", chosen, new Vector2(x, top + 0.05f - Height(chosen) / 2f), drawWidth, 2);
         }
 
         // El agua a lo largo de todo el nivel: se ve encima del pie de la orilla y las piedras; un poco más abajo de su
@@ -291,6 +377,13 @@ namespace Odisea.EditorTools
             water.sprite = square;
             water.color = Water;
             water.sortingOrder = 5;
+            if (art.Water != null)
+            {
+                // El dibujo del agua en la franja que se ve; el color sigue abajo, fuera de la vista.
+                water.sortingOrder = 4;
+                const float drawHeight = 4f;
+                Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f), width, drawHeight, 5);
+            }
 
             var zone = new GameObject("Agua (hunde)");
             zone.transform.SetParent(root, false);
@@ -309,6 +402,11 @@ namespace Odisea.EditorTools
         // carpas de la feria.
         private static void CreateBackground(Transform root, Sprite square, Sprite circle)
         {
+            if (art.Sky != null && art.FarMangrove != null && art.NearMangrove != null)
+            {
+                CreatePaintedBackground(root);
+                return;
+            }
             Transform far = Layer(root, "Manglar lejano", 0.85f, 1f);
             Transform near = Layer(root, "Manglar cercano", 0.55f, 1f);
             for (float x = LevelStart; x < LevelEnd + 40f; x += 9f)
@@ -331,6 +429,36 @@ namespace Odisea.EditorTools
             }
         }
 
+        // Con dibujos: el cielo pegado a la cámara, el manglar lejano y el cercano repetidos a lo largo del nivel y la feria
+        // al final. Sus pies quedan detrás del agua.
+        private static void CreatePaintedBackground(Transform root)
+        {
+            const float viewWidth = 26f;
+            Transform sky = Layer(root, "Cielo", 1f, 1f);
+            Picture(sky, "Cielo (dibujo)", art.Sky, new Vector2(CameraMinX, CameraY), viewWidth, -40);
+
+            float width = LevelEnd - LevelStart + 80f;
+            float centerX = (LevelStart + LevelEnd) / 2f;
+            const float feet = -0.9f;
+            Transform far = Layer(root, "Manglar lejano", 0.85f, 1f);
+            Strip(far, "Manglar lejano (dibujo)", art.FarMangrove, new Vector2(centerX, feet + 3f), width, 6f, -30);
+            if (art.Festival != null)
+            {
+                Transform fair = Layer(root, "Feria", FairFollow, 1f);
+                float fairX = CameraMaxX - (CameraMaxX - CameraMinX) * FairFollow;
+                const float fairWidth = 14f;
+                float fairHeight = fairWidth * art.Festival.bounds.size.y / art.Festival.bounds.size.x;
+                // Su orilla (a 65 % del dibujo, desde arriba) queda justo bajo el agua del nivel: su propia agua no se ve.
+                Picture(fair, "Feria (dibujo)", art.Festival, new Vector2(fairX, WaterTop + 0.05f + 0.15f * fairHeight), fairWidth, -25);
+            }
+            Transform near = Layer(root, "Manglar cercano", 0.55f, 1f);
+            // Más chico, con el pie bajo el agua y un poco transparente: así queda detrás de Ulises y no se confunde
+            // con él.
+            SpriteRenderer nearDrawing = Strip(near, "Manglar cercano (dibujo)", art.NearMangrove,
+                new Vector2(centerX, -1.6f + 2.75f), width, 5.5f, -20);
+            nearDrawing.color = new Color(0.86f, 0.92f, 0.9f, 0.82f);
+        }
+
         private static Transform Layer(Transform parent, string name, float followX, float followY)
         {
             var go = new GameObject(name);
@@ -339,6 +467,86 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(parallax, "followX", followX);
             PlayerSandboxBuilder.SetSerialized(parallax, "followY", followY);
             return go.transform;
+        }
+
+        // Un dibujo de cierto ancho (el alto sale de su proporción), en esa posición del mundo.
+        private static SpriteRenderer Picture(Transform parent, string name, Sprite sprite, Vector2 position, float width, int order)
+        {
+            var drawing = new GameObject(name).AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(parent, false);
+            drawing.transform.position = position;
+            float scale = width / sprite.bounds.size.x;
+            drawing.transform.localScale = new Vector3(scale, scale, 1f);
+            drawing.sprite = sprite;
+            drawing.sortingOrder = order;
+            return drawing;
+        }
+
+        // Un dibujo repetido a lo ancho, con ese alto.
+        private static SpriteRenderer Strip(Transform parent, string name, Sprite sprite, Vector2 center, float width, float height,
+            int order)
+        {
+            var drawing = new GameObject(name).AddComponent<SpriteRenderer>();
+            drawing.transform.SetParent(parent, false);
+            drawing.transform.position = center;
+            float scale = height / sprite.bounds.size.y;
+            drawing.transform.localScale = new Vector3(scale, scale, 1f);
+            drawing.sprite = sprite;
+            drawing.drawMode = SpriteDrawMode.Tiled;
+            drawing.tileMode = SpriteTileMode.Continuous;
+            drawing.size = new Vector2(width / scale, sprite.bounds.size.y);
+            drawing.sortingOrder = order;
+            return drawing;
+        }
+
+        // Importa los dibujos como sprites enteros (para repetirlos y estirarlos) y los carga.
+        private static TovaraArt LoadArt()
+        {
+            var loaded = new TovaraArt();
+            if (!AssetDatabase.IsValidFolder(ArtFolder))
+                return loaded;
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { ArtFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                bool plank = path.EndsWith("/Tablon.png");
+                const string mark = "odisea-tovara-2";
+                if (importer.userData == mark)
+                    continue;
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = 100f;
+                importer.mipmapEnabled = true;
+                importer.alphaIsTransparency = true;
+                importer.maxTextureSize = 2048;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                var settings = new TextureImporterSettings();
+                importer.ReadTextureSettings(settings);
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                settings.spriteAlignment = (int)SpriteAlignment.Center;
+                importer.SetTextureSettings(settings);
+                if (plank)
+                {
+                    importer.GetSourceTextureWidthAndHeight(out _, out int height);
+                    importer.spriteBorder = new Vector4(0f, 0f, 0f, Mathf.Round(height * PlankBoards));
+                }
+                importer.userData = mark;
+                importer.SaveAndReimport();
+            }
+            Sprite Load(string file) => AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtFolder}/{file}.png");
+            loaded.Boat = Load("Panga");
+            loaded.Plank = Load("Tablon");
+            loaded.Bank = Load("Orilla");
+            loaded.BankEndLeft = Load("OrillaFinIzquierda");
+            loaded.BankEndRight = Load("OrillaFinDerecha");
+            loaded.Water = Load("Agua");
+            loaded.Sky = Load("Cielo");
+            loaded.FarMangrove = Load("ManglarLejano");
+            loaded.NearMangrove = Load("ManglarCercano");
+            loaded.Festival = Load("Festival");
+            loaded.Gate = Load("Arco");
+            loaded.Stones = new[] { "Piedra1", "Piedra2", "Piedra3" }.Select(Load).Where(sprite => sprite != null).ToArray();
+            return loaded;
         }
 
         private static SpriteRenderer Shape(Transform parent, Sprite sprite, Vector2 position, Vector2 size, Color color, int order)
@@ -438,12 +646,23 @@ namespace Odisea.EditorTools
             var area = gate.AddComponent<BoxCollider2D>();
             area.isTrigger = true;
             area.size = new Vector2(2.5f, 4f);
+            if (art.Gate != null)
+            {
+                const float gateWidth = 6f;
+                float gateHeight = gateWidth * art.Gate.bounds.size.y / art.Gate.bounds.size.x;
+                // Parado en el suelo (la orilla está en y 0; el arco en y 2).
+                Picture(gate.transform, "Arco (dibujo)", art.Gate, new Vector2(0f, -2f + gateHeight / 2f), gateWidth, 2)
+                    .transform.localPosition = new Vector3(0f, -2f + gateHeight / 2f, 0f);
+            }
+            else
+            {
             Shape(gate.transform, square, new Vector2(-1.8f, 0.4f), new Vector2(0.5f, 4.8f), new Color(0.55f, 0.32f, 0.16f), 2);
             Shape(gate.transform, square, new Vector2(1.8f, 0.4f), new Vector2(0.5f, 4.8f), new Color(0.55f, 0.32f, 0.16f), 2);
             Shape(gate.transform, square, new Vector2(0f, 2.9f), new Vector2(4.4f, 0.6f), new Color(0.86f, 0.24f, 0.30f), 3);
             Color[] flags = { new(0.98f, 0.72f, 0.18f), new(0.25f, 0.55f, 0.78f), new(0.40f, 0.70f, 0.30f), new(0.86f, 0.24f, 0.30f) };
             for (int i = 0; i < 6; i++)
                 Shape(gate.transform, square, new Vector2(-1.6f + i * 0.64f, 2.3f), new Vector2(0.45f, 0.5f), flags[i % flags.Length], 3);
+            }
             var component = gate.AddComponent<LevelGoal>();
             PlayerSandboxBuilder.SetSerialized(component, "playerLayers", 1 << playerLayer);
             PlayerSandboxBuilder.SetSerialized(component, "nextScene", SceneFlow.Credits);

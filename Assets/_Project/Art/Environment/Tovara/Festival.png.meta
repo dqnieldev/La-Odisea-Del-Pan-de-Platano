@@ -1,0 +1,561 @@
+fileFormatVersion: 2
+guid: c00e300a20f1a4146860945ad9490a26
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 7929443515323333579
+    second: Festival_0
+  - first:
+      213: -3447425498987893456
+    second: Festival_1
+  - first:
+      213: -2550237855572911938
+    second: Festival_2
+  - first:
+      213: -7980009967947590492
+    second: Festival_3
+  - first:
+      213: -1549511644111194424
+    second: Festival_4
+  - first:
+      213: 274389096468091225
+    second: Festival_5
+  - first:
+      213: -1102179751791919176
+    second: Festival_6
+  - first:
+      213: 8772551754854785478
+    second: Festival_7
+  - first:
+      213: 5942456897552484155
+    second: Festival_8
+  - first:
+      213: -129780246218349523
+    second: Festival_9
+  - first:
+      213: 1043262437013051925
+    second: Festival_10
+  - first:
+      213: 4643388825245036814
+    second: Festival_11
+  - first:
+      213: -2466251251985030781
+    second: Festival_12
+  - first:
+      213: 2061067367175861073
+    second: Festival_13
+  - first:
+      213: -7031122799618451404
+    second: Festival_14
+  - first:
+      213: -4759194999601803077
+    second: Festival_15
+  - first:
+      213: -2017949643287994231
+    second: Festival_16
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 1
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Festival_0
+      rect:
+        serializedVersion: 2
+        x: 867
+        y: 618
+        width: 148
+        height: 176
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bcb3f5d7dda0b0e60800000000000000
+      internalID: 7929443515323333579
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_1
+      rect:
+        serializedVersion: 2
+        x: 945
+        y: 783
+        width: 12
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03de33f16c84820d0800000000000000
+      internalID: -3447425498987893456
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_2
+      rect:
+        serializedVersion: 2
+        x: 1102
+        y: 701
+        width: 55
+        height: 83
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eb892dd9e2cbb9cd0800000000000000
+      internalID: -2550237855572911938
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_3
+      rect:
+        serializedVersion: 2
+        x: 1014
+        y: 760
+        width: 14
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4a4586cc63f414190800000000000000
+      internalID: -7980009967947590492
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_4
+      rect:
+        serializedVersion: 2
+        x: 1028
+        y: 751
+        width: 11
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c6bb6d8e570f7ae0800000000000000
+      internalID: -1549511644111194424
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_5
+      rect:
+        serializedVersion: 2
+        x: 1137
+        y: 748
+        width: 27
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9519831fd63dec300800000000000000
+      internalID: 274389096468091225
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_6
+      rect:
+        serializedVersion: 2
+        x: 867
+        y: 709
+        width: 43
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8bf70d7fa5544b0f0800000000000000
+      internalID: -1102179751791919176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_7
+      rect:
+        serializedVersion: 2
+        x: 978
+        y: 678
+        width: 65
+        height: 56
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c169d1975d5eb970800000000000000
+      internalID: 8772551754854785478
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_8
+      rect:
+        serializedVersion: 2
+        x: 1002
+        y: 734
+        width: 50
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b378fa75019d77250800000000000000
+      internalID: 5942456897552484155
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_9
+      rect:
+        serializedVersion: 2
+        x: 1041
+        y: 716
+        width: 20
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d24ea4dbd8de23ef0800000000000000
+      internalID: -129780246218349523
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_10
+      rect:
+        serializedVersion: 2
+        x: 867
+        y: 699
+        width: 12
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51adba5b8a96a7e00800000000000000
+      internalID: 1043262437013051925
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_11
+      rect:
+        serializedVersion: 2
+        x: 872
+        y: 691
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e01bfbae881a07040800000000000000
+      internalID: 4643388825245036814
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_12
+      rect:
+        serializedVersion: 2
+        x: 1006
+        y: 673
+        width: 21
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 381e1969d8d16cdd0800000000000000
+      internalID: -2466251251985030781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_13
+      rect:
+        serializedVersion: 2
+        x: 995
+        y: 652
+        width: 31
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 153baa6b9d16a9c10800000000000000
+      internalID: 2061067367175861073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_14
+      rect:
+        serializedVersion: 2
+        x: 1041
+        y: 664
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4389794f01f6c6e90800000000000000
+      internalID: -7031122799618451404
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_15
+      rect:
+        serializedVersion: 2
+        x: 1124
+        y: 549
+        width: 111
+        height: 142
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb05be7fc51f3fdb0800000000000000
+      internalID: -4759194999601803077
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Festival_16
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 2048
+        height: 654
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9806131bd7dcef3e0800000000000000
+      internalID: -2017949643287994231
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Festival_0: 7929443515323333579
+      Festival_1: -3447425498987893456
+      Festival_10: 1043262437013051925
+      Festival_11: 4643388825245036814
+      Festival_12: -2466251251985030781
+      Festival_13: 2061067367175861073
+      Festival_14: -7031122799618451404
+      Festival_15: -4759194999601803077
+      Festival_16: -2017949643287994231
+      Festival_2: -2550237855572911938
+      Festival_3: -7980009967947590492
+      Festival_4: -1549511644111194424
+      Festival_5: 274389096468091225
+      Festival_6: -1102179751791919176
+      Festival_7: 8772551754854785478
+      Festival_8: 5942456897552484155
+      Festival_9: -129780246218349523
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: odisea-tovara-2
+  assetBundleName: 
+  assetBundleVariant: 
