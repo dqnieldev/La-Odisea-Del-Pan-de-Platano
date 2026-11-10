@@ -16,6 +16,8 @@ namespace Odisea.Core
     {
         [Tooltip("Volumen propio de esta canción (0 a 1), para las que vienen más fuertes que las demás.")]
         [SerializeField, Range(0f, 1f)] private float volume = 1f;
+        [Tooltip("Si la canción ya venía sonando de la escena anterior (la historieta), tarda esto en bajar o subir a su volumen.")]
+        [SerializeField, Min(0f)] private float volumeBlendDuration = 4f;
         [SerializeField, Min(0f)] private float fadeInDuration = 1.2f;
         [Tooltip("Debe ser parecido a lo que tarda en cerrarse el iris para que la música termine junto con la imagen.")]
         [SerializeField, Min(0.01f)] private float fadeOutDuration = 0.9f;
@@ -42,6 +44,7 @@ namespace Odisea.Core
         // Multiplicador del fundido (0 a 1); el volumen final es fundido × volumen de música.
         private float fade;
         private Coroutine fadeRoutine;
+        private Coroutine volumeRoutine;
         private AudioLowPassFilter lowPass;
         private AudioHighPassFilter highPass;
         // 0 = normal, 1 = en pausa (disco viejo); se mueve suave hacia la meta.
@@ -54,6 +57,8 @@ namespace Odisea.Core
             if (playing != null && playing != this && playing.source.clip == source.clip && source.clip != null)
             {
                 playing.TakeDeathFade(fadeOnDeath);
+                // La canción sigue, pero con el volumen de esta escena (poco a poco, para que no se note el cambio).
+                playing.BlendVolumeTo(volume, volumeBlendDuration);
                 enabled = false;
                 Destroy(gameObject);
                 return;
@@ -160,6 +165,30 @@ namespace Odisea.Core
         }
 
         private void OnPlayerDied() => FadeTo(0f, deathFadeOut);
+
+        private void BlendVolumeTo(float target, float duration)
+        {
+            if (Mathf.Approximately(volume, target))
+                return;
+            if (volumeRoutine != null)
+                StopCoroutine(volumeRoutine);
+            volumeRoutine = StartCoroutine(VolumeRoutine(target, duration));
+        }
+
+        private IEnumerator VolumeRoutine(float target, float duration)
+        {
+            float from = volume;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                // Suave al empezar y al terminar.
+                volume = Mathf.Lerp(from, target, Mathf.SmoothStep(0f, 1f, t / duration));
+                ApplyVolume();
+                yield return null;
+            }
+            volume = target;
+            ApplyVolume();
+            volumeRoutine = null;
+        }
 
         // La canción viene de la escena anterior y el nivel traía la misma: se apaga cuando muere Ulises, como la del nivel.
         private void TakeDeathFade(Health health)

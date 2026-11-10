@@ -3249,6 +3249,11 @@ MonoBehaviour:
   - {fileID: 2466218326494166746, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   - {fileID: -1409725047963335249, guid: 1f0375a1cd98af14fb1e654a37a44d9b, type: 3}
   talkFps: 8
+  talkSound:
+    clips: []
+    volume: 1
+    pitchVariation: 0.06
+    clipVolumes: []
 --- !u!61 &686573069
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4448,6 +4453,11 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 8e801e47210518343843c9f6fc5c0849, type: 3}
   - {fileID: 21300000, guid: b022b2796646f4442bef88ffc60b556e, type: 3}
   talkFps: 8
+  talkSound:
+    clips: []
+    volume: 1
+    pitchVariation: 0.06
+    clipVolumes: []
 --- !u!61 &1018659735
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7848,7 +7858,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8287d1e41e3ab441bf9af2ddf3fdd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SceneMusic
-  volume: 0.65
+  volume: 0.45
+  volumeBlendDuration: 4
   fadeInDuration: 1.2
   fadeOutDuration: 0.9
   fadeOnDeath: {fileID: 757347737}
@@ -8666,6 +8677,13 @@ MonoBehaviour:
   - {fileID: -3423769794007269966, guid: a5dd22300c5c11d4b858a6fca59d339c, type: 3}
   - {fileID: -5827987102594880809, guid: a5dd22300c5c11d4b858a6fca59d339c, type: 3}
   talkFps: 8
+  talkSound:
+    clips:
+    - {fileID: 8300000, guid: 842fa371ff0dc8242baa749c073941df, type: 3}
+    volume: 0.7
+    pitchVariation: 0.06
+    clipVolumes:
+    - 1
 --- !u!61 &1972742243
 BoxCollider2D:
   m_ObjectHideFlags: 0

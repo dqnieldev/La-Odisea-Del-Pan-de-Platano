@@ -33,6 +33,8 @@ namespace Odisea.Level
         [SerializeField, Min(0.1f)] private float idleFps = 6f;
         [SerializeField] private Sprite[] talkFrames = Array.Empty<Sprite>();
         [SerializeField, Min(0.1f)] private float talkFps = 8f;
+        [Tooltip("Opcional: suena al empezar cada línea que dice (la risa de Circe).")]
+        [SerializeField] private SoundEffect talkSound = new();
 
         private Vector3 visualScale = Vector3.one;
         private bool speaking;
@@ -79,14 +81,16 @@ namespace Odisea.Level
         {
             if (speaking && !DialogueBox.IsOpen)
                 speaking = false;
-            if (drawing == null)
-                return;
             bool talking = speaking && DialogueBox.IsTyping && talkFrames.Length > 0;
             if (talking != wasTalking)
             {
+                if (talking)
+                    talkSound.Play();
                 wasTalking = talking;
                 frameTime = 0f;
             }
+            if (drawing == null)
+                return;
             frameTime += Time.deltaTime;
             Sprite[] frames = talking ? talkFrames : idleFrames;
             if (frames.Length > 0)

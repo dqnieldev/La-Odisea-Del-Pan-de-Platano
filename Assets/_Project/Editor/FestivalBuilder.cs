@@ -21,8 +21,8 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
-        // musica_festival viene más fuerte que las demás: se baja (en la plaza y en su historieta de entrada).
-        public const float MusicVolume = 0.65f;
+        // En la plaza la música baja (poco a poco, si viene de la historieta) para que se oigan los personajes.
+        public const float MusicVolume = 0.45f;
         private const string BakeryMusicPath = "Assets/_Project/Audio/Music/musica_panaderia";
         private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
         private const string NightSkyPath = "Assets/_Project/Art/Environment/Tovara/Cielo.png";
@@ -143,7 +143,10 @@ namespace Odisea.EditorTools
                     1, new Sprite[0], 3.4f, PolifemoLines, level.PlayerLayer, ground);
             Sprite[] circeIdle = ArtImportBuilder.LoadStrip(ArtImportBuilder.CirceIdlePath);
             Sprite[] circeLaugh = ArtImportBuilder.LoadStrip($"{ArtImportBuilder.CirceFolder}/Circe_Reir.png");
-            CreateNpc(root, "Madame Circe", CirceX, circeIdle, -1, circeLaugh, 2.7f, CirceLines, level.PlayerLayer, ground);
+            NpcDialogue circe = CreateNpc(root, "Madame Circe", CirceX, circeIdle, -1, circeLaugh, 2.7f, CirceLines, level.PlayerLayer,
+                ground);
+            // Se ríe cada vez que dice algo.
+            GameSoundsBuilder.SetSound(circe, "talkSound", GameSoundsBuilder.Load(GameSoundsBuilder.CirceFolder, "circe_risa"), 0.7f);
             CreateScoreboard(root, square);
             CreateMapDoor(root, square, level.PlayerLayer, drawn: art == null);
             CreateStageDoor(root, square, circle, level.PlayerLayer, drawn: art == null);
@@ -244,7 +247,7 @@ namespace Odisea.EditorTools
 
         // Un personaje para platicar, con su dibujo a cierta estatura (los pies en el piso). frame: cuadro fijo de la tira
         // (-1: anima toda la tira en reposo); talk: cuadros mientras habla.
-        private static void CreateNpc(Transform root, string speaker, float x, Sprite[] strip, int frame, Sprite[] talk, float height,
+        private static NpcDialogue CreateNpc(Transform root, string speaker, float x, Sprite[] strip, int frame, Sprite[] talk, float height,
             string[] lines, int playerLayer, int ground)
         {
             var npc = new GameObject(speaker);
@@ -293,6 +296,7 @@ namespace Odisea.EditorTools
                 said.GetArrayElementAtIndex(i).stringValue = lines[i];
             serialized.ApplyModifiedPropertiesWithoutUndo();
             PlayerSandboxBuilder.AddGroundShadow(npc, ground, new Vector2(1.6f, 0.4f), Vector2.zero, null, 3f, FurnitureOrder + 2);
+            return dialogue;
         }
 
         // ---------- Tablero de Honor ----------
