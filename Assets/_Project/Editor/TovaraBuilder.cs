@@ -41,12 +41,16 @@ namespace Odisea.EditorTools
         private const float BankEndHeight = BankHeight;
         private const float BankEndGrass = BankGrass;
         // Orden de dibujo: lo que está en el agua (piedras y patas de los tablones) va detrás de ella; la tierra, enfrente.
-        // Los tablones van entre las dos capas del agua: sus raíces se ven, con la corriente semitransparente encima.
-        private const int SunkenOrder = -2;
+        // Lo que está en el agua (tablones, piedras y pangas) va entre las dos capas: se ve sumergido, con la corriente
+        // semitransparente encima. La espuma, detrás de las pangas (se ve alrededor, no encima); la tierra, enfrente.
         private const int WaterOrder = 0;
-        private const int PlankOrder = WaterOrder + 1;
-        private const int WaterOverlayOrder = WaterOrder + 2;
-        private const int BankOrder = 3;
+        private const int FoamOrder = WaterOrder + 1;
+        private const int PlankOrder = WaterOrder + 2;
+        private const int WaterOverlayOrder = WaterOrder + 3;
+        private const int BankOrder = 4;
+        private const int DropOrder = 8;
+        // Cuánto queda la cubierta de la panga sobre la superficie: lo de abajo del casco va dentro del agua.
+        private const float BoatY = -0.3f;
         private const float PlankReferenceWidth = 5f;
 
         // El agua: su cara de arriba (lo que se ve) y dónde empieza a hundir a Ulises (un poco más abajo).
@@ -60,7 +64,7 @@ namespace Odisea.EditorTools
         private const float CameraY = 3.4f;
         private const float CameraMinX = -2f;
         private const float CameraMaxX = GoalX - 4f;
-        private const int ShadowOrder = 5;
+        private const int ShadowOrder = 6;
         private const float FairFollow = 0.5f;
 
         private static readonly Color Sky = new(0.98f, 0.80f, 0.58f);
@@ -309,7 +313,7 @@ namespace Odisea.EditorTools
         {
             var boat = new GameObject($"Panga {number}") { layer = layer };
             boat.transform.SetParent(root, false);
-            boat.transform.position = new Vector3(x, -0.2f, 0f);
+            boat.transform.position = new Vector3(x, BoatY, 0f);
             boat.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
             var deck = boat.AddComponent<BoxCollider2D>();
             deck.size = new Vector2(width, 0.4f);
@@ -331,9 +335,9 @@ namespace Odisea.EditorTools
             if (art.Boat != null)
             {
                 // La cubierta del dibujo donde se pisa (la cara de arriba del collider).
-                float drawWidth = width + 1.1f;
+                float drawWidth = width + 1.5f;
                 float drawHeight = drawWidth * art.Boat.bounds.size.y / art.Boat.bounds.size.x;
-                SpriteRenderer drawing = Picture(boat.transform, "Panga (dibujo)", art.Boat, Vector2.zero, drawWidth, 6);
+                SpriteRenderer drawing = Picture(boat.transform, "Panga (dibujo)", art.Boat, Vector2.zero, drawWidth, PlankOrder);
                 drawing.transform.localPosition = new Vector3(0f, 0.2f + BoatDeck * drawHeight - drawHeight / 2f, 0f);
                 drawing.gameObject.layer = layer;
                 if (art.Foam != null)
@@ -359,7 +363,7 @@ namespace Odisea.EditorTools
             var foam = new GameObject("Espuma de panga").AddComponent<BoatFoam>();
             foam.transform.SetParent(root, false);
             foam.transform.position = new Vector3(x, WaterTop + 0.08f, 0f);
-            SpriteRenderer Blob(string name, Vector2 position, Vector2 size, float alpha)
+            SpriteRenderer Blob(string name, Vector2 position, Vector2 size, float alpha, int order)
             {
                 var blob = new GameObject(name).AddComponent<SpriteRenderer>();
                 blob.transform.SetParent(foam.transform, false);
@@ -367,7 +371,7 @@ namespace Odisea.EditorTools
                 blob.transform.localScale = new Vector3(size.x / art.Foam.bounds.size.x, size.y / art.Foam.bounds.size.y, 1f);
                 blob.sprite = art.Foam;
                 blob.color = new Color(1f, 1f, 1f, alpha);
-                blob.sortingOrder = 7;
+                blob.sortingOrder = order;
                 return blob;
             }
             const int count = 6;
@@ -376,14 +380,14 @@ namespace Odisea.EditorTools
             for (int i = 0; i < count; i++)
             {
                 float offset = -span / 2f + span * (i + 0.5f) / count;
-                blobs[i] = Blob($"Mancha {i + 1}", new Vector2(offset, 0f), new Vector2(span / count * 1.7f, 0.42f), 0.8f);
+                blobs[i] = Blob($"Mancha {i + 1}", new Vector2(offset, 0f), new Vector2(span / count * 1.7f, 0.42f), 0.8f, FoamOrder);
             }
             var drops = new Object[6];
             for (int i = 0; i < drops.Length; i++)
-                drops[i] = Blob($"Gota {i + 1}", Vector2.zero, new Vector2(0.18f, 0.22f), 0f);
+                drops[i] = Blob($"Gota {i + 1}", Vector2.zero, new Vector2(0.18f, 0.22f), 0f, DropOrder);
             PlayerSandboxBuilder.SetSerialized(foam, "blobs", blobs);
             PlayerSandboxBuilder.SetSerialized(foam, "drops", drops);
-            PlayerSandboxBuilder.SetSerialized(foam, "alpha", 0.8f);
+            PlayerSandboxBuilder.SetSerialized(foam, "alpha", 0.95f);
             return foam;
         }
 
@@ -414,13 +418,19 @@ namespace Odisea.EditorTools
             stone.GetComponent<SpriteRenderer>().sortingOrder = 0;
             if (art.Stones.Length == 0)
                 return;
-            // La piedra más baja que todavía llega abajo del agua.
+            // La piedra más baja que llega bien adentro del agua (ahí se desvanece); si ninguna alcanza, la más alta un
+            // poco estirada.
             const float drawWidth = 2.5f;
+            float needed = top - WaterTop + 2f;
             float Height(Sprite sprite) => drawWidth * sprite.bounds.size.y / sprite.bounds.size.x;
-            Sprite chosen = art.Stones.OrderBy(Height).FirstOrDefault(sprite => Height(sprite) >= top - WaterTop + 0.6f)
+            Sprite chosen = art.Stones.OrderBy(Height).FirstOrDefault(sprite => Height(sprite) >= needed)
                 ?? art.Stones.OrderBy(Height).Last();
+            float drawHeight = Mathf.Max(Height(chosen), needed);
             stone.GetComponent<SpriteRenderer>().enabled = false;
-            Picture(root, "Piedra (dibujo)", chosen, new Vector2(x, top + 0.05f - Height(chosen) / 2f), drawWidth, SunkenOrder);
+            SpriteRenderer drawing = Picture(root, "Piedra (dibujo)", chosen, new Vector2(x, top + 0.05f - drawHeight / 2f), drawWidth,
+                PlankOrder);
+            Vector3 scale = drawing.transform.localScale;
+            drawing.transform.localScale = new Vector3(scale.x, scale.y * drawHeight / Height(chosen), 1f);
         }
 
         // El agua a lo largo de todo el nivel: se ve encima del pie de la orilla y las piedras; un poco más abajo de su
