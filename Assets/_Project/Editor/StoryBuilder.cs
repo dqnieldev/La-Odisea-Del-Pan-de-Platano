@@ -174,10 +174,10 @@ namespace Odisea.EditorTools
              "manglares; al fondo, las luces de la feria."),
             ("Detrás, la tormenta avanza sobre la bahía. No hay tiempo que perder: hay que cruzar saltando de panga en panga.",
              "Nubes negras y relámpagos sobre la bahía; Ulises salta a una panga que se mece; Polifemo le hace señas desde la orilla."),
-            ("Pero entre las raíces lo esperan los secuaces de Circe, y con ellos ratas, jejenes y cocodrilos. " +
-             "¡Que no se caiga el pan al agua!",
+            ("Pero entre las raíces lo esperan los secuaces de Circe, y con ellos ratas, jejenes y cocodrilos. Desde el " +
+             "cielo, una garza lo vigila con un pescado podrido en el pico. ¡Que no se caiga el pan al agua!",
              "Secuaces de Circe escondidos entre las raíces con cucharas y batidores; ratas sobre los tablones, jejenes en el " +
-             "aire y cocodrilos asomando del agua; Ulises protege la canasta."),
+             "aire, cocodrilos asomando del agua y una garza volando con un pescado podrido; Ulises protege la canasta."),
         };
 
         private static readonly string[] TovaraOutroTitles = { "El Festival", "El Pan de Plátano", "¡Que Viva San Blas!" };
