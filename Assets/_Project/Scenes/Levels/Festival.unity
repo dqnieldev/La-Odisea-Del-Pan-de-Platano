@@ -7848,6 +7848,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8287d1e41e3ab441bf9af2ddf3fdd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SceneMusic
+  volume: 0.65
   fadeInDuration: 1.2
   fadeOutDuration: 0.9
   fadeOnDeath: {fileID: 757347737}

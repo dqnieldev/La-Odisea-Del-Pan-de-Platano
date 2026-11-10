@@ -21,6 +21,8 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
+        // musica_festival viene más fuerte que las demás: se baja (en la plaza y en su historieta de entrada).
+        public const float MusicVolume = 0.65f;
         private const string BakeryMusicPath = "Assets/_Project/Audio/Music/musica_panaderia";
         private const string SoftDotPath = "Assets/_Project/Art/Placeholders/Difuso.png";
         private const string NightSkyPath = "Assets/_Project/Art/Environment/Tovara/Cielo.png";
@@ -157,6 +159,8 @@ namespace Odisea.EditorTools
             GameObject player = PlayerSandboxBuilder.SetUpPlayer(level, new Vector2(MapDoorX + 1.9f, 1f), "El Festival",
                 music, showControls: false, background: Color.black, scored: false);
             PlayerSandboxBuilder.AddPlayerShadow(player, level, FurnitureOrder + 2);
+            if (music == FestivalMusicPath && Object.FindAnyObjectByType<SceneMusic>() is { } festivalMusic)
+                PlayerSandboxBuilder.SetSerialized(festivalMusic, "volume", MusicVolume);
             Object.DestroyImmediate(GameObject.Find("HUD"));
             Object.DestroyImmediate(GameObject.Find("Game Over"));
             player.GetComponent<Odisea.Player.PlayerCombat>().enabled = false;

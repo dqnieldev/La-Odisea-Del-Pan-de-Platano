@@ -276,7 +276,9 @@ namespace Odisea.EditorTools
             AudioClip festivalMusic = GameSoundsBuilder.LoadMusic(FestivalMusicPath) ?? actThreeMusic;
             if (festivalMusic != null && (festival.music == null || festival.music == actTwoMusic || festival.music == actThreeMusic))
                 festival.music = festivalMusic;
-            festival.musicContinues = false;
+            // Sigue sonando de corrido en la plaza (que trae la misma canción), un poco más bajita: viene fuerte.
+            festival.musicContinues = true;
+            festival.musicVolume = FestivalBuilder.MusicVolume;
             EditorUtility.SetDirty(festival);
             AssetDatabase.SaveAssets();
             ComicSequence[] stories = AssetDatabase.FindAssets("t:ComicSequence", new[] { StoriesFolder })

@@ -14,6 +14,8 @@ namespace Odisea.Core
     [RequireComponent(typeof(AudioSource))]
     public class SceneMusic : MonoBehaviour
     {
+        [Tooltip("Volumen propio de esta canción (0 a 1), para las que vienen más fuertes que las demás.")]
+        [SerializeField, Range(0f, 1f)] private float volume = 1f;
         [SerializeField, Min(0f)] private float fadeInDuration = 1.2f;
         [Tooltip("Debe ser parecido a lo que tarda en cerrarse el iris para que la música termine junto con la imagen.")]
         [SerializeField, Min(0.01f)] private float fadeOutDuration = 0.9f;
@@ -97,7 +99,8 @@ namespace Odisea.Core
         /// muestra). Para el objeto de música que se creó sin canción.
         /// </summary>
         /// <param name="continueIntoScene">Opcional: escena a la que la canción pasa sin cortarse (la del nivel).</param>
-        public void Play(AudioClip clip, string continueIntoScene = null)
+        /// <param name="clipVolume">Volumen propio de la canción (0 a 1).</param>
+        public void Play(AudioClip clip, string continueIntoScene = null, float clipVolume = 1f)
         {
             // Sin canción el AudioSource puede decir que "suena" (el de la escena se crea sin clip): solo cuenta si trae una.
             if (clip == null || (source.clip != null && source.isPlaying))
@@ -105,6 +108,7 @@ namespace Odisea.Core
             if (!string.IsNullOrEmpty(continueIntoScene))
                 continueInto = new[] { continueIntoScene };
             source.clip = clip;
+            volume = clipVolume;
             playing = this;
             source.Play();
             FadeTo(1f, fadeInDuration);
@@ -196,6 +200,6 @@ namespace Odisea.Core
             }
         }
 
-        private void ApplyVolume() => source.volume = fade * GameSettings.MusicVolume * Mathf.Lerp(1f, pausedVolume, muffle);
+        private void ApplyVolume() => source.volume = volume * fade * GameSettings.MusicVolume * Mathf.Lerp(1f, pausedVolume, muffle);
     }
 }

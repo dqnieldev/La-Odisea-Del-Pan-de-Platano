@@ -30,6 +30,8 @@ namespace Odisea.UI
         public AudioClip music;
         [Tooltip("La canción sigue sonando, sin cortarse, en la escena que viene después (p. ej. la del nivel, que trae la misma).")]
         public bool musicContinues;
+        [Tooltip("Volumen de la canción (0 a 1), para las que vienen más fuertes que las demás.")]
+        [Range(0f, 1f)] public float musicVolume = 1f;
         public Panel[] panels = Array.Empty<Panel>();
     }
 }
