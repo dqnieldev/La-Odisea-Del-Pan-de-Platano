@@ -20,6 +20,8 @@ namespace Odisea.Level
         [SerializeField] private SoundEffect landSound = new();
         [Tooltip("Qué tan rápido tiene que caer (u/s) para que suene.")]
         [SerializeField, Min(0f)] private float landSpeed = 2f;
+        [Tooltip("Opcional: su espuma, que salpica cuando alguien cae encima.")]
+        [SerializeField] private BoatFoam foam;
 
         private Rigidbody2D body;
         private float lastLand = -1f;
@@ -57,6 +59,8 @@ namespace Odisea.Level
                 return;
             lastLand = Time.time;
             landSound.Play();
+            if (foam != null)
+                foam.Splash();
         }
     }
 }

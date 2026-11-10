@@ -136,7 +136,7 @@ namespace Odisea.EditorTools
         // El arte del nivel (Assets/_Project/Art/Environment/Tovara). Lo que falte se queda de color.
         private sealed class TovaraArt
         {
-            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate;
+            public Sprite Boat, Plank, Bank, BankEndLeft, BankEndRight, Water, Sky, FarMangrove, NearMangrove, Festival, Gate, Foam;
             public Sprite[] Stones = new Sprite[0];
         }
 
@@ -333,11 +333,55 @@ namespace Odisea.EditorTools
                 SpriteRenderer drawing = Picture(boat.transform, "Panga (dibujo)", art.Boat, Vector2.zero, drawWidth, 6);
                 drawing.transform.localPosition = new Vector3(0f, 0.2f + BoatDeck * drawHeight - drawHeight / 2f, 0f);
                 drawing.gameObject.layer = layer;
+                if (art.Foam != null)
+                    PlayerSandboxBuilder.SetSerialized(bobbing, "foam", CreateFoam(root, x, width));
                 return;
             }
             // Encima del agua: la panga flota, no está hundida.
             Part("Casco", new Vector2(0f, -0.35f), new Vector2(width, 0.7f), BoatHull, 6);
             Part("Borda", new Vector2(0f, 0.12f), new Vector2(width + 0.1f, 0.16f), BoatTrim, 7);
+        }
+
+        private static void Flow(SpriteRenderer strip, float speed, float phase)
+        {
+            var flow = strip.gameObject.AddComponent<ScrollingWater>();
+            PlayerSandboxBuilder.SetSerialized(flow, "speed", speed);
+            PlayerSandboxBuilder.SetSerialized(flow, "bobPhase", phase);
+        }
+
+        // Espuma de una panga: manchas en la superficie del agua a lo largo de la panga y unas gotas para cuando
+        // Ulises cae encima.
+        private static BoatFoam CreateFoam(Transform root, float x, float width)
+        {
+            var foam = new GameObject("Espuma de panga").AddComponent<BoatFoam>();
+            foam.transform.SetParent(root, false);
+            foam.transform.position = new Vector3(x, WaterTop + 0.08f, 0f);
+            SpriteRenderer Blob(string name, Vector2 position, Vector2 size, float alpha)
+            {
+                var blob = new GameObject(name).AddComponent<SpriteRenderer>();
+                blob.transform.SetParent(foam.transform, false);
+                blob.transform.localPosition = position;
+                blob.transform.localScale = new Vector3(size.x / art.Foam.bounds.size.x, size.y / art.Foam.bounds.size.y, 1f);
+                blob.sprite = art.Foam;
+                blob.color = new Color(1f, 1f, 1f, alpha);
+                blob.sortingOrder = 7;
+                return blob;
+            }
+            const int count = 6;
+            float span = width + 1.6f;
+            var blobs = new Object[count];
+            for (int i = 0; i < count; i++)
+            {
+                float offset = -span / 2f + span * (i + 0.5f) / count;
+                blobs[i] = Blob($"Mancha {i + 1}", new Vector2(offset, 0f), new Vector2(span / count * 1.7f, 0.42f), 0.8f);
+            }
+            var drops = new Object[6];
+            for (int i = 0; i < drops.Length; i++)
+                drops[i] = Blob($"Gota {i + 1}", Vector2.zero, new Vector2(0.18f, 0.22f), 0f);
+            PlayerSandboxBuilder.SetSerialized(foam, "blobs", blobs);
+            PlayerSandboxBuilder.SetSerialized(foam, "drops", drops);
+            PlayerSandboxBuilder.SetSerialized(foam, "alpha", 0.8f);
+            return foam;
         }
 
         // Tablón de La Tovara: las tablas arriba (donde se pisa) y las raíces que bajan hasta el agua. Se estira (9-slice)
@@ -392,9 +436,18 @@ namespace Odisea.EditorTools
             if (art.Water != null)
             {
                 // El dibujo del agua en la franja que se ve; el color sigue abajo, fuera de la vista.
-                water.sortingOrder = WaterOrder - 1;
+                // Dos capas que corren en sentidos contrarios (la de encima, más grande y semitransparente): donde se
+                // cruzan, los brillos cambian todo el tiempo y el agua se ve viva.
+                water.sortingOrder = WaterOrder - 2;
                 const float drawHeight = 4f;
-                Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f), width, drawHeight, WaterOrder);
+                SpriteRenderer below = Strip(root, "Agua (dibujo)", art.Water, new Vector2(centerX, WaterTop + 0.1f - drawHeight / 2f),
+                    width, drawHeight, WaterOrder - 1);
+                Flow(below, 0.25f, 0f);
+                const float overlayHeight = 4.8f;
+                SpriteRenderer above = Strip(root, "Agua (corriente)", art.Water,
+                    new Vector2(centerX, WaterTop + 0.06f - overlayHeight / 2f), width, overlayHeight, WaterOrder);
+                above.color = new Color(1f, 1f, 1f, 0.4f);
+                Flow(above, -0.4f, 1.6f);
             }
 
             var zone = new GameObject("Agua (hunde)");
@@ -557,6 +610,7 @@ namespace Odisea.EditorTools
             loaded.NearMangrove = Load("ManglarCercano");
             loaded.Festival = Load("Festival");
             loaded.Gate = Load("Arco");
+            loaded.Foam = Load("Espuma");
             loaded.Stones = new[] { "Piedra1", "Piedra2", "Piedra3" }.Select(Load).Where(sprite => sprite != null).ToArray();
             return loaded;
         }
