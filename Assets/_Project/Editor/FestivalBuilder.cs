@@ -21,6 +21,7 @@ namespace Odisea.EditorTools
         public const string ScenePath = "Assets/_Project/Scenes/Levels/Festival.unity";
         private const string BackgroundArtPath = "Assets/_Project/Art/Environment/Festival/Fondo.png";
         private const string BoardArtPath = "Assets/_Project/Art/Environment/Festival/Tablero.png";
+        private const string BoardShadowPath = "Assets/_Project/Art/Environment/Festival/Tablero_Sombra.png";
         private const string FestivalMusicPath = "Assets/_Project/Audio/Music/musica_festival";
         // En la plaza la música baja (poco a poco, si viene de la historieta) para que se oigan los personajes.
         public const float MusicVolume = 0.45f;
@@ -45,9 +46,9 @@ namespace Odisea.EditorTools
         // Bien separados (cada uno con su espacio para platicar, lejos de las puertas). La puerta del escenario cae en el
         // escenario del dibujo (a la derecha).
         private const float MapDoorX = -8.3f;
-        private const float DonLupeX = -4.3f;
-        private const float BoardX = -1.3f;
-        private const float PolifemoX = 2.2f;
+        private const float DonLupeX = -4.6f;
+        private const float BoardX = -1.7f;
+        private const float PolifemoX = 1.7f;
         private const float CirceX = 4.9f;
         private const float StageDoorX = 8.3f;
 
@@ -361,53 +362,52 @@ namespace Odisea.EditorTools
             MenuScenesBuilder.SetField(scoreboard, "total", total);
         }
 
-        // El tablero dibujado (listón arriba, tres tiras de papel y una placa abajo): cada texto en su lugar del dibujo.
-        // Las medidas son fracciones del dibujo (x desde la izquierda, y desde arriba).
+        // El tablero dibujado (listón arriba, tres tiras de papel y una placa abajo), sin patas: flota arriba, entre Don
+        // Lupe y Polifemo, sobre el paisaje y sin tapar a nadie. Cada texto va en su lugar del dibujo; las medidas son
+        // fracciones del dibujo original con patas (x desde la izquierda, y desde arriba): el recorte llega a CutLine.
         private static void CreateDrawnScoreboard(Transform board, Sprite art, int ground)
         {
-            const float width = 4.4f;
+            const float width = 5f, centerY = 4.55f, CutLine = 0.824f;
+            board.position = new Vector3(BoardX, centerY, 0f);
             float height = width * art.bounds.size.y / art.bounds.size.x;
             var drawing = new GameObject("Tablero (dibujo)").AddComponent<SpriteRenderer>();
             drawing.transform.SetParent(board, false);
             drawing.sprite = art;
             drawing.transform.localScale = Vector3.one * (width / art.bounds.size.x);
-            // Las patas en el piso.
-            drawing.transform.localPosition = new Vector3(0f, height / 2f - 0.05f, 0f);
             drawing.sortingOrder = FurnitureOrder;
             // Con la luz de la plaza: un poco más cálido y apagado, para que no se vea pegado encima del dibujo.
             drawing.color = new Color(0.88f, 0.8f, 0.72f);
+            // Se mece apenas, como colgado.
+            var sway = drawing.gameObject.AddComponent<FloatingSign>();
+            PlayerSandboxBuilder.SetSerialized(sway, "amplitude", 0.06f);
 
-            // Sombra del tablero sobre lo de atrás (su misma silueta, oscura y corrida) y en el piso, bajo las patas.
-            var cast = new GameObject("Sombra del tablero").AddComponent<SpriteRenderer>();
-            cast.transform.SetParent(board, false);
-            cast.sprite = art;
-            cast.transform.localScale = drawing.transform.localScale;
-            cast.transform.localPosition = drawing.transform.localPosition + new Vector3(0.24f, -0.12f, 0f);
-            cast.color = new Color(0.08f, 0.04f, 0.06f, 0.55f);
-            cast.sortingOrder = FurnitureOrder - 2;
-            PlayerSandboxBuilder.AddGroundShadow(board.gameObject, ground, new Vector2(width * 0.95f, 0.55f), Vector2.zero, null, 3f,
-                FurnitureOrder - 1);
-
-            // Una sombra más oscura bajo cada pata (al 9 % y al 89 % del ancho).
-            Sprite circle = PlayerSandboxBuilder.LoadRequired<Sprite>(TutorialBuilder.CirclePath);
-            foreach (float fx in new[] { 0.09f, 0.89f })
-                BakeryBuilder.Rect("Sombra de la pata", board, circle, new Vector2((fx - 0.5f) * width + 0.08f, 0.02f), new Vector2(0.9f, 0.22f),
-                    new Color(0.06f, 0.03f, 0.04f, 0.45f), FurnitureOrder - 1);
+            // Sombra difuminada del tablero sobre lo de atrás (su silueta borrosa, con el mismo tamaño de pixel), un poco
+            // corrida hacia abajo.
+            if (File.Exists(BoardShadowPath) && MenuScenesBuilder.LoadUiSprite(BoardShadowPath) is { } blur)
+            {
+                var cast = new GameObject("Sombra del tablero").AddComponent<SpriteRenderer>();
+                cast.transform.SetParent(drawing.transform, false);
+                cast.sprite = blur;
+                cast.transform.localScale = Vector3.one * (art.pixelsPerUnit / blur.pixelsPerUnit);
+                cast.transform.localPosition = new Vector3(0.1f, -0.18f, 0f) / drawing.transform.localScale.x;
+                cast.color = new Color(1f, 1f, 1f, 0.7f);
+                cast.sortingOrder = FurnitureOrder - 2;
+            }
 
             // Resplandor cálido detrás (como los lugares del mapa) y la luz del farolito de la izquierda.
             var unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
             if (AssetDatabase.LoadAssetAtPath<Sprite>(SoftDotPath) is { } dot)
             {
-                SpriteRenderer halo = BakeryBuilder.Rect("Resplandor", board, dot, new Vector2(0f, height * 0.55f),
-                    new Vector2(width * 1.5f, height * 1.4f), new Color(1f, 0.72f, 0.38f, 0.5f), FurnitureOrder - 3);
-                SpriteRenderer lamp = BakeryBuilder.Rect("Luz del farolito", board, dot,
-                    new Vector2((0.036f - 0.5f) * width, (1f - 0.42f) * height), new Vector2(1.3f, 1.3f),
-                    new Color(1f, 0.78f, 0.4f, 0.55f), FurnitureOrder + 1);
+                SpriteRenderer halo = BakeryBuilder.Rect("Resplandor", board, dot, Vector2.zero,
+                    new Vector2(width * 1.45f, height * 1.6f), new Color(1f, 0.72f, 0.38f, 0.45f), FurnitureOrder - 3);
+                SpriteRenderer lamp = BakeryBuilder.Rect("Luz del farolito", drawing.transform, dot,
+                    new Vector2((0.036f - 0.5f) * width, (0.5f - 0.42f / CutLine) * height) / drawing.transform.localScale.x,
+                    new Vector2(1.3f, 1.3f) / drawing.transform.localScale.x, new Color(1f, 0.78f, 0.4f, 0.55f), FurnitureOrder + 1);
                 if (unlit != null)
                     halo.sharedMaterial = lamp.sharedMaterial = unlit;
             }
 
-            Vector3 At(float fx, float fy) => new((fx - 0.5f) * width, (1f - fy) * height - 0.05f, 0f);
+            Vector3 At(float fx, float fy) => new((fx - 0.5f) * width, (0.5f - fy / CutLine) * height, 0f);
             TMP_FontAsset titleFont = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RyeRegular);
             TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitExtraBold);
             TMP_FontAsset body = UiAssetsBuilder.LoadFont(UiAssetsBuilder.RubikMedium);
@@ -417,9 +417,11 @@ namespace Odisea.EditorTools
                 TextAlignmentOptions alignment, Color color)
             {
                 var label = new GameObject(name).AddComponent<TextMeshPro>();
-                label.transform.SetParent(board, false);
-                label.transform.localPosition = position;
-                label.rectTransform.sizeDelta = new Vector2(w * width, h * height);
+                // En el dibujo, para que se mezan juntos.
+                label.transform.SetParent(drawing.transform, false);
+                label.transform.localPosition = position / drawing.transform.localScale.x;
+                label.transform.localScale = Vector3.one / drawing.transform.localScale.x;
+                label.rectTransform.sizeDelta = new Vector2(w * width, h / CutLine * height);
                 label.font = font;
                 label.text = text;
                 label.enableAutoSizing = true;
