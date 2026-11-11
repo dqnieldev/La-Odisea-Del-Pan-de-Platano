@@ -580,6 +580,8 @@ namespace Odisea.EditorTools
             serialized.FindProperty("playerLayers").intValue = 1 << level.PlayerLayer;
             serialized.FindProperty("enemyLayers").intValue = 1 << level.EnemyLayer;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            // El chapuzón al caer Ulises (o un enemigo) al agua.
+            GameSoundsBuilder.SetSound(waterZone, "splashSound", GameSoundsBuilder.Load(TovaraSoundFolder, "tovara_chapuzon"), 0.9f);
         }
 
         // Fondo de color en capas (se mueven más lento que la cámara): el manglar lejano y el cercano. Al final, las
