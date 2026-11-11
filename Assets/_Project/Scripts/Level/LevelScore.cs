@@ -29,11 +29,14 @@ namespace Odisea.Level
         public readonly int Total;
         public readonly ScoreRank Rank;
         public readonly bool NewRecord;
+        /// <summary>El tiempo cuenta para el puntaje (en el nivel del horno no: el horneado siempre dura lo mismo).</summary>
+        public readonly bool TimeScored;
 
         public ScoreResult(int ingredientsFound, int ingredientsTotal, int ingredientPoints, float seconds, int timePoints,
             int enemiesDefeated, int enemyPoints, bool noDamage, int noDamagePoints, ScoreRank rank, bool newRecord,
-            int ovenLife = 0, int ovenMax = 0, int ovenPoints = 0)
+            int ovenLife = 0, int ovenMax = 0, int ovenPoints = 0, bool timeScored = true)
         {
+            TimeScored = timeScored;
             IngredientsFound = ingredientsFound;
             IngredientsTotal = ingredientsTotal;
             IngredientPoints = ingredientPoints;
@@ -69,6 +72,8 @@ namespace Odisea.Level
         [SerializeField, Min(0)] private int pointsPerEnemy = 50;
         [Tooltip("Bono completo si termina en este tiempo o menos (segundos); baja hasta 0 al triple.")]
         [SerializeField, Min(1f)] private float parTime = 120f;
+        [Tooltip("Apágalo si el nivel siempre dura lo mismo (el horno): el tiempo no da puntos ni sale en la tarjeta.")]
+        [SerializeField] private bool scoreTime = true;
         [SerializeField, Min(0)] private int timeBonus = 1000;
         [SerializeField, Min(0)] private int noDamageBonus = 500;
         [Tooltip("Opcional (nivel del horno): cada vida que le quede al horno al terminar suma estos puntos.")]
@@ -79,6 +84,9 @@ namespace Odisea.Level
         [SerializeField, Range(0f, 1f)] private float rankS = 0.9f;
         [SerializeField, Range(0f, 1f)] private float rankA = 0.7f;
         [SerializeField, Range(0f, 1f)] private float rankB = 0.45f;
+        [Tooltip("Nivel del horno: la vida que le debe quedar al horno (fracción) para poder sacar B, A y S. Con menos, " +
+                 "el rango baja aunque los puntos den para más.")]
+        [SerializeField] private Vector3 ovenLifeForBAS = new(0.4f, 0.6f, 0.8f);
 
         /// <summary>El puntaje del nivel abierto (null fuera de un nivel).</summary>
         public static LevelScore Current { get; private set; }
@@ -210,17 +218,26 @@ namespace Odisea.Level
             int ingredientPoints = IngredientsFound * pointsPerIngredient;
             int enemyPoints = EnemiesDefeated * pointsPerEnemy;
             float late = Mathf.Max(0f, run.Seconds - parTime) / (parTime * 2f);
-            int timePoints = Mathf.RoundToInt(timeBonus * Mathf.Clamp01(1f - late));
+            int timePoints = scoreTime ? Mathf.RoundToInt(timeBonus * Mathf.Clamp01(1f - late)) : 0;
             bool noDamage = !run.Damaged;
             int noDamagePoints = noDamage ? noDamageBonus : 0;
             int ovenLife = oven != null ? oven.Current : 0, ovenMax = oven != null ? oven.Max : 0;
             int ovenPoints = ovenLife * pointsPerOvenLife;
             int total = ingredientPoints + enemyPoints + timePoints + noDamagePoints + ovenPoints;
 
-            int max = IngredientsTotal * pointsPerIngredient + enemiesTotal * pointsPerEnemy + timeBonus + noDamageBonus +
+            int max = IngredientsTotal * pointsPerIngredient + enemiesTotal * pointsPerEnemy + (scoreTime ? timeBonus : 0) + noDamageBonus +
                       ovenMax * pointsPerOvenLife;
             float ratio = max > 0 ? (float)total / max : 1f;
             ScoreRank rank = ratio >= rankS ? ScoreRank.S : ratio >= rankA ? ScoreRank.A : ratio >= rankB ? ScoreRank.B : ScoreRank.C;
+            if (ovenMax > 0)
+            {
+                // Lo que importa en el horno es defenderlo: con poca vida no hay rango alto.
+                float life = (float)ovenLife / ovenMax + 0.001f;
+                ScoreRank cap = life >= ovenLifeForBAS.z ? ScoreRank.S : life >= ovenLifeForBAS.y ? ScoreRank.A :
+                    life >= ovenLifeForBAS.x ? ScoreRank.B : ScoreRank.C;
+                if (rank > cap)
+                    rank = cap;
+            }
 
             bool newRecord = false;
             if (save)
@@ -229,7 +246,7 @@ namespace Odisea.Level
                 GameProgress.SubmitRank(location, (int)rank);
             }
             return new ScoreResult(IngredientsFound, IngredientsTotal, ingredientPoints, run.Seconds, timePoints,
-                EnemiesDefeated, enemyPoints, noDamage, noDamagePoints, rank, newRecord, ovenLife, ovenMax, ovenPoints);
+                EnemiesDefeated, enemyPoints, noDamage, noDamagePoints, rank, newRecord, ovenLife, ovenMax, ovenPoints, scoreTime);
         }
 
         /// <summary>Tiempo como "1:05".</summary>

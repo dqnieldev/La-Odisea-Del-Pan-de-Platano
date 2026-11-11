@@ -96,6 +96,8 @@ namespace Odisea.UI
             // Sin ingredientes en el nivel (el tutorial) no sale ese renglón. En el del horno, ese renglón son las vidas
             // que le quedaron al horno.
             rows[0].gameObject.SetActive(score.IngredientsTotal > 0 || score.OvenMax > 0);
+            // En el horno el tiempo no cuenta: no sale su renglón.
+            rows[1].gameObject.SetActive(score.TimeScored);
             if (score.OvenMax > 0)
             {
                 points[0] = score.OvenPoints;

@@ -12002,6 +12002,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8287d1e41e3ab441bf9af2ddf3fdd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Odisea::Odisea.Core.SceneMusic
+  volume: 1
+  volumeBlendDuration: 4
   fadeInDuration: 1.2
   fadeOutDuration: 0.9
   fadeOnDeath: {fileID: 58982759}
@@ -18859,13 +18861,15 @@ MonoBehaviour:
   pointsPerIngredient: 100
   pointsPerEnemy: 50
   parTime: 140
+  scoreTime: 0
   timeBonus: 1000
   noDamageBonus: 500
   oven: {fileID: 324253678}
-  pointsPerOvenLife: 200
+  pointsPerOvenLife: 500
   rankS: 0.9
   rankA: 0.7
   rankB: 0.45
+  ovenLifeForBAS: {x: 0.4, y: 0.6, z: 0.8}
 --- !u!4 &2144779720
 Transform:
   m_ObjectHideFlags: 0

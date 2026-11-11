@@ -178,10 +178,12 @@ namespace Odisea.EditorTools
             var score = Object.FindAnyObjectByType<LevelScore>();
             if (score != null)
             {
-                // El horneado dura BakeSeconds: el tiempo cuenta lo que tarda en vencer a Polifemo después.
-                PlayerSandboxBuilder.SetSerialized(score, "parTime", BakeSeconds + 40f);
+                // El horneado siempre dura BakeSeconds: el tiempo no da puntos (todos tardarían casi lo mismo).
+                PlayerSandboxBuilder.SetSerialized(score, "scoreTime", false);
                 // Entre más vidas le queden al horno, más puntos.
                 PlayerSandboxBuilder.SetSerialized(score, "oven", oven);
+                // La vida del horno pesa tanto como los enemigos (y además topa el rango: ver ovenLifeForBAS).
+                PlayerSandboxBuilder.SetSerialized(score, "pointsPerOvenLife", 500);
             }
             CreateOvenHud(oven, bake, square, circle);
             CreateBossBar(boss.Health, square);
