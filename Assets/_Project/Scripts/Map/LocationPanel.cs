@@ -25,12 +25,30 @@ namespace Odisea.Map
         [SerializeField, Min(0.1f)] private float lockedNoticeTime = 2f;
 
         private MapLocation shown, home;
+        private TMP_Text enterLabel;
+        private string enterText;
         private float shownTime, noticeUntil = -1f;
 
         private void Awake()
         {
             group.alpha = 0f;
             card.localScale = Vector3.zero;
+            enterLabel = enterPrompt.GetComponentInChildren<TMP_Text>(true);
+            if (enterLabel != null)
+                enterText = enterLabel.text;
+        }
+
+        /// <summary>
+        /// Muestra el lugar elegido con el mando o las flechas (Ulises está en otro): "Ir" en lugar de "Entrar", porque
+        /// Aceptar lo lleva caminando hasta allá. Se queda hasta que se elija otro o llegue.
+        /// </summary>
+        public void PreviewDestination(MapLocation location)
+        {
+            home = location;
+            noticeUntil = -1f;
+            Display(location);
+            if (enterLabel != null)
+                enterLabel.text = "Ir";
         }
 
         /// <summary>Muestra el lugar donde quedó Ulises.</summary>
@@ -95,6 +113,8 @@ namespace Odisea.Map
             subtitle.text = location.Subtitle;
             LocationState state = location.State;
             enterPrompt.SetActive(state == LocationState.Available);
+            if (enterLabel != null)
+                enterLabel.text = enterText;
             status.text = state switch
             {
                 LocationState.Locked => $"Bloqueado: primero termina {location.RequiresName}",

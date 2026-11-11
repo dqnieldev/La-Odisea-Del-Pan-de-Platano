@@ -1,4 +1,5 @@
 using Odisea.Core;
+using Odisea.Player;
 using UnityEngine;
 
 namespace Odisea.Level
@@ -13,6 +14,19 @@ namespace Odisea.Level
         [SerializeField] private LayerMask playerLayers;
         [SerializeField] private LayerMask enemyLayers;
         [SerializeField] private SoundEffect splashSound = new();
+        [Tooltip("Cuánto antes de que acabe el chapuzón empieza el sonido de muerte de Ulises (0 = justo al terminar).")]
+        [SerializeField, Min(0f)] private float deathSoundOverlap = 0.15f;
+
+        // Lo que dura el chapuzón más largo (hay de dónde escoger si tiene variantes).
+        private float SplashLength()
+        {
+            float length = 0f;
+            if (splashSound.clips != null)
+                foreach (AudioClip clip in splashSound.clips)
+                    if (clip != null)
+                        length = Mathf.Max(length, clip.length);
+            return length;
+        }
 
         private void Reset() => GetComponent<Collider2D>().isTrigger = true;
 
@@ -33,6 +47,12 @@ namespace Odisea.Level
                     other.attachedRigidbody.linearVelocity = Vector2.zero;
                     other.attachedRigidbody.gravityScale = 0.3f;
                 }
+                // Primero el chapuzón y, al acabar, el sonido de muerte (si no, se encimarían).
+                PlayerSounds sounds = health.GetComponentInChildren<PlayerSounds>();
+                if (sounds == null)
+                    sounds = health.GetComponentInParent<PlayerSounds>();
+                if (sounds != null)
+                    sounds.DelayNextDeath(SplashLength() - deathSoundOverlap);
                 health.Kill();
                 return;
             }

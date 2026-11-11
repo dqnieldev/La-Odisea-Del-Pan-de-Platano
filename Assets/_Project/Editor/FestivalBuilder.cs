@@ -462,12 +462,27 @@ namespace Odisea.EditorTools
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowNames", names);
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowPoints", points);
             PlayerSandboxBuilder.SetSerialized(scoreboard, "rowRanks", ranks);
+            AddDeathsRow(scoreboard, sheet);
             var modal = root.AddComponent<ScoreboardModal>();
             MenuScenesBuilder.SetField(modal, "group", root.GetComponent<CanvasGroup>());
             MenuScenesBuilder.SetField(modal, "card", card);
             MenuScenesBuilder.SetField(modal, "scoreboard", scoreboard);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(close.onClick, modal.Close);
             return modal;
+        }
+
+        /// <summary>
+        /// Debajo del total del Tablero de Honor: "Muertes" y cuántas veces murió Ulises en la partida. Público para
+        /// poder agregarlo a la escena ya armada sin reconstruirla.
+        /// </summary>
+        public static void AddDeathsRow(FestivalScoreboard scoreboard, RectTransform sheet)
+        {
+            TMP_FontAsset bold = UiAssetsBuilder.LoadFont(UiAssetsBuilder.OutfitBold);
+            MenuScenesBuilder.CreateText("Muertes (nombre)", sheet, "Muertes", bold, 40, MenuScenesBuilder.TintaClara,
+                position: new Vector2(-170f, -280f), rectSize: new Vector2(420f, 60f), alignment: TextAlignmentOptions.MidlineLeft);
+            TMP_Text deaths = MenuScenesBuilder.CreateText("Muertes", sheet, "0", bold, 40, MenuScenesBuilder.TintaClara,
+                position: new Vector2(150f, -280f), rectSize: new Vector2(220f, 60f), alignment: TextAlignmentOptions.MidlineRight);
+            MenuScenesBuilder.SetField(scoreboard, "deaths", deaths);
         }
 
         // ---------- Puertas ----------

@@ -42,6 +42,7 @@ namespace Odisea.Player
         [SerializeField] private float[] footstepMoments = { 0.36f, 0.82f };
 
         private float fallSpeed;
+        private float deathDelay;
         private float lastRunTime = -1f;
 
         private void OnEnable()
@@ -139,6 +140,16 @@ namespace Odisea.Player
                 hurt.Play();
         }
 
-        private void OnDied() => (death.HasClips ? death : hurt).Play();
+        /// <summary>
+        /// El sonido de muerte de la próxima vez espera estos segundos (al caer al agua, para que primero se oiga el
+        /// chapuzón y no se encimen).
+        /// </summary>
+        public void DelayNextDeath(float seconds) => deathDelay = Mathf.Max(0f, seconds);
+
+        private void OnDied()
+        {
+            GameAudio.Play(death.HasClips ? death : hurt, deathDelay);
+            deathDelay = 0f;
+        }
     }
 }
