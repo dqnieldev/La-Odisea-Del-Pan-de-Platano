@@ -11,8 +11,9 @@ namespace Odisea.Map
     /// <summary>
     /// Mapa de San Blas como el de Mario: se ve completo y Ulises (una ficha) camina por los caminos dibujados entre
     /// los lugares. Clic en un lugar abierto: camina hasta él; clic otra vez (o Aceptar): entra. Con ← → (teclado,
-    /// cruceta o stick) va al lugar abierto anterior o siguiente, en el orden de la historia. Los bloqueados solo
-    /// avisan qué hay que terminar antes.
+    /// cruceta o stick) se elige el lugar abierto anterior o siguiente en el orden de la historia (la flecha y el
+    /// anillo saltan ahí, sin caminar); Aceptar hace que Ulises camine hasta él y, ya ahí, Aceptar entra. Los bloqueados solo avisan qué hay que
+    /// terminar antes.
     /// Al pasar el mouse sobre un lugar, se ilumina (la ventanita solo muestra donde está Ulises). Al volver con un lugar recién abierto,
     /// la cámara se acerca, le vuelve el color con un estallido de chispas y regresa. Sobre el lugar elegido rebota una flecha y brilla un
     /// anillo; su nombre sale en la ventanita de abajo.
@@ -79,6 +80,9 @@ namespace Odisea.Map
 
         private readonly List<Vector2> route = new();
         private int current, target = -1;
+        // Lugar elegido con las flechas o el stick (donde están la flecha y el anillo). Si es otro que donde está
+        // Ulises, Aceptar lo lleva caminando.
+        private int selected;
         private bool entering, revealing;
         private float stepTimer;
         private int lastHorizontal;
@@ -102,6 +106,7 @@ namespace Odisea.Map
                     current = i;
             }
             token.position = nodes[current].position;
+            selected = current;
             if (tokenAnimator != null)
                 tokenAnimator.SetBool(IsGroundedId, true);
             if (tokenVisual != null)
@@ -143,9 +148,14 @@ namespace Odisea.Map
             }
             int step = HorizontalPressed();
             if (step != 0)
-                Step(step);
+                Select(NextOpen(step));
             else if (ConfirmPressed())
-                TryEnter();
+            {
+                if (selected == current)
+                    TryEnter();
+                else
+                    GoTo(selected);
+            }
         }
 
         private void AnimateToken()
@@ -170,10 +180,11 @@ namespace Odisea.Map
             }
         }
 
-        // Flecha y anillo del lugar donde está Ulises. Se apagan mientras camina o mientras se estrena un lugar.
+        // Flecha y anillo del lugar elegido (donde está Ulises si no se ha elegido otro). Se apagan mientras camina o
+        // mientras se estrena un lugar.
         private void AnimateFocus()
         {
-            MapLocation location = nodes[current].location;
+            MapLocation location = nodes[selected].location;
             focus = Mathf.MoveTowards(focus, Walking || revealing || location == null ? 0f : 1f, Time.deltaTime * 4f);
             if (location == null)
                 return;
@@ -181,12 +192,12 @@ namespace Odisea.Map
             if (marker != null)
             {
                 float bounce = Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 0.45f;
-                marker.position = (Vector3)nodes[current].position + Vector3.up * (MarkerHeight + bounce);
+                marker.position = (Vector3)nodes[selected].position + Vector3.up * (MarkerHeight + bounce);
                 marker.localScale = markerScale * focus;
             }
             if (highlight != null)
             {
-                highlight.transform.position = nodes[current].position;
+                highlight.transform.position = nodes[selected].position;
                 float pulse = 0.75f + Mathf.Sin(Time.time * 3f) * 0.25f;
                 highlight.color = new Color(highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a * pulse * focus);
                 float size = HighlightSize / Mathf.Max(0.01f, highlight.sprite.bounds.size.x);
@@ -206,7 +217,7 @@ namespace Odisea.Map
         private void UpdateHover(bool busy)
         {
             int now = busy ? -1 : LocationUnderMouse();
-            if (now == current)
+            if (now == current || now == selected)
                 now = -1;
             if (now != hovered)
             {
@@ -311,19 +322,31 @@ namespace Odisea.Map
             view.orthographicSize = size;
         }
 
-        // ← →: al lugar abierto anterior o siguiente en el orden de la historia (los bloqueados se saltan).
-        private void Step(int direction)
+        // ← →: el lugar abierto anterior o siguiente al elegido, en el orden de la historia (los bloqueados se
+        // saltan). -1 si no hay.
+        private int NextOpen(int direction)
         {
-            int index = Array.IndexOf(locationOrder, current);
+            int index = Array.IndexOf(locationOrder, selected);
             for (int i = index + direction; i >= 0 && i < locationOrder.Length; i += direction)
             {
-                MapLocation location = nodes[locationOrder[i]].location;
-                if (!location.IsLocked)
-                {
-                    GoTo(locationOrder[i]);
-                    return;
-                }
+                if (!nodes[locationOrder[i]].location.IsLocked)
+                    return locationOrder[i];
             }
+            return -1;
+        }
+
+        // Mueve la flecha y el anillo a otro lugar sin caminar; la ventanita lo muestra (bloqueado: por qué).
+        private void Select(int node)
+        {
+            if (node < 0 || node == selected)
+                return;
+            selected = node;
+            UiAudio.Play(UiSound.Hover);
+            MapLocation location = nodes[node].location;
+            if (node == current)
+                panel.Show(location);
+            else
+                panel.PreviewDestination(location);
         }
 
         private void GoTo(int node)
@@ -340,7 +363,7 @@ namespace Odisea.Map
             route.Clear();
             for (int i = 0; i + 1 < path.Count; i++)
                 AppendEdge(path[i], path[i + 1]);
-            target = node;
+            target = selected = node;
             panel.Hide();
             UiAudio.Play(UiSound.Click);
         }
@@ -384,7 +407,7 @@ namespace Odisea.Map
             }
             if (route.Count == 0)
             {
-                current = target;
+                current = selected = target;
                 ShowCurrent();
             }
         }
@@ -488,7 +511,8 @@ namespace Odisea.Map
             return false;
         }
 
-        // -1 / 1 solo en el cuadro en que se empuja (el stick no repite mientras se mantiene).
+        // -1 / 1 solo en el cuadro en que se empuja (el stick no repite mientras se mantiene). Solo izquierda y
+        // derecha: arriba y abajo no hacen nada.
         private int HorizontalPressed()
         {
             Keyboard keyboard = Keyboard.current;
