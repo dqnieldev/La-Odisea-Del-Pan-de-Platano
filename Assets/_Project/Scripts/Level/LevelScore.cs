@@ -125,7 +125,10 @@ namespace Odisea.Level
         private void Start()
         {
             if (player != null)
+            {
                 player.Damaged += OnPlayerDamaged;
+                player.Died += OnPlayerDied;
+            }
 
             foreach (Pickup pickup in FindObjectsByType<Pickup>(FindObjectsInactive.Include))
             {
@@ -146,7 +149,10 @@ namespace Odisea.Level
         private void OnDestroy()
         {
             if (player != null)
+            {
                 player.Damaged -= OnPlayerDamaged;
+                player.Died -= OnPlayerDied;
+            }
             if (Current == this)
                 Current = null;
         }
@@ -234,6 +240,9 @@ namespace Odisea.Level
         }
 
         private void OnPlayerDamaged(DamageInfo info) => run.Damaged = true;
+
+        // Las muertes se cuentan en toda la partida y salen en el Tablero de Honor del festival.
+        private void OnPlayerDied() => GameProgress.AddDeath();
 
         // Cada cosa del nivel se reconoce por dónde empieza (no se mueven antes del Start).
         private static string KeyOf(Transform target)

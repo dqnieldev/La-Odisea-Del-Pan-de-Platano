@@ -7,7 +7,8 @@ namespace Odisea.Level
     /// <summary>
     /// El Tablero de Honor del festival: el mejor puntaje y rango de cada nivel de la partida (lo que guarda
     /// <see cref="GameProgress"/>) y el total. Los niveles sin jugar salen con guiones. Con el tablero dibujado, cada
-    /// nivel va en su propia tira (rowNames, rowPoints, rowRanks); si no, en tres listas.
+    /// nivel va en su propia tira (rowNames, rowPoints, rowRanks); si no, en tres listas. Debajo del total, las veces que
+    /// murió Ulises en toda la partida.
     /// </summary>
     public class FestivalScoreboard : MonoBehaviour
     {
@@ -17,6 +18,8 @@ namespace Odisea.Level
         [SerializeField] private TMP_Text total;
         [Tooltip("Cómo se escribe el total ({0} es el número).")]
         [SerializeField] private string totalFormat = "Total: {0}";
+        [Tooltip("Opcional: las muertes de la partida.")]
+        [SerializeField] private TMP_Text deaths;
         [Header("Una tira por nivel (el tablero dibujado)")]
         [SerializeField] private TMP_Text[] rowNames = new TMP_Text[0];
         [SerializeField] private TMP_Text[] rowPoints = new TMP_Text[0];
@@ -59,6 +62,8 @@ namespace Odisea.Level
                 ranks.text = rankText.TrimEnd();
             if (total != null)
                 total.text = string.Format(totalFormat, sum.ToString("N0"));
+            if (deaths != null)
+                deaths.text = GameProgress.Deaths.ToString("N0");
         }
 
         private static void SetRow(TMP_Text[] row, int index, string text)

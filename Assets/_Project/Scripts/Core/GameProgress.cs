@@ -106,6 +106,15 @@ namespace Odisea.Core
             }
         }
 
+        /// <summary>Veces que murió Ulises en la partida actual, en todos los niveles (sale en el Tablero de Honor).</summary>
+        public static int Deaths => PlayerPrefs.GetInt(Key(Slot, "", "Muertes"), 0);
+
+        public static void AddDeath()
+        {
+            PlayerPrefs.SetInt(Key(Slot, "", "Muertes"), Deaths + 1);
+            PlayerPrefs.Save();
+        }
+
         // ---------- Partidas ----------
 
         /// <summary>La partida ya se empezó (aunque no haya terminado nada).</summary>
@@ -135,6 +144,7 @@ namespace Odisea.Core
             PlayerPrefs.DeleteKey(Key(slot, "", "UltimoLugar"));
             PlayerPrefs.DeleteKey(Key(slot, "", "MapaRevelado"));
             PlayerPrefs.DeleteKey(Key(slot, "", "Empezada"));
+            PlayerPrefs.DeleteKey(Key(slot, "", "Muertes"));
             PlayerPrefs.Save();
         }
 
