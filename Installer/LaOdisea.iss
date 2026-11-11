@@ -5,7 +5,7 @@
 ;   "C:\Program Files\Inno Setup 7\ISCC.exe" Installer\LaOdisea.iss
 ; Otra versión sin editar el archivo:
 ;   "C:\Program Files\Inno Setup 7\ISCC.exe" /DMyAppVersion=1.0.1 Installer\LaOdisea.iss
-; Sale en Build\LaOdisea_Setup_<versión>.exe.
+; Sale en Build\La Odisea del Pan de Platano <versión>.exe.
 
 #ifndef MyAppVersion
   #define MyAppVersion "1.0.0"
@@ -33,7 +33,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\Build
-OutputBaseFilename=LaOdisea_Setup_{#MyAppVersion}
+OutputBaseFilename={#MyAppName} {#MyAppVersion}
 SetupIconFile=LaOdisea.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
